@@ -3,9 +3,24 @@
  * Manages communication between client, local database, and Google Sheets / Apps Script backend.
  */
 
-const QUEUE_KEY = 'expense_tracker_sync_queue';
+const BASE_QUEUE_KEY = 'expense_tracker_sync_queue';
 const SYNC_CONFIG_KEY = 'expense_tracker_sync_config';
 const LAST_SYNC_KEY = 'expense_tracker_last_sync_time';
+
+function getActiveEmail() {
+  try {
+    const sessionStr = localStorage.getItem('expense_tracker_auth_session');
+    if (sessionStr) {
+      const session = JSON.parse(sessionStr);
+      if (session.email) return session.email.trim().toLowerCase();
+    }
+  } catch (e) {}
+  return 'default';
+}
+
+function getQueueStorageKey() {
+  return `${BASE_QUEUE_KEY}_${getActiveEmail()}`;
+}
 
 class SyncService {
   constructor() {
@@ -58,7 +73,7 @@ class SyncService {
   // Get pending queue
   getQueue() {
     try {
-      const queue = localStorage.getItem(QUEUE_KEY);
+      const queue = localStorage.getItem(getQueueStorageKey());
       return queue ? JSON.parse(queue) : [];
     } catch (e) {
       return [];
@@ -67,7 +82,7 @@ class SyncService {
 
   // Save pending queue
   saveQueue(queue) {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+    localStorage.setItem(getQueueStorageKey(), JSON.stringify(queue));
     this.notifyListeners();
   }
 

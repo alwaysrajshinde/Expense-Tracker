@@ -253,6 +253,7 @@ function MainApp() {
                   settings={settings}
                   categories={categories}
                   initialSection={settingsSection}
+                  onLogout={logout}
                   onUpdateSettings={async (data) => {
                     const updated = await api.updateSettings(data);
                     setSettings(prev => ({ ...prev, ...updated }));
@@ -276,7 +277,6 @@ function MainApp() {
                   onRefreshAll={handleRefreshAll}
                   formatCurrency={formatCurrency}
                   selectedMonth={selectedMonth}
-                  onLogout={logout}
                 />
               )}
             </main>
@@ -356,6 +356,7 @@ function MainApp() {
                   settings={settings}
                   categories={categories}
                   initialSection={settingsSection}
+                  onLogout={logout}
                   onUpdateSettings={async (data) => {
                     const updated = await api.updateSettings(data);
                     setSettings(prev => ({ ...prev, ...updated }));
@@ -379,7 +380,6 @@ function MainApp() {
                   onRefreshAll={handleRefreshAll}
                   formatCurrency={formatCurrency}
                   selectedMonth={selectedMonth}
-                  onLogout={logout}
                 />
               </div>
             )}

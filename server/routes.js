@@ -11,7 +11,10 @@ const upload = multer({ storage: multer.memoryStorage() });
 // Middleware: Resolve authenticated user context with complete data isolation
 function resolveUser(req, res, next) {
   try {
-    const userEmail = req.headers['x-user-email'] || req.query.user_email || 'raaajshinde@gmail.com';
+    const userEmail = req.headers['x-user-email'] || req.query.user_email;
+    if (!userEmail) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: user identity header missing' });
+    }
     const googleSub = req.headers['x-google-sub'] || null;
     const userName = req.headers['x-user-name'] || null;
     const { user, spreadsheetMapping, isNew } = db.getOrCreateUser(googleSub, userEmail, userName);

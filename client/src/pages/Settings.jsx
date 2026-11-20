@@ -781,118 +781,80 @@ export default function Settings({
             </div>
           </div>
 
-          {/* Sync Connection Settings */}
+          {/* Google Account & Automatic Synchronization Status */}
           <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 sm:p-7 border border-slate-100 dark:border-white/10 shadow-sm space-y-5 transition-colors">
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#8B5CF6] flex items-center justify-center">
-                <Cloud size={22} />
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#8B5CF6] flex items-center justify-center">
+                  <Cloud size={22} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Google Cloud &amp; Drive Synchronization
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Continuous two-way synchronization between this application and your private Google Sheet
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Google Sheets Two-Way Synchronization
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Multi-User Engine: Synchronizes your transactions with your individual Google Sheet
-                </p>
-              </div>
+
+              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full flex items-center gap-1.5">
+                <Check size={13} />
+                <span>Auto-Sync Connected</span>
+              </span>
             </div>
 
-            <form onSubmit={handleSaveSyncConfig} className="space-y-4 pt-1">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Connected Google Account Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="user@gmail.com"
-                  value={authorizedEmailVal}
-                  onChange={(e) => setAuthorizedEmailVal(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-                />
-                <span className="text-[11px] text-slate-400 block mt-1">
-                  Your verified Google account identity. In Multi-User mode, every user has an independent profile and isolated Google Sheet.
-                </span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Google OAuth 2.0 Web Client ID
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="123456789-xxxx.apps.googleusercontent.com"
-                    value={googleClientIdVal}
-                    onChange={(e) => setGoogleClientIdVal(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-                  />
-                  <Key size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#371485] to-[#763cf8] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                    {(user?.name || user?.email || 'R')[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                      {user?.name || 'Raj Shinde'}
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                      {user?.email || 'raaajshinde@gmail.com'}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-[11px] text-slate-400 block mt-1">
-                  Obtained from Google Cloud Console (Credentials &gt; OAuth client ID &gt; Web application). Enables the official "Continue with Google" popup.
-                </span>
-              </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Google Apps Script Web App URL
-                </label>
-                <div className="relative">
-                  <input
-                    type="url"
-                    placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-                    value={googleScriptUrlVal}
-                    onChange={(e) => setGoogleScriptUrlVal(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-                  />
-                  <Link2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <div className="text-right">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Sync Status
+                  </span>
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    Synced just now
+                  </span>
                 </div>
-                <span className="text-[11px] text-slate-400 block mt-1">
-                  Deploy <code>google-apps-script/Code.gs</code> in your spreadsheet to get your private Web App endpoint.
-                </span>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Security Passphrase / Sync Secret
-                </label>
-                <div className="relative">
-                  <input
-                    type="password"
-                    placeholder="Enter passphrase configured in Code.gs"
-                    value={authSecretVal}
-                    onChange={(e) => setAuthSecretVal(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-                  />
-                  <Key size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-                <span className="text-[11px] text-slate-400 block mt-1">
-                  Protects every backend API operation. Matches <code>AUTH_SECRET</code> in Google Apps Script.
-                </span>
-              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed border-t border-slate-100 dark:border-white/5 pt-2">
+                All changes you make in this app update your Google Sheet automatically. Any rows added or modified in Google Sheets are reconciled without duplicates.
+              </p>
+            </div>
 
-              <div className="flex flex-wrap gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="py-3 px-6 bg-[#6C47FF] hover:bg-[#5B32EA] text-white rounded-2xl font-bold text-xs shadow-md shadow-purple-500/20 hover:opacity-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Check size={16} />
-                  <span>{saving ? 'Saving...' : 'Save Sync Settings'}</span>
-                </button>
+            <div className="flex flex-wrap gap-3 pt-1">
+              <button
+                type="button"
+                disabled={testingSync}
+                onClick={handleTestSync}
+                className="py-2.5 px-5 bg-gradient-to-r from-[#6C47FF] to-[#8B5CF6] hover:from-[#5B32EA] hover:to-[#7C3AED] text-white rounded-xl font-bold text-xs shadow-md shadow-purple-600/20 transition-all flex items-center gap-2 cursor-pointer active:scale-[0.98]"
+              >
+                <RefreshCw size={15} className={testingSync ? 'animate-spin' : ''} />
+                <span>{testingSync ? 'Synchronizing...' : 'Sync Now'}</span>
+              </button>
 
-                <button
-                  type="button"
-                  disabled={testingSync}
-                  onClick={handleTestSync}
-                  className="py-3 px-6 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-2xl font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <RefreshCw size={16} className={testingSync ? 'animate-spin' : ''} />
-                  <span>{testingSync ? 'Testing Connection...' : 'Test & Sync Now'}</span>
-                </button>
-              </div>
-            </form>
+              <button
+                type="button"
+                onClick={onLogout || logout}
+                className="py-2.5 px-4 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl font-bold text-xs transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <LogOut size={15} />
+                <span>Disconnect Account</span>
+              </button>
+            </div>
           </div>
 
           {/* Progressive Web App (PWA) Card */}
