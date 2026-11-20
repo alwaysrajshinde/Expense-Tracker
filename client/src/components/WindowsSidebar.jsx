@@ -1,0 +1,175 @@
+import React, { useState } from 'react';
+import { 
+  Home, ReceiptText, Plus, BarChart2, Tag, Target, ArrowLeftRight, 
+  Cloud, Settings, ChevronDown, Wallet, LogOut, CheckCircle2, User
+} from 'lucide-react';
+
+export default function WindowsSidebar({
+  activeTab,
+  onTabChange,
+  onOpenAddExpense,
+  userName = "Raj Shinde",
+  userEmail = "raaajshinde@gmail.com",
+  onLogout
+}) {
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const menuItems = [
+    { id: 'home', label: 'Home', icon: Home },
+    { id: 'transactions', label: 'Transactions', icon: ReceiptText },
+    { id: 'add_expense', label: 'Add Expense', icon: Plus, isAction: true },
+    { id: 'reports', label: 'Reports', icon: BarChart2 },
+    { id: 'categories', label: 'Categories', icon: Tag },
+    { id: 'budget', label: 'Budget', icon: Target },
+    { id: 'import_export', label: 'Import / Export', icon: ArrowLeftRight },
+    { id: 'backup_restore', label: 'Backup & Restore', icon: Cloud },
+    { id: 'settings', label: 'Settings', icon: Settings }
+  ];
+
+  const handleClick = (item) => {
+    if (item.isAction) {
+      onOpenAddExpense();
+    } else {
+      onTabChange(item.id);
+    }
+  };
+
+  const initials = userName
+    .split(' ')
+    .map(p => p[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || 'RS';
+
+  return (
+    <aside className="w-[260px] h-screen bg-white dark:bg-[#131024] border-r border-slate-200/80 dark:border-white/10 flex flex-col justify-between select-none relative sticky top-0 transition-colors">
+      {/* Top Brand & Navigation */}
+      <div>
+        {/* Brand Header */}
+        <div className="p-6 pb-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#371485] to-[#763cf8] text-white flex items-center justify-center shadow-md shadow-purple-900/20">
+            <Wallet size={18} />
+          </div>
+          <div>
+            <span className="text-sm font-black text-slate-900 dark:text-white tracking-tight block">
+              Expense Tracker
+            </span>
+            <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase block">
+              Personal Vault
+            </span>
+          </div>
+        </div>
+
+        {/* Navigation Menu */}
+        <nav className="px-3 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+
+            if (item.isAction) {
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleClick(item)}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon size={17} className="text-[#6C47FF] dark:text-[#A78BFA]" />
+                    <span>{item.label}</span>
+                  </div>
+                  <span className="w-5 h-5 rounded-md bg-[#6C47FF] text-white flex items-center justify-center text-[10px] font-bold group-hover:scale-105 transition-transform">
+                    +
+                  </span>
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleClick(item)}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[#F0EEFF] dark:bg-purple-900/40 text-[#6C47FF] dark:text-[#A78BFA] font-bold shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Icon size={17} strokeWidth={isActive ? 2.5 : 2} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Bottom User Profile Card & Logout */}
+      <div className="relative m-3">
+        {/* Profile Dropdown Menu */}
+        {profileOpen && (
+          <>
+            <div className="fixed inset-0 z-30" onClick={() => setProfileOpen(false)} />
+            <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#1A172B] rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 p-2 z-40 space-y-1 animate-slide-up">
+              <div className="px-3 py-2 border-b border-slate-100 dark:border-white/5">
+                <span className="text-[11px] font-bold text-slate-900 dark:text-white block truncate">
+                  {userName}
+                </span>
+                <span className="text-[10px] text-slate-400 block truncate">
+                  {userEmail}
+                </span>
+                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold">
+                  <CheckCircle2 size={10} />
+                  <span>Authorized Session</span>
+                </span>
+              </div>
+
+              <button
+                onClick={() => {
+                  setProfileOpen(false);
+                  onTabChange('settings');
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-left"
+              >
+                <User size={14} className="text-slate-400" />
+                <span>Account Settings</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setProfileOpen(false);
+                  if (onLogout) onLogout();
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors text-left cursor-pointer"
+              >
+                <LogOut size={14} />
+                <span>Log Out</span>
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Profile Card Button */}
+        <div
+          onClick={() => setProfileOpen(!profileOpen)}
+          className="p-3 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/70 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#4B1FC8] to-[#7B42F6] text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-xs">
+                {initials}
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
+                  {userName}
+                </span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-400 block truncate">
+                  {userEmail}
+                </span>
+              </div>
+            </div>
+            <ChevronDown size={14} className={`text-slate-400 flex-shrink-0 ml-1 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}

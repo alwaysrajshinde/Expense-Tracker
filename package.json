@@ -1,0 +1,29 @@
+{
+  "name": "expense-tracker",
+  "version": "1.0.0",
+  "description": "Personal Expense Tracker with modern UI and Excel reference migration",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "build": "cd client && npm run build",
+    "dev:server": "node server/index.js",
+    "dev:client": "cd client && npm run dev"
+  },
+  "keywords": [
+    "expense-tracker",
+    "finance",
+    "react",
+    "sqlite"
+  ],
+  "author": "Raj",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^13.2.0",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "multer": "^2.5.0",
+    "puppeteer-core": "^25.18.1",
+    "xlsx": "^0.18.5"
+  }
+}
