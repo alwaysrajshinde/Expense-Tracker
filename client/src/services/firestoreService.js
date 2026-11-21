@@ -437,6 +437,17 @@ export async function updateTransaction(userId, id, data) {
 
   try {
     const docRef = doc(db, 'users', userId, 'transactions', String(id));
+    
+    // Invalidate old month rollup cache if date changed
+    let oldMonthKey = null;
+    try {
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const oldData = snap.data();
+        oldMonthKey = oldData.month_key || (oldData.date ? oldData.date.slice(0, 7) : null);
+      }
+    } catch (readErr) {}
+
     const parsedDate = data.date || new Date().toISOString().slice(0, 10);
     const monthKey = parsedDate.slice(0, 7);
     let amount = parseFloat(data.amount) || 0;
@@ -451,6 +462,17 @@ export async function updateTransaction(userId, id, data) {
     };
 
     await updateDoc(docRef, updated);
+
+    // Invalidate roll-up caches so dashboard & reports calculate accurate live totals
+    try {
+      if (oldMonthKey) {
+        await deleteDoc(doc(db, 'users', userId, 'months', oldMonthKey));
+      }
+      if (monthKey && monthKey !== oldMonthKey) {
+        await deleteDoc(doc(db, 'users', userId, 'months', monthKey));
+      }
+    } catch (cacheErr) {}
+
     return updated;
   } catch (err) {
     console.error('Error updating transaction in Firestore:', err);
@@ -466,7 +488,26 @@ export async function deleteTransaction(userId, id) {
 
   try {
     const docRef = doc(db, 'users', userId, 'transactions', String(id));
+    
+    // Fetch monthKey before deleting to invalidate the monthly rollup cache
+    let monthKey = null;
+    try {
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        monthKey = data.month_key || (data.date ? data.date.slice(0, 7) : null);
+      }
+    } catch (readErr) {}
+
     await deleteDoc(docRef);
+
+    // Invalidate monthly roll-up cache so dashboard & reports immediately recalculate fresh totals
+    if (monthKey) {
+      try {
+        await deleteDoc(doc(db, 'users', userId, 'months', monthKey));
+      } catch (cacheErr) {}
+    }
+
     return { success: true };
   } catch (err) {
     console.error('Error deleting transaction in Firestore:', err);

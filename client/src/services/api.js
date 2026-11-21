@@ -205,31 +205,35 @@ export async function getTransactions(filters = {}) {
 }
 
 export async function createTransaction(data) {
+  let createdTx = null;
+
   // 1. Cloud Firestore Route
   if (isFirebaseConfigured) {
     try {
       const fsTx = await firestoreService.addTransaction(getCurrentUserId(), data);
-      if (fsTx) return fsTx;
+      if (fsTx) createdTx = fsTx;
     } catch (e) {
       console.warn('Firestore addTransaction fallback:', e);
     }
   }
 
-  const txId = data.id || ('TX-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
-  const newTx = {
+  const txId = (createdTx && createdTx.id) || data.id || ('TX-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
+  const newTx = createdTx || {
     ...data,
     id: txId,
     month_key: data.month_key || (data.date ? data.date.slice(0, 7) : new Date().toISOString().slice(0, 7)),
     updated_at: new Date().toISOString()
   };
 
-  // Enqueue in Two-Way Sync Queue
-  syncService.enqueue('create', newTx, txId);
-
-  // Update local storage cache
+  // Always update local storage cache to keep client state synchronized
   const local = getLocalTransactions();
   local.unshift(newTx);
   saveLocalTransactions(local);
+
+  if (createdTx) return createdTx;
+
+  // Enqueue in Two-Way Sync Queue for offline fallback
+  syncService.enqueue('create', newTx, txId);
 
   // Forward to local API server if running
   try {
@@ -251,6 +255,21 @@ export async function createTransaction(data) {
 }
 
 export async function updateTransaction(id, data) {
+  const updatedTx = {
+    ...data,
+    id: id,
+    month_key: data.month_key || (data.date ? data.date.slice(0, 7) : new Date().toISOString().slice(0, 7)),
+    updated_at: new Date().toISOString()
+  };
+
+  // Always update local cache
+  const local = getLocalTransactions();
+  const idx = local.findIndex(t => String(t.id) === String(id));
+  if (idx !== -1) {
+    local[idx] = updatedTx;
+    saveLocalTransactions(local);
+  }
+
   // 1. Cloud Firestore Route
   if (isFirebaseConfigured) {
     try {
@@ -261,21 +280,7 @@ export async function updateTransaction(id, data) {
     }
   }
 
-  const updatedTx = {
-    ...data,
-    id: id,
-    month_key: data.month_key || (data.date ? data.date.slice(0, 7) : new Date().toISOString().slice(0, 7)),
-    updated_at: new Date().toISOString()
-  };
-
   syncService.enqueue('update', updatedTx, id);
-
-  const local = getLocalTransactions();
-  const idx = local.findIndex(t => String(t.id) === String(id));
-  if (idx !== -1) {
-    local[idx] = updatedTx;
-    saveLocalTransactions(local);
-  }
 
   try {
     const res = await fetch(`${API_BASE}/transactions/${id}`, {
@@ -296,6 +301,11 @@ export async function updateTransaction(id, data) {
 }
 
 export async function deleteTransaction(id) {
+  // Always update local cache immediately to prevent stale sums
+  const local = getLocalTransactions();
+  const filtered = local.filter(t => String(t.id) !== String(id));
+  saveLocalTransactions(filtered);
+
   // 1. Cloud Firestore Route
   if (isFirebaseConfigured) {
     try {
@@ -307,10 +317,6 @@ export async function deleteTransaction(id) {
   }
 
   syncService.enqueue('delete', {}, id);
-
-  const local = getLocalTransactions();
-  const filtered = local.filter(t => String(t.id) !== String(id));
-  saveLocalTransactions(filtered);
 
   try {
     const res = await fetch(`${API_BASE}/transactions/${id}`, {
