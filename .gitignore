@@ -40,3 +40,7 @@ Thumbs.db
 # Ephemeral test screenshots
 screenshot_*.png
 comparison_*.png
+
+# Playwright test artifacts
+test-results/
+playwright-report/

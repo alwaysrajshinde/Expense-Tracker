@@ -138,7 +138,26 @@ router.get('/transactions', resolveUser, (req, res) => {
       limit: req.query.limit
     };
     const data = db.getTransactions(filters, req.user.id);
-    res.json({ success: true, data });
+
+    // Group transactions by date for UI presentation
+    const groupedMap = {};
+    (data.transactions || []).forEach(tx => {
+      const d = tx.date || 'Unknown';
+      if (!groupedMap[d]) {
+        groupedMap[d] = { date: d, total: 0, transactions: [] };
+      }
+      groupedMap[d].transactions.push(tx);
+      groupedMap[d].total += (parseFloat(tx.amount) || 0);
+    });
+
+    const formattedData = {
+      ...data,
+      total_count: data.pagination ? data.pagination.total : (data.transactions || []).length,
+      total_amount: data.pagination ? data.pagination.total_amount : 0,
+      grouped: Object.values(groupedMap)
+    };
+
+    res.json({ success: true, data: formattedData });
   } catch (err) {
     console.error('Error fetching transactions:', err);
     res.status(500).json({ success: false, error: err.message });

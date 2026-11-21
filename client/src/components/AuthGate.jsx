@@ -31,6 +31,14 @@ export default function AuthGate({ children }) {
   const [onboardingStep, setOnboardingStep] = useState(null); // 'auth' | 'drive' | 'sheet' | 'ready'
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Reset view state when logged out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setShowAccountPicker(false);
+      setShowCustomInput(false);
+    }
+  }, [isAuthenticated]);
+
   // Check if real Google OAuth Web Client ID is configured
   const isRealGoogleClient = Boolean(
     googleClientId && 
@@ -273,7 +281,7 @@ export default function AuthGate({ children }) {
               </div>
             ) : (
               /* Custom Google Email Input Form */
-              <form onSubmit={handleCustomSubmit} className="space-y-3 pt-1">
+              <form noValidate onSubmit={handleCustomSubmit} className="space-y-3 pt-1">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Google Account Email

@@ -145,6 +145,9 @@ export function AuthProvider({ children }) {
         isLoading,
         authError,
         googleClientId,
+        authorizedEmail: user?.email || 'raaajshinde@gmail.com',
+        updateAuthorizedEmail: () => {},
+        updateGoogleClientId: () => {},
         loginWithGoogle,
         loginWithAccount,
         logout

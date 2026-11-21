@@ -149,6 +149,8 @@ export default function WindowsSidebar({
 
         {/* Profile Card Button */}
         <div
+          data-testid="sidebar-profile-card"
+          title="User profile menu"
           onClick={() => setProfileOpen(!profileOpen)}
           className="p-3 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/70 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
         >
@@ -166,7 +168,20 @@ export default function WindowsSidebar({
                 </span>
               </div>
             </div>
-            <ChevronDown size={14} className={`text-slate-400 flex-shrink-0 ml-1 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onLogout) onLogout();
+                }}
+                title="Log Out"
+                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+              >
+                <LogOut size={13} />
+              </button>
+              <ChevronDown size={14} className={`text-slate-400 flex-shrink-0 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
+            </div>
           </div>
         </div>
       </div>

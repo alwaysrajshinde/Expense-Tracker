@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Receipt, RotateCcw, Search, Calendar, FileText, Check,
-  Send, Banknote, ChevronDown
+  Send, Banknote, CreditCard, Landmark, ChevronDown
 } from 'lucide-react';
 import CategoryIcon from './CategoryIcon';
 
@@ -54,6 +54,15 @@ export default function AddExpenseModal({
     setError('');
     setShowAllCategories(false);
   }, [editingTransaction, isOpen, initialDate]);
+
+  // Support closing modal with Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -120,7 +129,7 @@ export default function AddExpenseModal({
         </div>
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <form noValidate onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {error && (
             <div className="p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-xs font-semibold">
               {error}
@@ -273,31 +282,32 @@ export default function AddExpenseModal({
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
               Payment Mode *
             </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setPaymentMode('UPI')}
-                className={`flex items-center justify-center gap-2 py-2.5 rounded-2xl border font-semibold text-xs transition-all ${
-                  paymentMode === 'UPI'
-                    ? 'bg-[#6C47FF] dark:bg-[#7C3AED] border-[#6C47FF] text-white shadow-md shadow-purple-500/20'
-                    : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-slate-300'
-                }`}
-              >
-                <Send size={15} className={paymentMode === 'UPI' ? 'text-white' : 'text-slate-500'} />
-                <span>UPI</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPaymentMode('Cash')}
-                className={`flex items-center justify-center gap-2 py-2.5 rounded-2xl border font-semibold text-xs transition-all ${
-                  paymentMode === 'Cash'
-                    ? 'bg-[#6C47FF] dark:bg-[#7C3AED] border-[#6C47FF] text-white shadow-md shadow-purple-500/20'
-                    : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-slate-300'
-                }`}
-              >
-                <Banknote size={15} className={paymentMode === 'Cash' ? 'text-white' : 'text-slate-500'} />
-                <span>Cash</span>
-              </button>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {[
+                { id: 'UPI', label: 'UPI', icon: Send },
+                { id: 'Cash', label: 'Cash', icon: Banknote },
+                { id: 'Credit Card', label: 'Credit Card', icon: CreditCard },
+                { id: 'Debit Card', label: 'Debit Card', icon: CreditCard },
+                { id: 'Net Banking', label: 'Net Banking', icon: Landmark }
+              ].map((mode) => {
+                const Icon = mode.icon;
+                const isSelected = paymentMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setPaymentMode(mode.id)}
+                    className={`flex items-center justify-center gap-2 py-2.5 px-2 rounded-2xl border font-semibold text-xs transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#6C47FF] dark:bg-[#7C3AED] border-[#6C47FF] text-white shadow-md shadow-purple-500/20'
+                        : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                    }`}
+                  >
+                    <Icon size={14} className={isSelected ? 'text-white' : 'text-slate-500'} />
+                    <span className="truncate">{mode.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

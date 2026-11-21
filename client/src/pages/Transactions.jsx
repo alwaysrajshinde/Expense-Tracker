@@ -4,6 +4,7 @@ import {
   ChevronLeft, ChevronRight, X, AlertCircle, FileSpreadsheet, Download
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
+import { getTransactions, getCurrentUserEmail } from '../services/api';
 
 export default function Transactions({
   selectedMonth,
@@ -26,18 +27,16 @@ export default function Transactions({
   const loadTransactions = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (monthFilter && monthFilter !== 'all') params.append('month', monthFilter);
-      if (categoryFilter && categoryFilter !== 'all') params.append('category', categoryFilter);
-      if (paymentFilter && paymentFilter !== 'all') params.append('payment_mode', paymentFilter);
-      if (search) params.append('search', search);
-      params.append('page', page);
-      params.append('limit', 40);
-
-      const res = await fetch(`/api/transactions?${params.toString()}`);
-      const json = await res.json();
-      if (json.success) {
-        setTransactionsData(json.data);
+      const data = await getTransactions({
+        month: monthFilter && monthFilter !== 'all' ? monthFilter : undefined,
+        category: categoryFilter && categoryFilter !== 'all' ? categoryFilter : undefined,
+        payment_mode: paymentFilter && paymentFilter !== 'all' ? paymentFilter : undefined,
+        search: search || undefined,
+        page,
+        limit: 40
+      });
+      if (data) {
+        setTransactionsData(data);
       }
     } catch (err) {
       console.error('Error loading transactions:', err);
@@ -102,7 +101,7 @@ export default function Transactions({
         {/* Desktop Quick Export buttons */}
         <div className="flex items-center gap-2">
           <a
-            href="/api/export/excel"
+            href={`/api/export/excel?user_email=${encodeURIComponent(getCurrentUserEmail())}`}
             download="Daily_Expenses_Export.xlsx"
             className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-[#151226] border border-slate-200 dark:border-white/10 hover:border-purple-300 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-xs transition-colors"
           >
@@ -110,7 +109,7 @@ export default function Transactions({
             <span className="hidden sm:inline">Export Excel</span>
           </a>
           <a
-            href="/api/export/json"
+            href={`/api/export/json?user_email=${encodeURIComponent(getCurrentUserEmail())}`}
             download="expense_tracker_backup.json"
             className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-[#151226] border border-slate-200 dark:border-white/10 hover:border-purple-300 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-xs transition-colors"
           >

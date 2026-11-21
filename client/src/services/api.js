@@ -106,6 +106,19 @@ export async function getTransactions(filters = {}) {
           else merged.push(t);
         });
         saveLocalTransactions(merged);
+
+        if (!json.data.grouped) {
+          const groupedMap = {};
+          json.data.transactions.forEach(tx => {
+            const d = tx.date || 'Unknown';
+            if (!groupedMap[d]) groupedMap[d] = { date: d, total: 0, transactions: [] };
+            groupedMap[d].transactions.push(tx);
+            groupedMap[d].total += (parseFloat(tx.amount) || 0);
+          });
+          json.data.grouped = Object.values(groupedMap);
+          json.data.total_count = json.data.pagination ? json.data.pagination.total : json.data.transactions.length;
+          json.data.total_amount = json.data.pagination ? json.data.pagination.total_amount : 0;
+        }
       }
       return json.data;
     }
