@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   Home, ReceiptText, Plus, BarChart2, Tag, Target, ArrowLeftRight,
-  Cloud, Settings, ChevronDown, Wallet, LogOut, CheckCircle2, User
+  Cloud, Settings, ChevronDown, Wallet, LogOut, CheckCircle2, User, Calendar
 } from 'lucide-react';
+import { APP_VERSION, APP_SHORT_DATE, APP_RELEASE_DATE } from '../constants/version';
 
 export default function WindowsSidebar({
   activeTab,
@@ -10,7 +11,8 @@ export default function WindowsSidebar({
   onOpenAddExpense,
   userName = "User",
   userEmail = "",
-  onLogout
+  onLogout,
+  onOpenReleaseNotes
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -23,7 +25,7 @@ export default function WindowsSidebar({
     { id: 'budget', label: 'Budget', icon: Target },
     { id: 'import_export', label: 'Import / Export', icon: ArrowLeftRight },
     { id: 'backup_restore', label: 'Backup & Restore', icon: Cloud },
-    { id: 'settings', label: 'Settings', icon: Settings }
+    { id: 'settings', label: 'More', icon: Settings }
   ];
 
   const handleClick = (item) => {
@@ -95,6 +97,9 @@ export default function WindowsSidebar({
               >
                 <Icon size={17} strokeWidth={isActive ? 2.5 : 2} />
                 <span>{item.label}</span>
+                {item.id === 'settings' && (
+                  <span className="text-[10px] text-slate-400 font-normal ml-auto">Settings</span>
+                )}
               </button>
             );
           })}
@@ -182,6 +187,22 @@ export default function WindowsSidebar({
               <ChevronDown size={14} className={`text-slate-400 flex-shrink-0 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
             </div>
           </div>
+        </div>
+
+        {/* Inked Version & Build Date Badge */}
+        <div className="pt-2 px-1 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+          <button
+            type="button"
+            onClick={onOpenReleaseNotes}
+            title={`Expense Tracker ${APP_VERSION} (Last updated: ${APP_RELEASE_DATE})`}
+            className="hover:text-[#6C47FF] dark:hover:text-[#C084FC] transition-colors flex items-center gap-1.5 cursor-pointer group"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-semibold text-slate-500 dark:text-slate-400 group-hover:text-[#6C47FF]">{APP_VERSION}</span>
+            <span>·</span>
+            <span>{APP_SHORT_DATE}</span>
+          </button>
+          <span className="text-[9px] uppercase tracking-wider text-slate-400">Offline PWA</span>
         </div>
       </div>
     </aside>

@@ -26,22 +26,27 @@ export default function AddExpenseModal({
   const [saving, setSaving] = useState(false);
   const [miniSuccess, setMiniSuccess] = useState(false);
 
+  // Filter out archived categories so only active categories can be chosen for new expenses
+  const activeCategories = useMemo(() => {
+    return (categories || []).filter(c => !c.archived);
+  }, [categories]);
+
   // Dynamically derive quick categories from user's custom or system categories
   const quickCategories = useMemo(() => {
-    if (!categories || categories.length === 0) {
+    if (!activeCategories || activeCategories.length === 0) {
       return [
         { name: 'Food & Dining', icon: 'Utensils', color: '#6C47FF' },
-        { name: 'Groceries', icon: 'ShoppingBag', color: '#10B981' },
+        { name: 'Groceries', icon: 'ShoppingBasket', color: '#10B981' },
         { name: 'Transportation', icon: 'Car', color: '#F59E0B' },
-        { name: 'Shopping', icon: 'Shirt', color: '#EC4899' },
-        { name: 'Bills & Utilities', icon: 'Zap', color: '#3B82F6' },
-        { name: 'Other', icon: 'Tag', color: '#64748B' }
+        { name: 'Shopping', icon: 'ShoppingBag', color: '#EC4899' },
+        { name: 'Bills & Utilities', icon: 'Lightbulb', color: '#3B82F6' },
+        { name: 'Other', icon: 'MoreHorizontal', color: '#64748B' }
       ];
     }
-    const quick = categories.filter((c) => Boolean(c.is_quick));
+    const quick = activeCategories.filter((c) => Boolean(c.is_quick));
     if (quick.length >= 3) return quick.slice(0, 6);
-    return categories.slice(0, 6);
-  }, [categories]);
+    return activeCategories.slice(0, 6);
+  }, [activeCategories]);
 
   useEffect(() => {
     if (editingTransaction) {
@@ -121,7 +126,7 @@ export default function AddExpenseModal({
     }
   };
 
-  const filteredCategories = categories.filter((c) =>
+  const filteredCategories = activeCategories.filter((c) =>
     (c.name || '').toLowerCase().includes(searchCat.toLowerCase())
   );
 

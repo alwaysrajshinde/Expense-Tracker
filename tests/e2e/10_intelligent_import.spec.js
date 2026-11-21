@@ -53,8 +53,8 @@ test.describe('Area J: Intelligent Expense Import System', () => {
     await expect(textarea).toBeVisible();
 
     // Paste sample bank statement rows (Tab-separated)
-    const sampleStatement = 
-`Date\tNarration / Description\tWithdrawal (Dr)\tDeposit (Cr)\tBalance
+    const sampleStatement =
+      `Date\tNarration / Description\tWithdrawal (Dr)\tDeposit (Cr)\tBalance
 2026-11-15\tUPI/432109876543/SWIGGY/swiggy@icici/Order123\t450.00\t\t15200.00
 2026-11-16\tPOS 402213XXXXXX1234 RELIANCE SMART BANDRA\t1250.50\t\t13949.50
 2026-11-17\tACH/SALARY/ACME CORP NOV 2026\t\t65000.00\t78949.50
@@ -93,8 +93,8 @@ test.describe('Area J: Intelligent Expense Import System', () => {
     await authHelpers.loginAsRaj();
 
     // Go to Settings / More
-    await page.locator('button:has-text("More"), button:has-text("Settings")').first().click();
-    await expect(page.locator('span:has-text("Data Management")')).toBeVisible({ timeout: 8000 });
+    await page.locator('aside button:has-text("More"), aside button:has-text("Settings"), nav button:has-text("More")').first().click();
+    await expect(page.locator('text=Data Management').first()).toBeVisible({ timeout: 8000 });
 
     // Verify "Import Transactions" option exists in More screen
     const importTxBtn = page.locator('button:has-text("Import Transactions")');

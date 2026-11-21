@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, FileText, Lock, Globe, Check } from 'lucide-react';
+import { APP_INKED_VERSION } from '../constants/version';
 
 export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -33,7 +34,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
               <h2 className="text-base font-bold text-slate-800 dark:text-white">
                 {activeTab === 'privacy' ? 'Privacy Policy & Data Sovereign Charter' : 'Terms of Service & Usage Agreement'}
               </h2>
-              <p className="text-xs text-slate-400">Expense Tracker Legal Governance · Version 1.0 (Nov 2026)</p>
+              <p className="text-xs text-slate-400">Expense Tracker Legal Governance · {APP_INKED_VERSION}</p>
             </div>
           </div>
           <button

@@ -347,19 +347,21 @@ export async function getCategories() {
   } catch (e) {}
 
   return [
-    { id: 1, name: 'Food & Dining', icon: 'Utensils', color: '#6C47FF', is_quick: true },
-    { id: 2, name: 'Groceries', icon: 'ShoppingBag', color: '#10B981', is_quick: true },
-    { id: 3, name: 'Transportation', icon: 'Car', color: '#F59E0B', is_quick: true },
-    { id: 4, name: 'Shopping', icon: 'Shirt', color: '#EC4899', is_quick: true },
-    { id: 5, name: 'Bills & Utilities', icon: 'Zap', color: '#3B82F6', is_quick: false },
-    { id: 6, name: 'Rent & Housing', icon: 'Home', color: '#6366F1', is_quick: false },
-    { id: 7, name: 'Health', icon: 'HeartPulse', color: '#EF4444', is_quick: false },
-    { id: 8, name: 'Entertainment', icon: 'Film', color: '#8B5CF6', is_quick: false },
-    { id: 9, name: 'Education', icon: 'GraduationCap', color: '#0EA5E9', is_quick: false },
-    { id: 10, name: 'Travel', icon: 'Compass', color: '#F97316', is_quick: false },
-    { id: 11, name: 'Personal Care', icon: 'Sparkles', color: '#F43F5E', is_quick: false },
-    { id: 12, name: 'EMI & Loans', icon: 'CreditCard', color: '#64748B', is_quick: false },
-    { id: 13, name: 'Other', icon: 'Tag', color: '#94A3B8', is_quick: false }
+    { id: 1, name: 'Food & Dining', icon: 'Utensils', color: '#6C47FF', is_quick: true, is_system: true },
+    { id: 2, name: 'Groceries', icon: 'ShoppingBasket', color: '#10B981', is_quick: true, is_system: true },
+    { id: 3, name: 'Transportation', icon: 'Car', color: '#F59E0B', is_quick: true, is_system: true },
+    { id: 4, name: 'Housing & Rent', icon: 'Home', color: '#6366F1', is_quick: false, is_system: true },
+    { id: 5, name: 'Bills & Utilities', icon: 'Lightbulb', color: '#3B82F6', is_quick: false, is_system: true },
+    { id: 6, name: 'Shopping', icon: 'ShoppingBag', color: '#EC4899', is_quick: true, is_system: true },
+    { id: 7, name: 'Health & Medical', icon: 'HeartPulse', color: '#EF4444', is_quick: false, is_system: true },
+    { id: 8, name: 'Personal Care', icon: 'Sparkles', color: '#F43F5E', is_quick: false, is_system: true },
+    { id: 9, name: 'Entertainment', icon: 'Film', color: '#8B5CF6', is_quick: false, is_system: true },
+    { id: 10, name: 'Education', icon: 'BookOpen', color: '#0EA5E9', is_quick: false, is_system: true },
+    { id: 11, name: 'Travel', icon: 'Plane', color: '#F97316', is_quick: false, is_system: true },
+    { id: 12, name: 'EMI & Loans', icon: 'CreditCard', color: '#64748B', is_quick: false, is_system: true },
+    { id: 13, name: 'Gifts & Donations', icon: 'Gift', color: '#D946EF', is_quick: false, is_system: true },
+    { id: 14, name: 'Subscriptions', icon: 'Repeat', color: '#14B8A6', is_quick: false, is_system: true },
+    { id: 15, name: 'Other', icon: 'MoreHorizontal', color: '#94A3B8', is_quick: false, is_system: true }
   ];
 }
 
@@ -387,6 +389,92 @@ export async function createCategory(data) {
   cats.push(newCat);
   localStorage.setItem(LOCAL_CATEGORIES_KEY, JSON.stringify(cats));
   return newCat;
+}
+
+export async function updateCategory(id, data) {
+  if (isFirebaseConfigured) {
+    try {
+      return await firestoreService.updateCategory(getCurrentUserId(), id, data);
+    } catch (e) {}
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/categories/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify(data)
+    });
+    if (res.ok) return (await res.json()).data;
+  } catch (err) {}
+
+  const cats = await getCategories();
+  const idx = cats.findIndex(c => String(c.id) === String(id));
+  if (idx !== -1) {
+    cats[idx] = { ...cats[idx], ...data };
+    localStorage.setItem(LOCAL_CATEGORIES_KEY, JSON.stringify(cats));
+    return cats[idx];
+  }
+  return { id, ...data };
+}
+
+export async function archiveCategory(id) {
+  if (isFirebaseConfigured) {
+    try {
+      return await firestoreService.archiveCategory(getCurrentUserId(), id);
+    } catch (e) {}
+  }
+  return await updateCategory(id, { archived: true });
+}
+
+export async function restoreCategory(id) {
+  if (isFirebaseConfigured) {
+    try {
+      return await firestoreService.restoreCategory(getCurrentUserId(), id);
+    } catch (e) {}
+  }
+  return await updateCategory(id, { archived: false });
+}
+
+export async function countCategoryTransactions(categoryName) {
+  if (isFirebaseConfigured) {
+    try {
+      return await firestoreService.countTransactionsForCategory(getCurrentUserId(), categoryName);
+    } catch (e) {}
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/categories/count?name=${encodeURIComponent(categoryName)}`, {
+      headers: { ...getAuthHeaders() }
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return json.count || 0;
+    }
+  } catch (err) {}
+
+  return 0;
+}
+
+export async function reassignCategoryTransactions(oldCategoryName, newCategoryName) {
+  if (isFirebaseConfigured) {
+    try {
+      return await firestoreService.reassignCategoryTransactions(getCurrentUserId(), oldCategoryName, newCategoryName);
+    } catch (e) {}
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/categories/reassign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ oldName: oldCategoryName, newName: newCategoryName })
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return json.changed || 0;
+    }
+  } catch (err) {}
+
+  return 0;
 }
 
 export async function deleteCategory(id) {

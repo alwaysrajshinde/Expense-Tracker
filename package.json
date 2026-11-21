@@ -1,6 +1,6 @@
 {
   "name": "expense-tracker",
-  "version": "1.0.0",
+  "version": "2.4.0",
   "description": "Personal Expense Tracker with modern UI and Excel reference migration",
   "main": "server/index.js",
   "scripts": {

@@ -1,45 +1,46 @@
 import React from 'react';
-import { Sparkles, X, Check, Smartphone, Palette, ShieldCheck, Zap, Layers, History, ArrowRight } from 'lucide-react';
+import { Sparkles, X, Check, Smartphone, Palette, ShieldCheck, Zap, Layers, History, ArrowRight, FileSpreadsheet, WifiOff, Tag, LayoutDashboard, Calendar } from 'lucide-react';
+import { APP_VERSION, APP_RELEASE_DATE, APP_INKED_VERSION } from '../constants/version';
 
 export default function ReleaseNotesModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const highlights = [
     {
-      icon: ShieldCheck,
-      title: 'Unified Monthly Budget Architecture',
-      description: 'Single source of truth synchronizing Dashboard and Settings. Existing budgets are strictly preserved with zero drift.',
-      tag: 'Core Reliability'
+      icon: FileSpreadsheet,
+      title: 'Intelligent Expense Import System',
+      description: 'Import transactions seamlessly from Excel (.xlsx, .xls), CSVs, direct clipboard table paste, and bank statements with smart column detection and 1-click safe undo.',
+      tag: 'New Feature'
     },
     {
-      icon: Zap,
-      title: 'Email Verification Auto-Refresh & Dismiss',
-      description: 'Added visible dismiss button with session-state memory and real-time Firebase reload on tab focus without manual page reloads.',
-      tag: 'Authentication'
+      icon: WifiOff,
+      title: 'Complete Offline-First Architecture',
+      description: 'Full PWA offline caching with IndexedDB transaction queue and automatic background synchronization to Firebase when connectivity resumes.',
+      tag: 'Architecture'
     },
     {
-      icon: Layers,
-      title: 'Simplified 13 Standard Categories',
-      description: 'Streamlined practical categories (Food, Groceries, Housing, Loans, etc.) preserving 100% of custom and historical records.',
-      tag: 'Information Architecture'
+      icon: Tag,
+      title: '15 Standard Categories & Smart Removal Guard',
+      description: 'Clean default taxonomy for new users, suggested 1-click additions, and protective deletion guards offering transaction reassign or archive choices.',
+      tag: 'Category Management'
+    },
+    {
+      icon: LayoutDashboard,
+      title: 'Windows Desktop Executive Dashboard',
+      description: 'Spacious 2-column fintech command center designed specifically for Windows desktop screens with live cloud sync monitoring and budget presets.',
+      tag: 'Desktop Experience'
     },
     {
       icon: Palette,
-      title: 'Redesigned 4-Section Settings Hub',
-      description: 'Organized into Account, Preferences, Data Management, and Information, eliminating unverified sync claims.',
+      title: 'Dark Violet Mobile Fintech UI',
+      description: 'Executive Dark Violet theme with smooth cards, high-contrast typography, and intuitive sub-modals matching high-end banking apps.',
       tag: 'UI/UX Redesign'
     },
     {
-      icon: Smartphone,
-      title: 'Single Add Expense Primary Action',
-      description: 'Removed redundant dashboard button in favor of the high-accessibility center bottom navigation action.',
-      tag: 'Navigation'
-    },
-    {
-      icon: History,
-      title: 'Direct Privacy Policy & Public Showcase',
-      description: 'Dedicated public landing view and legal page compliant with Google OAuth and data sovereignty requirements.',
-      tag: 'Compliance'
+      icon: ShieldCheck,
+      title: 'Multi-User Isolation & Historical Safety',
+      description: 'Complete user data isolation protecting all historical financial records, custom categories, and budgets with zero data loss.',
+      tag: 'Data Sovereignty'
     }
   ];
 
@@ -59,12 +60,13 @@ export default function ReleaseNotesModal({ isOpen, onClose }) {
                   What's New in Expense Tracker
                 </h3>
                 <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-[#6C47FF] dark:text-[#A78BFA] text-[10px] font-black tracking-wide">
-                  v1.2.0
+                  {APP_VERSION}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium">
-                Released November 2026 · Performance &amp; Experience Update
-              </p>
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                <Calendar size={12} className="text-[#6C47FF] dark:text-[#A78BFA]" />
+                <span>Last Updated: <strong className="text-slate-700 dark:text-slate-200">{APP_RELEASE_DATE}</strong></span>
+              </div>
             </div>
           </div>
           <button

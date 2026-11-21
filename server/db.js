@@ -60,6 +60,7 @@ function initSchema() {
       icon TEXT NOT NULL DEFAULT 'Tag',
       color TEXT NOT NULL DEFAULT '#6C47FF',
       is_quick INTEGER DEFAULT 0,
+      archived INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -102,6 +103,12 @@ function initSchema() {
   }
   db.exec("CREATE INDEX IF NOT EXISTS idx_tx_user_id ON transactions(user_id)");
 
+  // Safe migration: Add archived column to categories if missing
+  const catCols = db.prepare("PRAGMA table_info(categories)").all().map(c => c.name);
+  if (!catCols.includes('archived')) {
+    db.exec("ALTER TABLE categories ADD COLUMN archived INTEGER DEFAULT 0");
+  }
+
   // Seed default settings for master
   const insertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
   insertSetting.run('monthly_budget', '12000');
@@ -109,8 +116,25 @@ function initSchema() {
   insertSetting.run('user_name', 'Raj');
 }
 
-// Category meta definitions (standard 67 categories)
+// Category meta definitions (standard 15 categories + historical categories)
 const CATEGORY_META = {
+  // 15 Standard Categories for New Users
+  'Food & Dining': { icon: 'Utensils', color: '#6C47FF', is_quick: 1, is_system: 1 },
+  'Groceries': { icon: 'ShoppingBasket', color: '#10B981', is_quick: 1, is_system: 1 },
+  'Transportation': { icon: 'Car', color: '#F59E0B', is_quick: 1, is_system: 1 },
+  'Housing & Rent': { icon: 'Home', color: '#6366F1', is_quick: 0, is_system: 1 },
+  'Bills & Utilities': { icon: 'Lightbulb', color: '#3B82F6', is_quick: 0, is_system: 1 },
+  'Shopping': { icon: 'ShoppingBag', color: '#EC4899', is_quick: 1, is_system: 1 },
+  'Health & Medical': { icon: 'HeartPulse', color: '#EF4444', is_quick: 0, is_system: 1 },
+  'Personal Care': { icon: 'Sparkles', color: '#F43F5E', is_quick: 0, is_system: 1 },
+  'Entertainment': { icon: 'Film', color: '#8B5CF6', is_quick: 0, is_system: 1 },
+  'Education': { icon: 'BookOpen', color: '#0EA5E9', is_quick: 0, is_system: 1 },
+  'Travel': { icon: 'Plane', color: '#F97316', is_quick: 0, is_system: 1 },
+  'EMI & Loans': { icon: 'CreditCard', color: '#64748B', is_quick: 0, is_system: 1 },
+  'Gifts & Donations': { icon: 'Gift', color: '#D946EF', is_quick: 0, is_system: 1 },
+  'Subscriptions': { icon: 'Repeat', color: '#14B8A6', is_quick: 0, is_system: 1 },
+  'Other': { icon: 'MoreHorizontal', color: '#94A3B8', is_quick: 0, is_system: 1 },
+
   // Quick categories from UI
   'Food': { icon: 'Utensils', color: '#6C47FF', is_quick: 1 },
   'Auto': { icon: 'Car', color: '#F59E0B', is_quick: 1 },
@@ -721,6 +745,34 @@ function deleteCategory(id) {
   return db.prepare('DELETE FROM categories WHERE id = ?').run(id);
 }
 
+function updateCategory(id, data) {
+  const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
+  if (!existing) return null;
+  const name = data.name !== undefined ? String(data.name).trim() : existing.name;
+  const icon = data.icon !== undefined ? String(data.icon) : existing.icon;
+  const color = data.color !== undefined ? String(data.color) : existing.color;
+  const is_quick = data.is_quick !== undefined ? (data.is_quick ? 1 : 0) : existing.is_quick;
+  const archived = data.archived !== undefined ? (data.archived ? 1 : 0) : (existing.archived || 0);
+
+  db.prepare(`
+    UPDATE categories
+    SET name = ?, icon = ?, color = ?, is_quick = ?, archived = ?
+    WHERE id = ?
+  `).run(name, icon, color, is_quick, archived, id);
+
+  return db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
+}
+
+function countCategoryTransactions(name, userId = 1) {
+  const row = db.prepare('SELECT COUNT(*) as count FROM transactions WHERE category = ? AND user_id = ?').get(name, userId);
+  return row ? row.count : 0;
+}
+
+function reassignCategoryTransactions(oldName, newName, userId = 1) {
+  const info = db.prepare('UPDATE transactions SET category = ? WHERE category = ? AND user_id = ?').run(newName, oldName, userId);
+  return info.changes;
+}
+
 function getReports(monthKey, userId = 1) {
   const targetMonth = monthKey || '2026-11';
   const budget = getMonthlyBudget(targetMonth, userId);
@@ -897,7 +949,10 @@ module.exports = {
   deleteTransaction,
   getCategories,
   addCategory,
+  updateCategory,
   deleteCategory,
+  countCategoryTransactions,
+  reassignCategoryTransactions,
   getReports,
   exportAllTransactions,
   restoreDatabase,

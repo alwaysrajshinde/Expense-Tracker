@@ -1,257 +1,205 @@
 /**
- * Two-Way Synchronization & Offline Support Service
- * Manages communication between client, local database, and Google Sheets / Apps Script backend.
+ * Reliable Synchronization & Network State Engine
+ * Orchestrates offline write queues, network transitions, and conflict resolution.
  */
 
-const BASE_QUEUE_KEY = 'expense_tracker_sync_queue';
-const SYNC_CONFIG_KEY = 'expense_tracker_sync_config';
-const LAST_SYNC_KEY = 'expense_tracker_last_sync_time';
-
-function getActiveEmail() {
-  try {
-    const sessionStr = localStorage.getItem('expense_tracker_auth_session');
-    if (sessionStr) {
-      const session = JSON.parse(sessionStr);
-      if (session.email) return session.email.trim().toLowerCase();
-    }
-  } catch (e) {}
-  return 'default';
-}
-
-function getQueueStorageKey() {
-  return `${BASE_QUEUE_KEY}_${getActiveEmail()}`;
-}
+import { 
+  getPendingMutations, 
+  dequeuePendingMutation, 
+  getOfflineLedger,
+  saveOfflineLedger
+} from './offlineStorage';
+import * as firestoreService from './firestoreService';
+import { isFirebaseConfigured, db } from '../firebase/config';
+import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 class SyncService {
   constructor() {
-    this.listeners = new Set();
+    this.isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
     this.isSyncing = false;
-    this.status = navigator.onLine ? 'idle' : 'offline';
-    this.lastSyncTime = localStorage.getItem(LAST_SYNC_KEY) || new Date().toISOString();
+    this.status = this.isOnline ? 'synced' : 'offline';
+    this.listeners = new Set();
+    this.lastSyncedAt = null;
 
-    // Listen for online/offline events
-    window.addEventListener('online', () => {
-      this.status = 'idle';
-      this.notifyListeners();
-      this.syncNow();
-    });
-
-    window.addEventListener('offline', () => {
-      this.status = 'offline';
-      this.notifyListeners();
-    });
-
-    // Periodic sync check every 90 seconds when online
-    setInterval(() => {
-      if (navigator.onLine && !this.isSyncing) {
-        this.syncNow(true); // silent background sync
-      }
-    }, 90000);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => this.handleOnline());
+      window.addEventListener('offline', () => this.handleOffline());
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && this.isOnline) {
+          this.triggerAutoSync();
+        }
+      });
+    }
   }
 
-  // Get current sync configuration
-  getConfig() {
-    try {
-      const saved = localStorage.getItem(SYNC_CONFIG_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
+  subscribe(listener) {
+    this.listeners.add(listener);
+    // Immediately emit current state
+    listener(this.getState());
+    return () => this.listeners.delete(listener);
+  }
+
+  notify() {
+    const state = this.getState();
+    this.listeners.forEach(fn => {
+      try { fn(state); } catch (e) {}
+    });
+  }
+
+  getState() {
     return {
-      google_script_url: '',
-      auth_secret: 'ET_SECURE_SYNC_KEY_2026',
-      auto_sync_enabled: true
-    };
-  }
-
-  // Update sync configuration
-  saveConfig(config) {
-    const current = this.getConfig();
-    const updated = { ...current, ...config };
-    localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(updated));
-    this.notifyListeners();
-  }
-
-  // Get pending queue
-  getQueue() {
-    try {
-      const queue = localStorage.getItem(getQueueStorageKey());
-      return queue ? JSON.parse(queue) : [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  // Save pending queue
-  saveQueue(queue) {
-    localStorage.setItem(getQueueStorageKey(), JSON.stringify(queue));
-    this.notifyListeners();
-  }
-
-  // Enqueue a transaction operation (create, update, delete)
-  enqueue(action, data, id = null) {
-    const queue = this.getQueue();
-    const txId = id || data.id || ('TX-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
-    
-    // Check if item already exists in queue to merge/update
-    const existingIdx = queue.findIndex(item => String(item.id) === String(txId));
-    const queueItem = {
-      id: txId,
-      action: action, // 'create' | 'update' | 'delete'
-      data: { ...data, id: txId },
-      timestamp: new Date().toISOString()
-    };
-
-    if (existingIdx !== -1) {
-      if (action === 'delete') {
-        queue[existingIdx] = queueItem;
-      } else {
-        queue[existingIdx] = queueItem;
-      }
-    } else {
-      queue.push(queueItem);
-    }
-
-    this.saveQueue(queue);
-
-    // Try to sync immediately if online
-    if (navigator.onLine) {
-      this.syncNow();
-    }
-
-    return txId;
-  }
-
-  // Subscribe to sync state changes
-  subscribe(callback) {
-    this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
-  }
-
-  notifyListeners() {
-    const state = {
-      status: this.status,
+      isOnline: this.isOnline,
       isSyncing: this.isSyncing,
-      pendingCount: this.getQueue().length,
-      lastSyncTime: this.lastSyncTime
+      status: this.status,
+      lastSyncedAt: this.lastSyncedAt
     };
-    this.listeners.forEach(cb => cb(state));
   }
 
-  // Format relative time (e.g. "Synced 2 min ago")
-  getFormattedLastSync() {
-    if (!this.lastSyncTime) return 'Never synced';
-    const diffMs = Date.now() - new Date(this.lastSyncTime).getTime();
-    const diffSec = Math.floor(diffMs / 1000);
-    const diffMin = Math.floor(diffSec / 60);
-    const diffHours = Math.floor(diffMin / 60);
-
-    if (diffSec < 60) return 'Synced just now';
-    if (diffMin < 60) return `Synced ${diffMin} min ago`;
-    if (diffHours < 24) return `Synced ${diffHours} hr ago`;
-    return `Synced ${new Date(this.lastSyncTime).toLocaleDateString()}`;
+  handleOnline() {
+    console.log('[SyncService] Device reconnected to internet.');
+    this.isOnline = true;
+    this.status = 'syncing';
+    this.notify();
+    this.triggerAutoSync();
   }
 
-  // Primary Two-Way Sync Routine
-  async syncNow(silent = false) {
-    if (this.isSyncing) return;
-    if (!navigator.onLine) {
-      this.status = 'offline';
-      this.notifyListeners();
+  handleOffline() {
+    console.log('[SyncService] Device lost internet connection. Operating offline.');
+    this.isOnline = false;
+    this.status = 'offline';
+    this.notify();
+  }
+
+  hasPendingSync(userId) {
+    if (!userId) return false;
+    const queue = getPendingMutations(userId);
+    return queue.length > 0;
+  }
+
+  getPendingCount(userId) {
+    if (!userId) return 0;
+    return getPendingMutations(userId).length;
+  }
+
+  async triggerAutoSync(userId) {
+    const activeUid = userId || this.getActiveUserId();
+    if (!activeUid || !this.isOnline || this.isSyncing) return;
+    await this.processQueue(activeUid);
+  }
+
+  getActiveUserId() {
+    try {
+      const s = localStorage.getItem('expense_tracker_auth_session');
+      if (s) {
+        const parsed = JSON.parse(s);
+        return parsed.uid || String(parsed.id) || null;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  /**
+   * Processes all pending mutations in the local queue
+   */
+  async processQueue(userId) {
+    if (!userId || this.isSyncing) return;
+    const queue = getPendingMutations(userId);
+
+    if (queue.length === 0) {
+      this.status = this.isOnline ? 'synced' : 'offline';
+      this.notify();
       return;
     }
 
-    const config = this.getConfig();
-    const queue = this.getQueue();
+    if (!this.isOnline) {
+      this.status = 'offline';
+      this.notify();
+      return;
+    }
 
     this.isSyncing = true;
     this.status = 'syncing';
-    this.notifyListeners();
+    this.notify();
 
-    try {
-      // 1. If Google Apps Script Web App URL is configured, sync with Google Sheets!
-      if (config.google_script_url) {
-        const payload = {
-          action: 'twoWaySync',
-          auth_secret: config.auth_secret || 'ET_SECURE_SYNC_KEY_2026',
-          client_changes: queue,
-          last_sync_time: this.lastSyncTime
-        };
+    let successCount = 0;
+    let failCount = 0;
 
-        const res = await fetch(config.google_script_url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
+    for (const mutation of queue) {
+      try {
+        if (isFirebaseConfigured && db) {
+          const { action, targetId, payload } = mutation;
 
-        const json = await res.json();
-        if (json.success && json.data) {
-          // Clear applied changes from local queue
-          const appliedIds = new Set(json.data.applied_ids || []);
-          const remainingQueue = queue.filter(item => !appliedIds.has(item.id));
-          this.saveQueue(remainingQueue);
+          if (action === 'create') {
+            const docRef = doc(db, 'users', userId, 'transactions', String(targetId));
+            await setDoc(docRef, {
+              ...payload,
+              id: targetId,
+              sync_status: 'synced',
+              synced_at: new Date().toISOString(),
+              created_at: payload.created_at || serverTimestamp(),
+              updated_at: serverTimestamp()
+            }, { merge: true });
 
-          this.lastSyncTime = new Date().toISOString();
-          localStorage.setItem(LAST_SYNC_KEY, this.lastSyncTime);
-          this.status = 'idle';
-          this.notifyListeners();
-
-          return {
-            success: true,
-            server_records: json.data.server_expenses,
-            sync_time: this.lastSyncTime
-          };
-        } else {
-          throw new Error(json.error || 'Google Apps Script sync failed');
-        }
-      }
-
-      // 2. Otherwise sync with local Express / SQLite API server
-      if (queue.length > 0) {
-        // Process each pending queue item against local API
-        const remainingQueue = [...queue];
-        for (const item of queue) {
-          try {
-            if (item.action === 'create') {
-              await fetch('/api/transactions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(item.data)
-              });
-            } else if (item.action === 'update') {
-              await fetch(`/api/transactions/${item.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(item.data)
-              });
-            } else if (item.action === 'delete') {
-              await fetch(`/api/transactions/${item.id}`, {
-                method: 'DELETE'
-              });
+            // Invalidate monthly cache roll-up
+            const monthKey = payload.month_key || (payload.date ? payload.date.slice(0, 7) : null);
+            if (monthKey) {
+              try { await deleteDoc(doc(db, 'users', userId, 'months', monthKey)); } catch (e) {}
             }
-            // Remove from remaining queue
-            const idx = remainingQueue.findIndex(q => q.id === item.id);
-            if (idx !== -1) remainingQueue.splice(idx, 1);
-          } catch (err) {
-            console.warn('Queue item sync deferred:', err);
+          } else if (action === 'update') {
+            const docRef = doc(db, 'users', userId, 'transactions', String(targetId));
+            await updateDoc(docRef, {
+              ...payload,
+              sync_status: 'synced',
+              synced_at: new Date().toISOString(),
+              updated_at: serverTimestamp()
+            });
+
+            const monthKey = payload.month_key || (payload.date ? payload.date.slice(0, 7) : null);
+            if (monthKey) {
+              try { await deleteDoc(doc(db, 'users', userId, 'months', monthKey)); } catch (e) {}
+            }
+          } else if (action === 'delete') {
+            const docRef = doc(db, 'users', userId, 'transactions', String(targetId));
+            await deleteDoc(docRef);
+            if (mutation.monthKey) {
+              try { await deleteDoc(doc(db, 'users', userId, 'months', mutation.monthKey)); } catch (e) {}
+            }
+          } else if (action === 'budget') {
+            await firestoreService.updateBudget(userId, payload.month, payload.budget);
+          } else if (action === 'create_category') {
+            await firestoreService.addCategory(userId, payload);
+          } else if (action === 'delete_category') {
+            await firestoreService.deleteCategory(userId, targetId);
           }
         }
-        this.saveQueue(remainingQueue);
+
+        // Dequeue upon confirmed synchronization
+        dequeuePendingMutation(userId, mutation.mutationId);
+        successCount++;
+      } catch (err) {
+        console.warn(`[SyncService] Failed to sync mutation ${mutation.mutationId}:`, err);
+        failCount++;
+        // If network lost mid-sync, break loop to preserve order
+        if (!navigator.onLine) {
+          this.isOnline = false;
+          break;
+        }
       }
-
-      this.lastSyncTime = new Date().toISOString();
-      localStorage.setItem(LAST_SYNC_KEY, this.lastSyncTime);
-      this.status = 'idle';
-      this.notifyListeners();
-
-      return { success: true, sync_time: this.lastSyncTime };
-    } catch (err) {
-      console.error('Two-way sync error:', err);
-      this.status = 'error';
-      this.notifyListeners();
-      if (!silent) throw err;
-    } finally {
-      this.isSyncing = false;
-      this.notifyListeners();
     }
+
+    const remaining = getPendingMutations(userId);
+    this.isSyncing = false;
+
+    if (remaining.length === 0) {
+      this.status = 'synced';
+      this.lastSyncedAt = new Date().toISOString();
+    } else if (failCount > 0) {
+      this.status = 'failed';
+    } else {
+      this.status = this.isOnline ? 'pending' : 'offline';
+    }
+
+    this.notify();
   }
 }
 

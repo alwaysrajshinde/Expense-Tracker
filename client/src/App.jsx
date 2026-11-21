@@ -281,6 +281,7 @@ function MainApp() {
               userName={settings.user_name || user?.name || 'User'}
               userEmail={settings.user_email || user?.email || ''}
               onLogout={logout}
+              onOpenReleaseNotes={() => setIsReleaseNotesOpen(true)}
             />
           </div>
 
@@ -392,6 +393,7 @@ function MainApp() {
                   settings={settings}
                   categories={categories}
                   initialSection={settingsSection}
+                  isDesktopScreen={true}
                   onLogout={logout}
                   onOpenTour={() => setIsOnboardingTourOpen(true)}
                   onOpenReleaseNotes={openReleaseNotesModal}
@@ -410,6 +412,34 @@ function MainApp() {
                     const updatedCats = await api.getCategories();
                     setCategories(updatedCats);
                     showToast(`Category "${cat.name}" added successfully`, 'success');
+                  }}
+                  onUpdateCategory={async (id, data) => {
+                    await api.updateCategory(id, data);
+                    const updatedCats = await api.getCategories();
+                    setCategories(updatedCats);
+                    showToast(`Category updated successfully`, 'success');
+                  }}
+                  onArchiveCategory={async (id) => {
+                    await api.archiveCategory(id);
+                    const updatedCats = await api.getCategories();
+                    setCategories(updatedCats);
+                    showToast('Category archived', 'info');
+                  }}
+                  onRestoreCategory={async (id) => {
+                    await api.restoreCategory(id);
+                    const updatedCats = await api.getCategories();
+                    setCategories(updatedCats);
+                    showToast('Category restored', 'success');
+                  }}
+                  onReassignCategory={async (oldCatName, newCatName, categoryIdToDelete) => {
+                    const reassigned = await api.reassignCategoryTransactions(oldCatName, newCatName);
+                    if (categoryIdToDelete) {
+                      await api.deleteCategory(categoryIdToDelete);
+                    }
+                    const updatedCats = await api.getCategories();
+                    setCategories(updatedCats);
+                    handleRefreshAll();
+                    showToast(`Reassigned ${reassigned} transactions to "${newCatName}" and removed category`, 'success');
                   }}
                   onDeleteCategory={async (id) => {
                     await api.deleteCategory(id);
@@ -537,6 +567,7 @@ function MainApp() {
                   settings={settings}
                   categories={categories}
                   initialSection={settingsSection}
+                  isDesktopScreen={false}
                   onLogout={logout}
                   onOpenTour={() => setIsOnboardingTourOpen(true)}
                   onOpenReleaseNotes={openReleaseNotesModal}
@@ -555,6 +586,34 @@ function MainApp() {
                     const updatedCats = await api.getCategories();
                     setCategories(updatedCats);
                     showToast(`Category "${cat.name}" added successfully`, 'success');
+                  }}
+                  onUpdateCategory={async (id, data) => {
+                    await api.updateCategory(id, data);
+                    const updatedCats = await api.getCategories();
+                    setCategories(updatedCats);
+                    showToast(`Category updated successfully`, 'success');
+                  }}
+                  onArchiveCategory={async (id) => {
+                    await api.archiveCategory(id);
+                    const updatedCats = await api.getCategories();
+                    setCategories(updatedCats);
+                    showToast('Category archived', 'info');
+                  }}
+                  onRestoreCategory={async (id) => {
+                    await api.restoreCategory(id);
+                    const updatedCats = await api.getCategories();
+                    setCategories(updatedCats);
+                    showToast('Category restored', 'success');
+                  }}
+                  onReassignCategory={async (oldCatName, newCatName, categoryIdToDelete) => {
+                    const reassigned = await api.reassignCategoryTransactions(oldCatName, newCatName);
+                    if (categoryIdToDelete) {
+                      await api.deleteCategory(categoryIdToDelete);
+                    }
+                    const updatedCats = await api.getCategories();
+                    setCategories(updatedCats);
+                    handleRefreshAll();
+                    showToast(`Reassigned ${reassigned} transactions to "${newCatName}" and removed category`, 'success');
                   }}
                   onDeleteCategory={async (id) => {
                     await api.deleteCategory(id);

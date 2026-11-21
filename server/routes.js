@@ -267,6 +267,39 @@ router.delete('/categories/:id', resolveUser, (req, res) => {
   }
 });
 
+router.put('/categories/:id', resolveUser, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const updated = db.updateCategory(id, req.body);
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    console.error('Error updating category:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.get('/categories/count', resolveUser, (req, res) => {
+  try {
+    const { name } = req.query;
+    const count = db.countCategoryTransactions(name, req.user.id);
+    res.json({ success: true, count });
+  } catch (err) {
+    console.error('Error counting category transactions:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/categories/reassign', resolveUser, (req, res) => {
+  try {
+    const { oldName, newName } = req.body;
+    const changed = db.reassignCategoryTransactions(oldName, newName, req.user.id);
+    res.json({ success: true, changed });
+  } catch (err) {
+    console.error('Error reassigning category transactions:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 router.get('/reports', resolveUser, (req, res) => {
   try {
     const { month } = req.query;

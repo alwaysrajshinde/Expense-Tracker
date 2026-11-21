@@ -19,21 +19,36 @@ import {
   computeReportsFromTransactions 
 } from './sheetsBackend';
 
-// Minimal Starter Categories for New Users (Clean, essential, non-overwhelming)
-export const MINIMAL_DEFAULT_CATEGORIES = [
-  { name: 'Food & Dining', icon: 'Utensils', color: '#6C47FF', is_quick: true },
-  { name: 'Groceries', icon: 'ShoppingBag', color: '#10B981', is_quick: true },
-  { name: 'Transportation', icon: 'Car', color: '#F59E0B', is_quick: true },
-  { name: 'Shopping', icon: 'Shirt', color: '#EC4899', is_quick: true },
-  { name: 'Bills & Utilities', icon: 'Zap', color: '#3B82F6', is_quick: false },
-  { name: 'Rent & Housing', icon: 'Home', color: '#6366F1', is_quick: false },
-  { name: 'Health', icon: 'HeartPulse', color: '#EF4444', is_quick: false },
-  { name: 'Entertainment', icon: 'Film', color: '#8B5CF6', is_quick: false },
-  { name: 'Education', icon: 'GraduationCap', color: '#0EA5E9', is_quick: false },
-  { name: 'Travel', icon: 'Compass', color: '#F97316', is_quick: false },
-  { name: 'Personal Care', icon: 'Sparkles', color: '#F43F5E', is_quick: false },
-  { name: 'EMI & Loans', icon: 'CreditCard', color: '#64748B', is_quick: false },
-  { name: 'Other', icon: 'Tag', color: '#94A3B8', is_quick: false }
+// Standard Default 15 Categories for New Users (Clean, comprehensive, non-overlapping)
+export const STANDARD_DEFAULT_CATEGORIES = [
+  { name: 'Food & Dining', icon: 'Utensils', color: '#6C47FF', is_quick: true, is_system: true },
+  { name: 'Groceries', icon: 'ShoppingBasket', color: '#10B981', is_quick: true, is_system: true },
+  { name: 'Transportation', icon: 'Car', color: '#F59E0B', is_quick: true, is_system: true },
+  { name: 'Housing & Rent', icon: 'Home', color: '#6366F1', is_quick: false, is_system: true },
+  { name: 'Bills & Utilities', icon: 'Lightbulb', color: '#3B82F6', is_quick: false, is_system: true },
+  { name: 'Shopping', icon: 'ShoppingBag', color: '#EC4899', is_quick: true, is_system: true },
+  { name: 'Health & Medical', icon: 'HeartPulse', color: '#EF4444', is_quick: false, is_system: true },
+  { name: 'Personal Care', icon: 'Sparkles', color: '#F43F5E', is_quick: false, is_system: true },
+  { name: 'Entertainment', icon: 'Film', color: '#8B5CF6', is_quick: false, is_system: true },
+  { name: 'Education', icon: 'BookOpen', color: '#0EA5E9', is_quick: false, is_system: true },
+  { name: 'Travel', icon: 'Plane', color: '#F97316', is_quick: false, is_system: true },
+  { name: 'EMI & Loans', icon: 'CreditCard', color: '#64748B', is_quick: false, is_system: true },
+  { name: 'Gifts & Donations', icon: 'Gift', color: '#D946EF', is_quick: false, is_system: true },
+  { name: 'Subscriptions', icon: 'Repeat', color: '#14B8A6', is_quick: false, is_system: true },
+  { name: 'Other', icon: 'MoreHorizontal', color: '#94A3B8', is_quick: false, is_system: true }
+];
+
+export const MINIMAL_DEFAULT_CATEGORIES = STANDARD_DEFAULT_CATEGORIES;
+
+// Suggested Optional Categories (user-created or 1-click added, non-mandatory)
+export const SUGGESTED_OPTIONAL_CATEGORIES = [
+  { name: 'Pet Care', icon: 'PawPrint', color: '#F59E0B' },
+  { name: 'Insurance', icon: 'ShieldCheck', color: '#3B82F6' },
+  { name: 'Investments', icon: 'TrendingUp', color: '#10B981' },
+  { name: 'Vehicle Maintenance', icon: 'Wrench', color: '#64748B' },
+  { name: 'Bank Charges & Fees', icon: 'Receipt', color: '#EF4444' },
+  { name: 'Family Expenses', icon: 'Users', color: '#EC4899' },
+  { name: 'Business Expenses', icon: 'Briefcase', color: '#6366F1' }
 ];
 
 export function getLocalMonthKey() {
@@ -528,6 +543,95 @@ export async function deleteCategory(userId, id) {
     return { success: true };
   } catch (err) {
     console.error('Error deleting category:', err);
+    throw err;
+  }
+}
+
+/**
+ * Update category (rename, change icon, color, quick-status, or archive status)
+ */
+export async function updateCategory(userId, id, data) {
+  if (!isFirebaseConfigured || !db) return { id, ...data };
+
+  try {
+    const docRef = doc(db, 'users', userId, 'categories', String(id));
+    const updates = {
+      updated_at: serverTimestamp()
+    };
+    if (data.name !== undefined) updates.name = String(data.name).trim();
+    if (data.icon !== undefined) updates.icon = String(data.icon);
+    if (data.color !== undefined) updates.color = String(data.color);
+    if (data.is_quick !== undefined) updates.is_quick = Boolean(data.is_quick);
+    if (data.archived !== undefined) updates.archived = Boolean(data.archived);
+
+    await updateDoc(docRef, updates);
+    return { id, ...data };
+  } catch (err) {
+    console.error('Error updating category:', err);
+    throw err;
+  }
+}
+
+/**
+ * Archive category (preserves all historical transactions)
+ */
+export async function archiveCategory(userId, id) {
+  return await updateCategory(userId, id, { archived: true });
+}
+
+/**
+ * Restore an archived category
+ */
+export async function restoreCategory(userId, id) {
+  return await updateCategory(userId, id, { archived: false });
+}
+
+/**
+ * Count transactions for a given category name
+ */
+export async function countTransactionsForCategory(userId, categoryName) {
+  if (!isFirebaseConfigured || !db || !userId || !categoryName) return 0;
+
+  try {
+    const txCol = collection(db, 'users', userId, 'transactions');
+    const q = query(txCol, where('category', '==', categoryName));
+    const snap = await getDocs(q);
+    return snap.size;
+  } catch (err) {
+    console.warn('Error counting category transactions:', err);
+    return 0;
+  }
+}
+
+/**
+ * Reassign historical transactions from oldCategoryName to newCategoryName
+ */
+export async function reassignCategoryTransactions(userId, oldCategoryName, newCategoryName) {
+  if (!isFirebaseConfigured || !db || !userId || !oldCategoryName || !newCategoryName) return 0;
+
+  try {
+    const txCol = collection(db, 'users', userId, 'transactions');
+    const q = query(txCol, where('category', '==', oldCategoryName));
+    const snap = await getDocs(q);
+    if (snap.empty) return 0;
+
+    let updatedCount = 0;
+    const docs = snap.docs;
+    for (let i = 0; i < docs.length; i += 450) {
+      const chunk = docs.slice(i, i + 450);
+      const batch = writeBatch(db);
+      chunk.forEach(d => {
+        batch.update(d.ref, {
+          category: newCategoryName,
+          updated_at: serverTimestamp()
+        });
+      });
+      await batch.commit();
+      updatedCount += chunk.length;
+    }
+    return updatedCount;
+  } catch (err) {
+    console.error('Error reassigning category transactions:', err);
     throw err;
   }
 }
