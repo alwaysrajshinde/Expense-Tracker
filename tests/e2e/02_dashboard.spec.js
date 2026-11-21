@@ -21,13 +21,13 @@ test.describe('Area B: Dashboard Metrics, Calculations & States', () => {
     await expect(page.locator('text=Remaining').first()).toBeVisible();
   });
 
-  test('B2: New user has pristine empty dashboard (₹0 spent, ₹12,000 remaining, 0% gauge)', async ({ page, authHelpers }) => {
+  test('B2: New user has pristine empty dashboard (₹0 spent, budget 0 default, 0% gauge)', async ({ page, authHelpers }) => {
     const newUser = generateUniqueUser('empty_dash');
     await authHelpers.loginAsNewUser(newUser.email, newUser.name);
 
-    // Verify budget is 12000
+    // Verify budget is 0 or "No budget set" by default for new user
     const bodyText = await page.innerText('body');
-    expect(bodyText).toContain('12,000');
+    expect(bodyText).toMatch(/No budget set|Set Monthly Budget|₹0/);
 
     // Verify 0% spent gauge or ₹0 spent
     expect(bodyText).toContain('₹0');

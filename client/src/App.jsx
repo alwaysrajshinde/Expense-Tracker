@@ -10,15 +10,18 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import AddExpenseModal from './components/AddExpenseModal';
 import NotificationsModal from './components/NotificationsModal';
+import OnboardingTourModal from './components/OnboardingTourModal';
 import AuthGate from './components/AuthGate';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { ToastProvider, useToast } from './context/ToastContext';
 import syncService from './services/syncService';
 import * as api from './services/api';
 
 function MainApp() {
   const { theme, toggleTheme, isDark } = useTheme();
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
 
   // Screen size detection for responsive platform presentation
   const [isDesktopScreen, setIsDesktopScreen] = useState(() => {
@@ -35,17 +38,29 @@ function MainApp() {
 
   const [activeTab, setActiveTab] = useState('home');
   const [settingsSection, setSettingsSection] = useState('budget');
-  const [selectedMonth, setSelectedMonth] = useState('2026-11');
-  const [availableMonths, setAvailableMonths] = useState(['2026-11']);
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [availableMonths, setAvailableMonths] = useState([new Date().toISOString().slice(0, 7)]);
   const [dashboardData, setDashboardData] = useState(null);
   const [reportsData, setReportsData] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [hasUnreadNotifs, setHasUnreadNotifs] = useState(true);
+  const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
   const [settings, setSettings] = useState({
-    monthly_budget: '12000',
+    monthly_budget: '0',
     currency: '₹',
-    user_name: user?.name || 'Raj Shinde',
-    user_email: user?.email || 'raaajshinde@gmail.com'
+    user_name: user?.name || (user?.email ? user.email.split('@')[0] : 'User'),
+    user_email: user?.email || ''
   });
+
+  useEffect(() => {
+    if (user) {
+      setSettings(prev => ({
+        ...prev,
+        user_name: user.name || (user.email ? user.email.split('@')[0] : 'User'),
+        user_email: user.email || ''
+      }));
+    }
+  }, [user]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
@@ -59,12 +74,23 @@ function MainApp() {
         api.getSettings()
       ]);
       setCategories(cats);
-      setSettings(prev => ({ 
-        ...prev, 
-        ...sett,
-        user_name: user?.name || sett.user_name || 'Raj Shinde',
-        user_email: user?.email || sett.user_email || 'raaajshinde@gmail.com'
-      }));
+      const isRaj = user?.email?.toLowerCase() === 'raaajshinde@gmail.com';
+      const updatedSettings = {
+        monthly_budget: isRaj ? '12000' : (sett.monthly_budget !== undefined ? String(sett.monthly_budget) : '0'),
+        currency: sett.currency || '₹',
+        user_name: user?.name || sett.user_name || (user?.email ? user.email.split('@')[0] : 'User'),
+        user_email: user?.email || sett.user_email || ''
+      };
+      setSettings(updatedSettings);
+
+      // First-time onboarding tour check for new accounts
+      const tourKey = 'et_tour_completed_' + (user?.uid || user?.email || 'guest');
+      const alreadySeen = localStorage.getItem(tourKey) === 'true';
+      const budgetZero = (parseFloat(updatedSettings.monthly_budget) || 0) === 0;
+
+      if (!isRaj && !alreadySeen && (budgetZero || !sett.onboarding_completed)) {
+        setIsOnboardingTourOpen(true);
+      }
     } catch (err) {
       console.error('Error loading initial data:', err);
     }
@@ -136,11 +162,14 @@ function MainApp() {
       // 2. Save to active backend
       if (data.id) {
         await api.updateTransaction(data.id, data);
+        showToast('Expense updated successfully!', 'success');
       } else {
         await api.createTransaction(data);
+        showToast('Expense added successfully!', 'success');
       }
     } catch (err) {
       console.warn('Direct API save error, retained in sync queue:', err);
+      showToast('Saved offline. Will synchronize when online.', 'info');
     }
     handleRefreshAll();
   };
@@ -149,6 +178,7 @@ function MainApp() {
     try {
       syncService.enqueue('delete', {}, id);
       await api.deleteTransaction(id);
+      showToast('Expense deleted successfully', 'success');
     } catch (err) {
       console.warn('Direct delete deferred to queue:', err);
     }
@@ -172,8 +202,8 @@ function MainApp() {
                 setEditingTransaction(null);
                 setIsAddModalOpen(true);
               }}
-              userName={settings.user_name || 'Raj Shinde'}
-              userEmail={settings.user_email || 'raaajshinde@gmail.com'}
+              userName={settings.user_name || user?.name || 'User'}
+              userEmail={settings.user_email || user?.email || ''}
               onLogout={logout}
             />
           </div>
@@ -183,8 +213,8 @@ function MainApp() {
             {/* Windows Header Bar (Matching Purple Expense Tracker Dashboard.png) */}
             <div className="px-5 sm:px-7 pt-5">
               <WindowsHeader
-                userName={settings.user_name || 'Raj Shinde'}
-                userEmail={settings.user_email || 'raaajshinde@gmail.com'}
+                userName={settings.user_name || user?.name || 'User'}
+                userEmail={settings.user_email || user?.email || ''}
                 selectedMonth={selectedMonth}
                 availableMonths={availableMonths}
                 onSelectMonth={setSelectedMonth}
@@ -194,7 +224,7 @@ function MainApp() {
                   setSettingsSection('profile');
                 }}
                 onLogout={logout}
-                hasUnreadNotifications={true}
+                hasUnreadNotifications={hasUnreadNotifs}
                 onRefresh={handleRefreshAll}
               />
             </div>
@@ -218,6 +248,10 @@ function MainApp() {
                     setSettingsSection('categories');
                   }}
                   onViewAllTransactions={() => setActiveTab('transactions')}
+                  onSetBudget={() => {
+                    setActiveTab('settings');
+                    setSettingsSection('budget');
+                  }}
                   formatCurrency={formatCurrency}
                   onSelectMonth={setSelectedMonth}
                 />
@@ -254,23 +288,28 @@ function MainApp() {
                   categories={categories}
                   initialSection={settingsSection}
                   onLogout={logout}
+                  onOpenTour={() => setIsOnboardingTourOpen(true)}
                   onUpdateSettings={async (data) => {
                     const updated = await api.updateSettings(data);
                     setSettings(prev => ({ ...prev, ...updated }));
+                    showToast('Settings saved successfully', 'success');
                   }}
                   onUpdateBudget={async (month, budget) => {
                     await api.updateBudget(month, budget);
                     loadMonthData(selectedMonth);
+                    showToast(`Monthly budget set to ${formatCurrency(budget)}`, 'success');
                   }}
                   onAddCategory={async (cat) => {
                     await api.createCategory(cat);
                     const updatedCats = await api.getCategories();
                     setCategories(updatedCats);
+                    showToast(`Category "${cat.name}" added successfully`, 'success');
                   }}
                   onDeleteCategory={async (id) => {
                     await api.deleteCategory(id);
                     const updatedCats = await api.getCategories();
                     setCategories(updatedCats);
+                    showToast('Category deleted', 'info');
                   }}
                   onImportFile={api.importExcelOrCsv}
                   onRestoreBackup={api.restoreBackup}
@@ -290,8 +329,8 @@ function MainApp() {
         <div className="w-full max-w-lg mx-auto min-h-screen bg-[var(--bg-app)] flex flex-col relative transition-colors">
           {/* Android Mobile Header */}
           <Header
-            userName={settings.user_name || 'Raj Shinde'}
-            userEmail={settings.user_email || 'raaajshinde@gmail.com'}
+            userName={settings.user_name || user?.name || 'User'}
+            userEmail={settings.user_email || user?.email || ''}
             selectedMonth={selectedMonth}
             availableMonths={availableMonths}
             onSelectMonth={setSelectedMonth}
@@ -301,7 +340,7 @@ function MainApp() {
               setSettingsSection('profile');
             }}
             onLogout={logout}
-            hasUnreadNotifications={true}
+            hasUnreadNotifications={hasUnreadNotifs}
           />
 
           {/* Android Mobile Main Tabs */}
@@ -316,6 +355,11 @@ function MainApp() {
                 onViewAllCategories={() => {
                   setActiveTab('settings');
                   setSettingsSection('categories');
+                }}
+                onViewAllTransactions={() => setActiveTab('transactions')}
+                onSetBudget={() => {
+                  setActiveTab('settings');
+                  setSettingsSection('budget');
                 }}
                 formatCurrency={formatCurrency}
               />
@@ -357,23 +401,28 @@ function MainApp() {
                   categories={categories}
                   initialSection={settingsSection}
                   onLogout={logout}
+                  onOpenTour={() => setIsOnboardingTourOpen(true)}
                   onUpdateSettings={async (data) => {
                     const updated = await api.updateSettings(data);
                     setSettings(prev => ({ ...prev, ...updated }));
+                    showToast('Settings saved successfully', 'success');
                   }}
                   onUpdateBudget={async (month, budget) => {
                     await api.updateBudget(month, budget);
                     loadMonthData(selectedMonth);
+                    showToast(`Monthly budget set to ${formatCurrency(budget)}`, 'success');
                   }}
                   onAddCategory={async (cat) => {
                     await api.createCategory(cat);
                     const updatedCats = await api.getCategories();
                     setCategories(updatedCats);
+                    showToast(`Category "${cat.name}" added successfully`, 'success');
                   }}
                   onDeleteCategory={async (id) => {
                     await api.deleteCategory(id);
                     const updatedCats = await api.getCategories();
                     setCategories(updatedCats);
+                    showToast('Category deleted', 'info');
                   }}
                   onImportFile={api.importExcelOrCsv}
                   onRestoreBackup={api.restoreBackup}
@@ -403,7 +452,8 @@ function MainApp() {
         onSave={handleSaveTransaction}
         categories={categories}
         editingTransaction={editingTransaction}
-        initialDate={dashboardData?.today_date || '2026-11-20'}
+        initialDate={dashboardData?.today_date || new Date().toISOString().slice(0, 10)}
+        onSaveAnotherSuccess={() => showToast('Expense saved! Ready for next.', 'success')}
       />
 
       {/* Global Notifications Modal */}
@@ -412,6 +462,27 @@ function MainApp() {
         onClose={() => setIsNotificationsOpen(false)}
         dashboardData={dashboardData}
         formatCurrency={formatCurrency}
+        onClearUnread={() => setHasUnreadNotifs(false)}
+      />
+
+      {/* First-Time User Guided Tour & Onboarding Modal */}
+      <OnboardingTourModal
+        isOpen={isOnboardingTourOpen}
+        onClose={() => {
+          setIsOnboardingTourOpen(false);
+          const tourKey = 'et_tour_completed_' + (user?.uid || user?.email || 'guest');
+          localStorage.setItem(tourKey, 'true');
+        }}
+        onSaveBudget={async (numericBudget) => {
+          await api.updateBudget(selectedMonth, numericBudget);
+          setSettings(prev => ({ ...prev, monthly_budget: String(numericBudget) }));
+          const tourKey = 'et_tour_completed_' + (user?.uid || user?.email || 'guest');
+          localStorage.setItem(tourKey, 'true');
+          loadMonthData(selectedMonth);
+          showToast(`Monthly budget set to ${formatCurrency(numericBudget)}!`, 'success');
+        }}
+        currency={settings.currency || '₹'}
+        userName={settings.user_name || 'User'}
       />
     </div>
   );
@@ -422,7 +493,9 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <AuthGate>
-          <MainApp />
+          <ToastProvider>
+            <MainApp />
+          </ToastProvider>
         </AuthGate>
       </AuthProvider>
     </ThemeProvider>

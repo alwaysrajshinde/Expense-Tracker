@@ -3,8 +3,8 @@ import { Calendar, ChevronDown, Bell, CheckCircle2, Sun, Moon, LogOut, User } fr
 import { useTheme } from '../context/ThemeContext';
 
 export default function Header({
-  userName = "Raj",
-  userEmail = "raaajshinde@gmail.com",
+  userName = "User",
+  userEmail = "",
   selectedMonth = "2026-11",
   availableMonths = [],
   onSelectMonth,

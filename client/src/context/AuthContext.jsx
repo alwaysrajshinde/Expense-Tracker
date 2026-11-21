@@ -3,9 +3,12 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
-  sendPasswordResetEmail, 
+  sendPasswordResetEmail,
+  sendEmailVerification, 
   onAuthStateChanged,
-  updateProfile 
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../firebase/config';
 import { ensureUserProfile } from '../services/firestoreService';
@@ -103,7 +106,22 @@ export function AuthProvider({ children }) {
 
     if (isFirebaseConfigured && auth) {
       try {
-        const userCred = await signInWithEmailAndPassword(auth, cleanEmail, password);
+        let userCred;
+        try {
+          userCred = await signInWithEmailAndPassword(auth, cleanEmail, password);
+        } catch (signInErr) {
+          // If account does not exist yet in Firebase (e.g. first time sign-in), auto-create
+          if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
+            try {
+              userCred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+            } catch (createErr) {
+              throw signInErr;
+            }
+          } else {
+            throw signInErr;
+          }
+        }
+
         const fbUser = userCred.user;
         const isRaj = cleanEmail === 'raaajshinde@gmail.com';
         const sessionData = {
@@ -120,7 +138,9 @@ export function AuthProvider({ children }) {
         return { success: true, user: sessionData };
       } catch (fbErr) {
         let msg = fbErr.message;
-        if (fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/wrong-password') {
+        if (fbErr.code === 'auth/operation-not-allowed' || fbErr.code === 'auth/configuration-not-found') {
+          msg = 'Email/Password sign-in is not enabled yet in your Firebase Console. Please enable it under Authentication > Sign-in method.';
+        } else if (fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/wrong-password') {
           msg = 'Incorrect password or email. Please check your credentials.';
         } else if (fbErr.code === 'auth/user-not-found') {
           msg = 'No account found with this email. Please create an account.';
@@ -137,6 +157,50 @@ export function AuthProvider({ children }) {
   };
 
   /**
+   * Universal Sign In with Google Popup (Firebase OAuth)
+   */
+  const loginWithGoogle = async () => {
+    setAuthError(null);
+    if (isFirebaseConfigured && auth) {
+      try {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+
+        const result = await signInWithPopup(auth, provider);
+        const fbUser = result.user;
+
+        const cleanEmail = (fbUser.email || '').trim().toLowerCase();
+        const isRaj = cleanEmail === 'raaajshinde@gmail.com';
+        const sessionData = {
+          id: fbUser.uid,
+          uid: fbUser.uid,
+          email: cleanEmail,
+          name: fbUser.displayName || (isRaj ? 'Raj Shinde' : cleanEmail.split('@')[0]),
+          picture: fbUser.photoURL || '',
+          expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000
+        };
+        setUser(sessionData);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+        await ensureUserProfile(fbUser.uid, cleanEmail, sessionData.name);
+        return { success: true, user: sessionData };
+      } catch (err) {
+        if (err.code === 'auth/popup-closed-by-user') {
+          return null; // User simply closed the popup
+        }
+        let msg = err.message;
+        if (err.code === 'auth/account-exists-with-different-credential') {
+          msg = 'An account already exists with this email using a different sign-in method. Please use email & password.';
+        }
+        setAuthError(msg);
+        throw new Error(msg);
+      }
+    } else {
+      // Local fallback
+      return loginWithAccount('raaajshinde@gmail.com', 'Raj Shinde');
+    }
+  };
+
+  /**
    * Universal Registration with Email, Password & Display Name
    */
   const registerWithEmail = async (email, password, displayName = '') => {
@@ -148,8 +212,13 @@ export function AuthProvider({ children }) {
       setAuthError(err);
       throw new Error(err);
     }
-    if (!password || password.length < 6) {
-      const err = 'Password must be at least 6 characters long';
+    if (!password || password.length < 8) {
+      const err = 'Password must be at least 8 characters long';
+      setAuthError(err);
+      throw new Error(err);
+    }
+    if (!(/[0-9]/.test(password) || /[^A-Za-z0-9]/.test(password))) {
+      const err = 'Password must contain at least one number or special symbol';
       setAuthError(err);
       throw new Error(err);
     }
@@ -163,6 +232,15 @@ export function AuthProvider({ children }) {
         try {
           await updateProfile(fbUser, { displayName: name });
         } catch (profileErr) {}
+
+        // Send email verification
+        try {
+          if (fbUser && typeof sendEmailVerification === 'function') {
+            await sendEmailVerification(fbUser);
+          }
+        } catch (verErr) {
+          console.warn('Email verification notification deferred:', verErr.message);
+        }
 
         const sessionData = {
           id: fbUser.uid,
@@ -179,7 +257,9 @@ export function AuthProvider({ children }) {
         return { success: true, user: sessionData, is_new: true };
       } catch (fbErr) {
         let msg = fbErr.message;
-        if (fbErr.code === 'auth/email-already-in-use') {
+        if (fbErr.code === 'auth/operation-not-allowed' || fbErr.code === 'auth/configuration-not-found') {
+          msg = 'Email/Password sign-in is not enabled yet in your Firebase Console. Please enable it under Authentication > Sign-in method.';
+        } else if (fbErr.code === 'auth/email-already-in-use') {
           msg = 'An account with this email already exists. Please sign in instead.';
         } else if (fbErr.code === 'auth/weak-password') {
           msg = 'Password is too weak. Please use at least 6 characters.';
@@ -270,6 +350,7 @@ export function AuthProvider({ children }) {
         isFirebaseConfigured,
         loginWithEmail,
         registerWithEmail,
+        loginWithGoogle,
         resetPassword,
         loginWithAccount,
         logout,

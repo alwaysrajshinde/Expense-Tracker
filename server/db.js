@@ -418,7 +418,7 @@ function getSettings(userId = 1) {
     settings.user_name = user.name;
     settings.user_email = user.email;
   }
-  if (!settings.monthly_budget) settings.monthly_budget = '12000';
+  if (!settings.monthly_budget) settings.monthly_budget = userId === 1 ? '12000' : '0';
   if (!settings.currency) settings.currency = '₹';
   return settings;
 }
@@ -444,7 +444,7 @@ function getMonthlyBudget(monthKey, userId = 1) {
   const legacy = db.prepare('SELECT budget FROM monthly_budgets WHERE month_key = ?').get(monthKey);
   if (legacy && userId === 1) return legacy.budget;
   const settings = getSettings(userId);
-  return parseFloat(settings.monthly_budget) || 12000;
+  return parseFloat(settings.monthly_budget) || (userId === 1 ? 12000 : 0);
 }
 
 function setMonthlyBudget(monthKey, budget, userId = 1) {

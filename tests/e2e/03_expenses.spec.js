@@ -19,7 +19,7 @@ test.describe('Area C: Expense Management & Edge Cases', () => {
     await authHelpers.loginAsNewUser(testUser.email, testUser.name);
 
     // Click "+ Add Expense" from sidebar
-    const addBtn = page.locator('aside button:has-text("Add Expense")');
+    const addBtn = page.locator('button:has-text("Add Expense")').first();
     await addBtn.click();
 
     // Verify modal is open
@@ -39,7 +39,7 @@ test.describe('Area C: Expense Management & Edge Cases', () => {
   test('C2: Rejects zero and negative amounts in modal', async ({ page, authHelpers }) => {
     await authHelpers.loginAsNewUser(testUser.email, testUser.name);
 
-    const addBtn = page.locator('aside button:has-text("Add Expense")');
+    const addBtn = page.locator('button:has-text("Add Expense")').first();
     await addBtn.click();
 
     const amountInput = page.locator('.fixed input[placeholder="0"]');
@@ -58,7 +58,7 @@ test.describe('Area C: Expense Management & Edge Cases', () => {
   test('C3: Successfully adds expense with decimal amount and special characters', async ({ page, authHelpers }) => {
     await authHelpers.loginAsNewUser(testUser.email, testUser.name);
 
-    const addBtn = page.locator('aside button:has-text("Add Expense")');
+    const addBtn = page.locator('button:has-text("Add Expense")').first();
     await addBtn.click();
 
     // Fill valid decimal amount
@@ -83,7 +83,7 @@ test.describe('Area C: Expense Management & Edge Cases', () => {
   test('C4: Successfully adds a refund / return transaction', async ({ page, authHelpers }) => {
     await authHelpers.loginAsNewUser(testUser.email, testUser.name);
 
-    const addBtn = page.locator('aside button:has-text("Add Expense")');
+    const addBtn = page.locator('button:has-text("Add Expense")').first();
     await addBtn.click();
 
     // Switch to Refund toggle inside modal

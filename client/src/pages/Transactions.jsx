@@ -6,6 +6,7 @@ import {
 import CategoryIcon from '../components/CategoryIcon';
 import { getTransactions, getCurrentUserEmail } from '../services/api';
 import { exportTransactionsToExcel, exportDataToJson } from '../services/exportService';
+import { useToast } from '../context/ToastContext';
 
 export default function Transactions({
   selectedMonth,
@@ -16,14 +17,23 @@ export default function Transactions({
   formatCurrency,
   onSelectMonth
 }) {
+  const { showToast } = useToast();
   const [transactionsData, setTransactionsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [monthFilter, setMonthFilter] = useState(selectedMonth || 'all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const loadTransactions = async () => {
     try {
@@ -32,7 +42,7 @@ export default function Transactions({
         month: monthFilter && monthFilter !== 'all' ? monthFilter : undefined,
         category: categoryFilter && categoryFilter !== 'all' ? categoryFilter : undefined,
         payment_mode: paymentFilter && paymentFilter !== 'all' ? paymentFilter : undefined,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         page,
         limit: 40
       });
@@ -53,15 +63,16 @@ export default function Transactions({
 
   useEffect(() => {
     loadTransactions();
-  }, [monthFilter, categoryFilter, paymentFilter, search, page]);
+  }, [monthFilter, categoryFilter, paymentFilter, debouncedSearch, page]);
 
   const handleDelete = async (id) => {
     try {
       await onDeleteTransaction(id);
       setDeleteConfirmId(null);
+      showToast('Transaction deleted successfully', 'success');
       loadTransactions();
     } catch (err) {
-      alert(err.message || 'Failed to delete transaction');
+      showToast(err.message || 'Failed to delete transaction', 'error');
     }
   };
 
@@ -73,7 +84,7 @@ export default function Transactions({
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
     const formatted = dt.toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' });
-    if (dateStr === '2026-11-20' || dateStr === todayStr) {
+    if (dateStr === todayStr) {
       return `Today · ${formatted}`;
     }
     return formatted;
@@ -209,6 +220,9 @@ export default function Transactions({
               <option value="all">All Modes</option>
               <option value="UPI">UPI</option>
               <option value="Cash">Cash</option>
+              <option value="Credit Card">Credit Card</option>
+              <option value="Debit Card">Debit Card</option>
+              <option value="Net Banking">Net Banking</option>
             </select>
           </div>
         </div>

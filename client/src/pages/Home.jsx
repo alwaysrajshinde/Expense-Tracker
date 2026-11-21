@@ -4,24 +4,27 @@ import {
   RotateCcw, Tag, FileText, Check, ChevronDown
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
+import { useToast } from '../context/ToastContext';
 
 export default function Home({
   dashboardData,
   reportsData,
   categories = [],
-  selectedMonth = '2026-11',
+  selectedMonth = new Date().toISOString().slice(0, 7),
   availableMonths = [],
   onOpenAddExpense,
   onQuickAddExpense,
   onViewAllCategories,
   onViewAllTransactions,
+  onSetBudget,
   formatCurrency,
   onSelectMonth
 }) {
+  const { showToast } = useToast();
   // Quick Add Expense Inline Form State (Must be top level before any early return)
   const [quickAmount, setQuickAmount] = useState('');
-  const [quickCategory, setQuickCategory] = useState('Food');
-  const [quickDate, setQuickDate] = useState(dashboardData?.today_date || '2026-11-20');
+  const [quickCategory, setQuickCategory] = useState(categories[0]?.name || 'Food & Dining');
+  const [quickDate, setQuickDate] = useState(dashboardData?.today_date || new Date().toISOString().slice(0, 10));
   const [quickDesc, setQuickDesc] = useState('');
   const [quickIsRefund, setQuickIsRefund] = useState(false);
   const [quickPaymentMode, setQuickPaymentMode] = useState('UPI');
@@ -81,7 +84,7 @@ export default function Home({
   const handleQuickSubmit = async (e) => {
     e.preventDefault();
     if (!quickAmount || isNaN(parseFloat(quickAmount)) || parseFloat(quickAmount) <= 0) {
-      alert('Please enter a valid amount');
+      showToast('Please enter a valid amount', 'warning');
       return;
     }
 
@@ -98,9 +101,10 @@ export default function Home({
       setQuickAmount('');
       setQuickDesc('');
       setQuickSuccess(true);
+      showToast('Expense added successfully!', 'success');
       setTimeout(() => setQuickSuccess(false), 2000);
     } catch (err) {
-      alert(err.message || 'Failed to add expense');
+      showToast(err.message || 'Failed to add expense', 'error');
     } finally {
       setQuickSaving(false);
     }
@@ -120,9 +124,20 @@ export default function Home({
                 <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
                   Monthly Budget
                 </span>
-                <p className="text-white text-base sm:text-lg font-bold tracking-tight">
-                  {formatCurrency(budget)}
-                </p>
+                {budget > 0 ? (
+                  <p className="text-white text-base sm:text-lg font-bold tracking-tight">
+                    {formatCurrency(budget)}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onSetBudget}
+                    className="mt-1 px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                  >
+                    <span>Set Monthly Budget</span>
+                    <ArrowRight size={12} />
+                  </button>
+                )}
               </div>
 
               <div>
@@ -135,14 +150,20 @@ export default function Home({
               </div>
 
               <div className="pt-0.5">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
-                  remaining_budget >= 0
-                    ? 'bg-emerald-100 text-emerald-950'
-                    : 'bg-rose-100 text-rose-950'
-                }`}>
-                  {remaining_budget >= 0 ? 'Remaining: ' : 'Over budget: '}
-                  {formatCurrency(Math.abs(remaining_budget))}
-                </span>
+                {budget > 0 ? (
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
+                    remaining_budget >= 0
+                      ? 'bg-emerald-100 text-emerald-950'
+                      : 'bg-rose-100 text-rose-950'
+                  }`}>
+                    {remaining_budget >= 0 ? 'Remaining: ' : 'Remaining: Over by '}
+                    {formatCurrency(Math.abs(remaining_budget))}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-200/90 text-purple-950 shadow-xs">
+                    No budget set
+                  </span>
+                )}
               </div>
             </div>
 
@@ -438,41 +459,50 @@ export default function Home({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-white/5">
-                {(recent_transactions.length > 0 ? recent_transactions.slice(0, 4) : [
-                  { id: 1, date: '2026-11-20', description: 'Lunch', category: 'Food', payment_mode: 'UPI', amount: 150 },
-                  { id: 2, date: '2026-11-20', description: 'Auto', category: 'Auto', payment_mode: 'UPI', amount: 100 },
-                  { id: 3, date: '2026-11-20', description: 'Metro', category: 'Metro', payment_mode: 'UPI', amount: 60 },
-                  { id: 4, date: '2026-11-20', description: 'Fruits', category: 'Fruits', payment_mode: 'Cash', amount: 30 }
-                ]).map((tx) => (
-                  <tr key={tx.id} className="group hover:bg-slate-50/80 dark:hover:bg-white/5 transition-colors">
-                    <td className="py-3 flex items-center gap-2">
-                      <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: `${tx.color || '#6C47FF'}18` }}
-                      >
-                        <CategoryIcon name={tx.category} icon={tx.icon} color={tx.color} size={14} />
-                      </div>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                        {tx.date ? new Date(tx.date).toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' }) : '20 Nov 2026'}
-                      </span>
-                    </td>
-                    <td className="py-3 font-bold text-slate-900 dark:text-white">
-                      {tx.description || tx.category}
-                    </td>
-                    <td className="py-3 text-slate-600 dark:text-slate-300">
-                      {tx.category}
-                    </td>
-                    <td className="py-3 text-slate-600 dark:text-slate-300">
-                      {tx.payment_mode}
-                    </td>
-                    <td className="py-3 text-right font-black text-slate-900 dark:text-white whitespace-nowrap">
-                      {formatCurrency(tx.amount)}
-                    </td>
-                    <td className="py-3 text-center text-slate-400 hover:text-slate-600">
-                      <MoreVertical size={14} className="cursor-pointer" />
+                {recent_transactions && recent_transactions.length > 0 ? (
+                  recent_transactions.slice(0, 5).map((tx) => (
+                    <tr key={tx.id} className="group hover:bg-slate-50/80 dark:hover:bg-white/5 transition-colors">
+                      <td className="py-3 flex items-center gap-2">
+                        <div
+                          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: `${tx.color || '#6C47FF'}18` }}
+                        >
+                          <CategoryIcon name={tx.category} icon={tx.icon} color={tx.color} size={14} />
+                        </div>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                          {tx.date ? new Date(tx.date).toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Today'}
+                        </span>
+                      </td>
+                      <td className="py-3 font-bold text-slate-900 dark:text-white">
+                        {tx.description || tx.category}
+                      </td>
+                      <td className="py-3 text-slate-600 dark:text-slate-300">
+                        {tx.category}
+                      </td>
+                      <td className="py-3 text-slate-600 dark:text-slate-300">
+                        <span className="bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                          {tx.payment_mode}
+                        </span>
+                      </td>
+                      <td className="py-3 text-right font-black text-slate-900 dark:text-white whitespace-nowrap">
+                        {tx.is_refund || tx.amount < 0 ? (
+                          <span className="text-emerald-600 dark:text-emerald-400">+{formatCurrency(Math.abs(tx.amount))}</span>
+                        ) : (
+                          formatCurrency(tx.amount)
+                        )}
+                      </td>
+                      <td className="py-3 text-center text-slate-400 hover:text-slate-600">
+                        <MoreVertical size={14} className="cursor-pointer" />
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
+                      No transactions recorded for this month yet. Use the Quick Add form on the right to log your first expense.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

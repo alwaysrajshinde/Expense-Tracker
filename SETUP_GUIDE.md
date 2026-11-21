@@ -17,7 +17,7 @@ A GitHub Actions workflow is provided at `.github/workflows/deploy.yml`.
    git add .
    git commit -m "Phase 4: Multi-User with Individual Google Sheets"
    git branch -M main
-   git remote add origin https://github.com/<your-username>/<your-repo-name>.git
+   git remote add origin https://github.com/alwaysrajshinde/Expense-Tracker.git
    git push -u origin main
    ```
 2. **Enable GitHub Pages:**
@@ -25,7 +25,7 @@ A GitHub Actions workflow is provided at `.github/workflows/deploy.yml`.
    - Under **Build and deployment** > **Source**, select **GitHub Actions**.
 3. **Automated Build & Live URL:**
    - Every push to the `main` branch automatically triggers the workflow.
-   - Within 1–2 minutes, your application is live at `https://<your-username>.github.io/<your-repo-name>/`.
+   - Within 1–2 minutes, your application is live at `https://alwaysrajshinde.github.io/Expense-Tracker/`.
 
 ---
 

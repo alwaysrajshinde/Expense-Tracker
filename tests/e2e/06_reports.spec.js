@@ -11,7 +11,7 @@ test.describe('Area F: Analytics, Reports & Math Calculations', () => {
     await authHelpers.loginAsRaj();
 
     // Navigate to Reports
-    await page.locator('aside button:has-text("Reports")').first().click();
+    await page.locator('button:has-text("Reports")').first().click();
 
     // Verify main header
     await expect(page.locator('text=Spending & Expense Analytics')).toBeVisible();
@@ -24,7 +24,7 @@ test.describe('Area F: Analytics, Reports & Math Calculations', () => {
 
   test('F2: Switching to Categories tab reveals detailed category share breakdown', async ({ page, authHelpers }) => {
     await authHelpers.loginAsRaj();
-    await page.locator('aside button:has-text("Reports")').first().click();
+    await page.locator('button:has-text("Reports")').first().click();
 
     // Click Categories sub-tab
     await page.locator('button:has-text("Categories (")').click();

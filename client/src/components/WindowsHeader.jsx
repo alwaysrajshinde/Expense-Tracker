@@ -4,8 +4,8 @@ import { useTheme } from '../context/ThemeContext';
 import syncService from '../services/syncService';
 
 export default function WindowsHeader({
-  userName = "Raj",
-  userEmail = "raaajshinde@gmail.com",
+  userName = "User",
+  userEmail = "",
   selectedMonth = "2026-11",
   availableMonths = [],
   onSelectMonth,

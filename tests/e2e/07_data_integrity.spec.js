@@ -24,7 +24,7 @@ test.describe('Area G: Data Isolation, Security & Integrity', () => {
 
     // 1. Alice logs in and adds a secret expense
     await authHelpers.loginAsNewUser(userAlice.email, userAlice.name);
-    const addBtn = page.locator('aside button:has-text("Add Expense")');
+    const addBtn = page.locator('button:has-text("Add Expense")').first();
     await addBtn.click();
 
     const uniqueSecretDesc = `AliceConfidentialPurchase_${Date.now()}`;

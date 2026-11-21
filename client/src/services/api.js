@@ -33,10 +33,10 @@ export function getCurrentUserEmail() {
     const sessionStr = localStorage.getItem('expense_tracker_auth_session');
     if (sessionStr) {
       const session = JSON.parse(sessionStr);
-      return session.email ? session.email.trim().toLowerCase() : 'raaajshinde@gmail.com';
+      return session.email ? session.email.trim().toLowerCase() : '';
     }
   } catch (e) {}
-  return 'raaajshinde@gmail.com';
+  return '';
 }
 
 // Helper: Get active user ID (Firebase UID or numeric ID)
@@ -72,7 +72,7 @@ export function saveLocalTransactions(txs) {
   } catch (e) {}
 }
 
-export async function getDashboard(month = '2026-11') {
+export async function getDashboard(month = new Date().toISOString().slice(0, 7)) {
   // 1. Cloud Firestore Route (Primary Serverless Cloud Engine)
   if (isFirebaseConfigured) {
     try {
@@ -99,7 +99,7 @@ export async function getDashboard(month = '2026-11') {
   const txs = getLocalTransactions();
   const settings = await getSettings();
   const categories = await getCategories();
-  const budget = parseFloat(settings.monthly_budget) || 12000;
+  const budget = settings.monthly_budget !== undefined ? (parseFloat(settings.monthly_budget) || 0) : 0;
   return computeDashboardFromTransactions(txs, month, budget, categories);
 }
 
@@ -219,7 +219,7 @@ export async function createTransaction(data) {
   const newTx = {
     ...data,
     id: txId,
-    month_key: data.month_key || (data.date ? data.date.slice(0, 7) : '2026-11'),
+    month_key: data.month_key || (data.date ? data.date.slice(0, 7) : new Date().toISOString().slice(0, 7)),
     updated_at: new Date().toISOString()
   };
 
@@ -264,7 +264,7 @@ export async function updateTransaction(id, data) {
   const updatedTx = {
     ...data,
     id: id,
-    month_key: data.month_key || (data.date ? data.date.slice(0, 7) : '2026-11'),
+    month_key: data.month_key || (data.date ? data.date.slice(0, 7) : new Date().toISOString().slice(0, 7)),
     updated_at: new Date().toISOString()
   };
 
@@ -404,7 +404,7 @@ export async function deleteCategory(id) {
   return { success: true };
 }
 
-export async function getReports(month = '2026-11') {
+export async function getReports(month = new Date().toISOString().slice(0, 7)) {
   try {
     const url = month ? `${API_BASE}/reports?month=${encodeURIComponent(month)}` : `${API_BASE}/reports`;
     const res = await fetch(url, {
@@ -416,7 +416,7 @@ export async function getReports(month = '2026-11') {
   const txs = getLocalTransactions();
   const settings = await getSettings();
   const categories = await getCategories();
-  const budget = parseFloat(settings.monthly_budget) || 12000;
+  const budget = settings.monthly_budget !== undefined ? (parseFloat(settings.monthly_budget) || 0) : 0;
   return computeReportsFromTransactions(txs, month, budget, categories);
 }
 

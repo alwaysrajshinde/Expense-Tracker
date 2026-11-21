@@ -6,6 +6,8 @@ export default function AndroidHome({
   dashboardData,
   onOpenAddExpense,
   onViewAllCategories,
+  onViewAllTransactions,
+  onSetBudget,
   formatCurrency
 }) {
   if (!dashboardData) {
@@ -17,13 +19,14 @@ export default function AndroidHome({
   }
 
   const {
-    budget = 12000,
+    budget = 0,
     total_spent = 0,
     remaining_budget = 0,
     percent_spent = 0,
     today_spent = 0,
     week_spent = 0,
-    top_categories = []
+    top_categories = [],
+    recent_transactions = []
   } = dashboardData;
 
   const percentSpentVal = Math.round(percent_spent * 10) / 10;
@@ -45,9 +48,19 @@ export default function AndroidHome({
               <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
                 Monthly Budget
               </span>
-              <p className="text-white text-base font-bold tracking-tight">
-                {formatCurrency(budget)}
-              </p>
+              {budget > 0 ? (
+                <p className="text-white text-base font-bold tracking-tight">
+                  {formatCurrency(budget)}
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onSetBudget}
+                  className="mt-0.5 text-xs font-bold text-amber-200 hover:text-white underline block cursor-pointer"
+                >
+                  Set Monthly Budget
+                </button>
+              )}
             </div>
 
             <div>
@@ -60,14 +73,20 @@ export default function AndroidHome({
             </div>
 
             <div className="pt-0.5">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-xs ${
-                remaining_budget >= 0
-                  ? 'bg-emerald-100 text-emerald-950'
-                  : 'bg-rose-100 text-rose-950'
-              }`}>
-                {remaining_budget >= 0 ? 'Remaining: ' : 'Over budget: '}
-                {formatCurrency(Math.abs(remaining_budget))}
-              </span>
+              {budget > 0 ? (
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-xs ${
+                  remaining_budget >= 0
+                    ? 'bg-emerald-100 text-emerald-950'
+                    : 'bg-rose-100 text-rose-950'
+                }`}>
+                  {remaining_budget >= 0 ? 'Remaining: ' : 'Remaining: Over by '}
+                  {formatCurrency(Math.abs(remaining_budget))}
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-200/90 text-purple-950 shadow-xs">
+                  No budget set
+                </span>
+              )}
             </div>
           </div>
 
@@ -225,6 +244,57 @@ export default function AndroidHome({
           {top_categories.length === 0 && (
             <div className="py-4 text-center text-xs text-slate-400">
               No expenses recorded for this month
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ========================================================
+          3.5. Recent Activity Card (Mobile Activity Stream)
+         ======================================================== */}
+      <div className="bg-white dark:bg-[#16132A] rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-xs space-y-3 transition-colors">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+            Recent Activity
+          </h3>
+          <button
+            onClick={onViewAllTransactions}
+            className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 transition-colors"
+          >
+            <span>See All</span>
+            <ArrowRight size={13} />
+          </button>
+        </div>
+
+        <div className="divide-y divide-slate-50 dark:divide-white/5">
+          {recent_transactions && recent_transactions.length > 0 ? (
+            recent_transactions.slice(0, 3).map((tx) => (
+              <div key={tx.id} className="py-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: `${tx.color || '#6C47FF'}18` }}
+                  >
+                    <CategoryIcon name={tx.category} icon={tx.icon} color={tx.color} size={15} />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block truncate max-w-[150px]">
+                      {tx.description || tx.category}
+                    </span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                      {tx.date ? new Date(tx.date).toLocaleDateString('default', { day: 'numeric', month: 'short' }) : 'Today'} · {tx.payment_mode}
+                    </span>
+                  </div>
+                </div>
+
+                <span className={`text-xs font-extrabold ${tx.is_refund || tx.amount < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
+                  {tx.is_refund || tx.amount < 0 ? `+${formatCurrency(Math.abs(tx.amount))}` : formatCurrency(tx.amount)}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="py-3 text-center text-xs text-slate-400">
+              No recent activity yet
             </div>
           )}
         </div>

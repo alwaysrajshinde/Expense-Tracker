@@ -11,12 +11,19 @@ const upload = multer({ storage: multer.memoryStorage() });
 // Middleware: Resolve authenticated user context with complete data isolation
 function resolveUser(req, res, next) {
   try {
-    const userEmail = req.headers['x-user-email'] || req.query.user_email;
-    if (!userEmail) {
+    const rawUserEmail = req.headers['x-user-email'] || req.query.user_email;
+    if (!rawUserEmail) {
       return res.status(401).json({ success: false, error: 'Unauthorized: user identity header missing' });
     }
-    const googleSub = req.headers['x-google-sub'] || null;
-    const userName = req.headers['x-user-name'] || null;
+    const userEmail = String(rawUserEmail).trim().toLowerCase();
+    // Strict email syntax validation to prevent header injection and spoofing
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+    if (!emailRegex.test(userEmail) || userEmail.length > 254) {
+      return res.status(400).json({ success: false, error: 'Bad Request: invalid user identity format' });
+    }
+
+    const googleSub = req.headers['x-google-sub'] ? String(req.headers['x-google-sub']).slice(0, 128) : null;
+    const userName = req.headers['x-user-name'] ? String(req.headers['x-user-name']).slice(0, 100) : null;
     const { user, spreadsheetMapping, isNew } = db.getOrCreateUser(googleSub, userEmail, userName);
     req.user = user;
     req.spreadsheetMapping = spreadsheetMapping;
@@ -24,7 +31,7 @@ function resolveUser(req, res, next) {
     next();
   } catch (err) {
     console.error('Error resolving user context:', err);
-    res.status(401).json({ success: false, error: 'Authentication failed: ' + err.message });
+    res.status(401).json({ success: false, error: 'Authentication failed' });
   }
 }
 

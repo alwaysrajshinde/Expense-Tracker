@@ -8,8 +8,8 @@ export default function WindowsSidebar({
   activeTab,
   onTabChange,
   onOpenAddExpense,
-  userName = "Raj Shinde",
-  userEmail = "raaajshinde@gmail.com",
+  userName = "User",
+  userEmail = "",
   onLogout
 }) {
   const [profileOpen, setProfileOpen] = useState(false);

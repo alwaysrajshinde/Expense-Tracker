@@ -17,7 +17,7 @@ test.describe('Area D: Categories & Payment Modes', () => {
   test('D1: Default quick categories are present in Add Expense modal', async ({ page, authHelpers }) => {
     await authHelpers.loginAsRaj();
 
-    const addBtn = page.locator('aside button:has-text("Add Expense")');
+    const addBtn = page.locator('button:has-text("Add Expense")').first();
     await addBtn.click();
 
     // Verify presence of quick categories
@@ -33,7 +33,7 @@ test.describe('Area D: Categories & Payment Modes', () => {
   test('D2: Payment modes (UPI, Cash, Credit Card, Debit Card, Net Banking) are selectable', async ({ page, authHelpers }) => {
     await authHelpers.loginAsRaj();
 
-    const addBtn = page.locator('aside button:has-text("Add Expense")');
+    const addBtn = page.locator('button:has-text("Add Expense")').first();
     await addBtn.click();
 
     // Verify all 5 payment mode options
@@ -49,8 +49,11 @@ test.describe('Area D: Categories & Payment Modes', () => {
   test('D3: User can view categories list in Settings and create custom category', async ({ page, authHelpers }) => {
     await authHelpers.loginAsNewUser(testUser.email, testUser.name);
 
-    // Navigate to Settings
-    await page.locator('aside button:has-text("Categories")').first().click();
+    // Navigate to Categories tab
+    const catNavBtn = page.locator('aside button:has-text("Categories"), nav button:has-text("More"), button:has-text("Categories")').first();
+    await catNavBtn.click();
+    const catTab = page.locator('button:has-text("Categories")').first();
+    if (await catTab.isVisible().catch(() => false)) await catTab.click();
     await page.waitForTimeout(500);
 
     // Look for custom category input

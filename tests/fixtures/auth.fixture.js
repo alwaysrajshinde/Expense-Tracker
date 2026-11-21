@@ -2,7 +2,7 @@
 const { test: base, expect } = require('@playwright/test');
 
 /**
- * Custom Playwright Fixture with Reusable Auth Helpers
+ * Custom Playwright Fixture with Universal Consumer Auth Helpers
  */
 const test = base.extend({
   authHelpers: async ({ page }, use) => {
@@ -17,61 +17,77 @@ const test = base.extend({
         await page.reload();
       },
 
-      // Login as Raj Shinde (existing account with historical data)
+      // Login as Raj Shinde (existing account with historical data) through standard Sign In flow
       async loginAsRaj() {
         await page.goto('/');
         await page.evaluate(() => localStorage.clear());
         await page.reload();
         
-        // Wait for Continue with Google button
-        const continueBtn = page.locator('button:has-text("Continue with Google")');
-        await expect(continueBtn).toBeVisible({ timeout: 10000 });
-        await continueBtn.click();
+        // Ensure Sign In tab is active
+        const signinTab = page.locator('button:has-text("Sign In")').first();
+        await expect(signinTab).toBeVisible({ timeout: 10000 });
+        await signinTab.click();
 
-        // Select Raj Shinde from account list
-        const rajBtn = page.locator('button:has-text("Raj Shinde")');
-        await expect(rajBtn).toBeVisible({ timeout: 5000 });
-        await rajBtn.click();
+        // Fill standard login credentials
+        const emailInput = page.locator('input[type="email"]').first();
+        await expect(emailInput).toBeVisible({ timeout: 5000 });
+        await emailInput.fill('raaajshinde@gmail.com');
 
-        // Wait for dashboard to load
-        await expect(page.locator('text=Monthly Budget')).toBeVisible({ timeout: 15000 });
+        const passwordInput = page.locator('input[type="password"]').first();
+        await expect(passwordInput).toBeVisible({ timeout: 5000 });
+        await passwordInput.fill('Password123!');
+
+        // Submit Sign In
+        const submitBtn = page.locator('button[type="submit"]:has-text("Sign In")').first();
+        await submitBtn.click();
+
+        // Wait for dashboard to load with historical records
+        await expect(page.locator('text=Monthly Budget').first()).toBeVisible({ timeout: 15000 });
       },
 
-      // Login as new / custom user
+      // Login as new user through standard Create Account registration flow
       async loginAsNewUser(email, name = 'Test User') {
         await page.goto('/');
         await page.evaluate(() => localStorage.clear());
         await page.reload();
 
-        const continueBtn = page.locator('button:has-text("Continue with Google")');
-        await expect(continueBtn).toBeVisible({ timeout: 10000 });
-        await continueBtn.click();
+        // Switch to Create Account tab
+        const signupTab = page.locator('button:has-text("Create Account")').first();
+        await expect(signupTab).toBeVisible({ timeout: 10000 });
+        await signupTab.click();
 
-        // Click "Use another Google account"
-        const anotherAccountBtn = page.locator('button:has-text("Use another Google account")');
-        await expect(anotherAccountBtn).toBeVisible({ timeout: 5000 });
-        await anotherAccountBtn.click();
-
-        // Fill custom account form
-        const emailInput = page.locator('input[type="email"]');
-        await expect(emailInput).toBeVisible({ timeout: 5000 });
-        await emailInput.fill(email);
-
-        const nameInput = page.locator('input[placeholder="Account Name (e.g. John Doe)"]');
+        // Fill registration form
+        const nameInput = page.locator('input[name="name"], input[placeholder*="Name"]').first();
         if (await nameInput.isVisible()) {
           await nameInput.fill(name);
         }
 
-        const submitBtn = page.locator('button[type="submit"]:has-text("Sign in with Google"), button[type="submit"]');
+        const emailInput = page.locator('input[type="email"]').first();
+        await expect(emailInput).toBeVisible({ timeout: 5000 });
+        await emailInput.fill(email);
+
+        const passwordInputs = page.locator('input[type="password"]');
+        await passwordInputs.nth(0).fill('Password123!');
+        if (await passwordInputs.count() > 1) {
+          await passwordInputs.nth(1).fill('Password123!');
+        }
+
+        // Submit Create Account
+        const submitBtn = page.locator('button[type="submit"]:has-text("Create Account")').first();
         await submitBtn.click();
 
-        // Wait for dashboard to open
-        await expect(page.locator('text=Monthly Budget')).toBeVisible({ timeout: 15000 });
+        // Wait for fresh dashboard to open (isolated, 0 spent)
+        await expect(page.locator('text=Monthly Budget').first()).toBeVisible({ timeout: 15000 });
+
+        // If the Onboarding Tour modal is visible, dismiss it so tests can interact with the dashboard
+        const skipTourBtn = page.locator('button:has-text("Skip Tour")').first();
+        if (await skipTourBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await skipTourBtn.click();
+        }
       },
 
       // Logout helper
       async logout() {
-        // Direct click on sidebar logout button or profile dropdown logout
         const logoutBtn = page.locator('button[title="Log Out"], button:has-text("Log Out")').first();
         if (await logoutBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
           await logoutBtn.click();
@@ -87,7 +103,7 @@ const test = base.extend({
             await page.reload();
           }
         }
-        await expect(page.locator('button:has-text("Continue with Google")')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('button:has-text("Sign In")').first()).toBeVisible({ timeout: 10000 });
       }
     };
 

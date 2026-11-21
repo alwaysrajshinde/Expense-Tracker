@@ -13,9 +13,11 @@ import {
   Mail,
   Lock,
   User,
-  Plus
+  HelpCircle,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import LegalModal from './LegalModal';
 
 export default function AuthGate({ children }) {
   const { 
@@ -24,8 +26,8 @@ export default function AuthGate({ children }) {
     authError, 
     loginWithEmail, 
     registerWithEmail, 
-    resetPassword,
-    loginWithAccount 
+    loginWithGoogle,
+    resetPassword 
   } = useAuth();
 
   // Tab state: 'signin' | 'signup'
@@ -48,22 +50,16 @@ export default function AuthGate({ children }) {
   const [forgotEmail, setForgotEmail] = useState('');
   const [resetSuccessMsg, setResetSuccessMsg] = useState('');
 
-  // 1-Click fast access / Google chooser state
-  const [showAccountPicker, setShowAccountPicker] = useState(false);
-  const [customEmail, setCustomEmail] = useState('');
-  const [customName, setCustomName] = useState('');
-  const [showCustomInput, setShowCustomInput] = useState(false);
-
   // In-flight progress indicator
   const [onboardingStep, setOnboardingStep] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [legalModalType, setLegalModalType] = useState(null);
+  const [showGoogleHelp, setShowGoogleHelp] = useState(false);
 
   // Reset view state when logged out
   useEffect(() => {
     if (!isAuthenticated) {
-      setShowAccountPicker(false);
-      setShowCustomInput(false);
       setShowForgotModal(false);
       setErrorMsg('');
       setResetSuccessMsg('');
@@ -93,13 +89,13 @@ export default function AuthGate({ children }) {
     setSubmitting(true);
     try {
       setOnboardingStep('auth');
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 250));
 
       const isRaj = userEmail.toLowerCase() === 'raaajshinde@gmail.com';
       setOnboardingStep(isRaj ? 'vault' : 'sync');
 
       const result = await actionFn();
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 300));
 
       setOnboardingStep('ready');
       await new Promise(r => setTimeout(r, 200));
@@ -107,7 +103,7 @@ export default function AuthGate({ children }) {
       setSubmitting(false);
       return result;
     } catch (err) {
-      setErrorMsg(err.message || 'Authentication failed. Please check your details.');
+      setErrorMsg(err.message || 'Authentication failed. Please check your credentials.');
       setOnboardingStep(null);
       setSubmitting(false);
     }
@@ -135,8 +131,12 @@ export default function AuthGate({ children }) {
       setErrorMsg('Please enter a valid email address');
       return;
     }
-    if (regPassword.length < 6) {
-      setErrorMsg('Password must be at least 6 characters long');
+    if (regPassword.length < 8) {
+      setErrorMsg('Password must be at least 8 characters long');
+      return;
+    }
+    if (!(/[0-9]/.test(regPassword) || /[^A-Za-z0-9]/.test(regPassword))) {
+      setErrorMsg('Password must contain at least one number or special symbol');
       return;
     }
     if (regPassword !== regConfirmPassword) {
@@ -145,6 +145,11 @@ export default function AuthGate({ children }) {
     }
 
     await handleFlowTransition(() => registerWithEmail(regEmail, regPassword, regName), regEmail);
+  };
+
+  // Submit Google Sign In
+  const handleGoogleSignIn = async () => {
+    await handleFlowTransition(() => loginWithGoogle());
   };
 
   // Submit Password Reset
@@ -166,29 +171,6 @@ export default function AuthGate({ children }) {
     }
   };
 
-  // 1-Click login as Raj Shinde
-  const handleSelectRaj = async () => {
-    await handleFlowTransition(
-      () => loginWithAccount('raaajshinde@gmail.com', 'Raj Shinde'),
-      'raaajshinde@gmail.com'
-    );
-  };
-
-  // 1-Click login as custom Google / demo account
-  const handleCustomSubmit = async (e) => {
-    e.preventDefault();
-    if (!customEmail || !customEmail.includes('@')) {
-      setErrorMsg('Please enter a valid Google account email.');
-      return;
-    }
-    const cleanEmail = customEmail.trim().toLowerCase();
-    const cleanName = customName.trim() || cleanEmail.split('@')[0];
-    await handleFlowTransition(
-      () => loginWithAccount(cleanEmail, cleanName),
-      cleanEmail
-    );
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f8f9fe] via-[#ede9fe] to-[#e0e7ff] dark:from-[#0d0b18] dark:via-[#16132a] dark:to-[#1a1435] flex items-center justify-center p-4 sm:p-6 transition-colors">
       <div className="w-full max-w-md bg-white dark:bg-[#16132A] rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200/80 dark:border-white/10 relative overflow-hidden transition-all">
@@ -204,19 +186,19 @@ export default function AuthGate({ children }) {
             My Expense Tracker
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-xs mx-auto">
-            Your private financial vault with Cloud Firestore multi-device synchronization
+            Your private financial manager with multi-device synchronization and isolated personal data
           </p>
         </div>
 
         {/* Error / Success Notifications */}
         {(authError || errorMsg) && (
-          <div className="mb-5 p-3.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-300">
+          <div className="mb-5 p-3.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-300 animate-fadeIn">
             <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
             <span className="font-semibold">{authError || errorMsg}</span>
           </div>
         )}
         {resetSuccessMsg && (
-          <div className="mb-5 p-3.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-start gap-2.5 text-xs text-emerald-700 dark:text-emerald-300">
+          <div className="mb-5 p-3.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-start gap-2.5 text-xs text-emerald-700 dark:text-emerald-300 animate-fadeIn">
             <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5" />
             <span className="font-semibold">{resetSuccessMsg}</span>
           </div>
@@ -232,13 +214,13 @@ export default function AuthGate({ children }) {
             <div className="space-y-1">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 {onboardingStep === 'auth' && 'Authenticating credentials...'}
-                {onboardingStep === 'vault' && 'Connecting existing vault (1,216 historical records)...'}
-                {onboardingStep === 'sync' && 'Initializing personal Cloud Firestore vault...'}
-                {onboardingStep === 'ready' && 'Personal vault ready! Opening dashboard...'}
+                {onboardingStep === 'vault' && 'Loading your historical records...'}
+                {onboardingStep === 'sync' && 'Initializing personal isolated vault...'}
+                {onboardingStep === 'ready' && 'Vault ready! Opening dashboard...'}
               </h3>
               <p className="text-[11px] text-slate-400">
                 {onboardingStep === 'vault'
-                  ? 'Preserving all categories, dates, and ₹12,000 monthly budget'
+                  ? 'Preserving your historical transactions, categories, and monthly budget'
                   : 'Securing your isolated session across devices'}
               </p>
             </div>
@@ -255,7 +237,7 @@ export default function AuthGate({ children }) {
               <button
                 type="button"
                 onClick={() => { setShowForgotModal(false); setErrorMsg(''); }}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-white font-medium cursor-pointer"
               >
                 Back to Sign In
               </button>
@@ -270,7 +252,7 @@ export default function AuthGate({ children }) {
                 <input
                   type="email"
                   required
-                  placeholder="your.email@gmail.com"
+                  placeholder="name@example.com"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
                   className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
@@ -281,125 +263,14 @@ export default function AuthGate({ children }) {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 bg-gradient-to-r from-[#6C47FF] to-[#8B5CF6] text-white rounded-xl text-xs font-bold shadow-md shadow-purple-600/25 hover:opacity-95 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 bg-gradient-to-r from-[#6C47FF] to-[#8B5CF6] text-white rounded-xl text-xs font-bold shadow-md shadow-purple-600/25 hover:opacity-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               {submitting ? <Loader2 size={16} className="animate-spin" /> : <span>Send Reset Instructions</span>}
             </button>
           </form>
-        ) : showAccountPicker ? (
-          /* ========================================================
-             1-CLICK FAST ACCESS CHOOSER
-             ======================================================== */
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                Choose an account or fast login
-              </span>
-              <button
-                type="button"
-                onClick={() => { setShowAccountPicker(false); setShowCustomInput(false); }}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-white"
-              >
-                Back
-              </button>
-            </div>
-
-            {!showCustomInput ? (
-              <div className="space-y-2">
-                {/* Account 1: Raj Shinde (Existing Owner) */}
-                <button
-                  type="button"
-                  onClick={handleSelectRaj}
-                  className="w-full p-3 bg-slate-50 dark:bg-white/5 hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-slate-200 dark:border-white/10 hover:border-purple-300 dark:hover:border-purple-700 rounded-2xl flex items-center justify-between transition-all cursor-pointer text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#371485] to-[#763cf8] text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-xs">
-                      RS
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                        Raj Shinde
-                      </span>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
-                        raaajshinde@gmail.com
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold text-[#6C47FF] dark:text-[#A78BFA] bg-purple-100 dark:bg-purple-900/50 px-2 py-0.5 rounded-full">
-                    Existing Vault
-                  </span>
-                </button>
-
-                {/* Option 2: Add / Choose another Google account */}
-                <button
-                  type="button"
-                  onClick={() => setShowCustomInput(true)}
-                  className="w-full p-3 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 border border-dashed border-slate-300 dark:border-white/15 rounded-2xl flex items-center gap-3 transition-colors cursor-pointer text-left"
-                >
-                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 flex items-center justify-center flex-shrink-0">
-                    <Plus size={18} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                      Use another Google account
-                    </span>
-                    <span className="text-[10px] text-slate-400 block">
-                      Instant setup with zero configuration
-                    </span>
-                  </div>
-                </button>
-              </div>
-            ) : (
-              <form noValidate onSubmit={handleCustomSubmit} className="space-y-3 pt-1">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Google Account Email
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="your.email@gmail.com"
-                    value={customEmail}
-                    onChange={(e) => setCustomEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Your Name (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Alex Sharma"
-                    value={customName}
-                    onChange={(e) => setCustomName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCustomInput(false)}
-                    className="px-4 py-2.5 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold"
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2.5 px-4 bg-gradient-to-r from-[#6C47FF] to-[#8B5CF6] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 hover:opacity-95"
-                  >
-                    <span>Sign in with Google</span>
-                    <ArrowRight size={14} />
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
         ) : (
           /* ========================================================
-             PRIMARY AUTHENTICATION VIEW: EMAIL + PASSWORD
+             UNIVERSAL AUTHENTICATION VIEW: SIGN IN / CREATE ACCOUNT
              ======================================================== */
           <div className="space-y-5">
             {/* Tab Switcher: Sign In vs Create Account */}
@@ -407,7 +278,7 @@ export default function AuthGate({ children }) {
               <button
                 type="button"
                 onClick={() => { setActiveAuthTab('signin'); setErrorMsg(''); }}
-                className={`py-2 text-xs font-bold rounded-xl transition-all ${
+                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                   activeAuthTab === 'signin'
                     ? 'bg-white dark:bg-[#1E1B38] text-slate-900 dark:text-white shadow-sm'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
@@ -418,7 +289,7 @@ export default function AuthGate({ children }) {
               <button
                 type="button"
                 onClick={() => { setActiveAuthTab('signup'); setErrorMsg(''); }}
-                className={`py-2 text-xs font-bold rounded-xl transition-all ${
+                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                   activeAuthTab === 'signup'
                     ? 'bg-white dark:bg-[#1E1B38] text-slate-900 dark:text-white shadow-sm'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
@@ -430,7 +301,7 @@ export default function AuthGate({ children }) {
 
             {activeAuthTab === 'signin' ? (
               /* --- SIGN IN FORM --- */
-              <form noValidate onSubmit={handleEmailSignIn} className="space-y-4">
+              <form onSubmit={handleEmailSignIn} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Email Address
@@ -440,7 +311,9 @@ export default function AuthGate({ children }) {
                     <input
                       type="email"
                       required
-                      placeholder="your.email@gmail.com"
+                      name="email"
+                      autoComplete="email"
+                      placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
@@ -456,7 +329,7 @@ export default function AuthGate({ children }) {
                     <button
                       type="button"
                       onClick={() => { setShowForgotModal(true); setForgotEmail(email); }}
-                      className="text-[11px] font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline"
+                      className="text-[11px] font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline cursor-pointer"
                     >
                       Forgot password?
                     </button>
@@ -466,6 +339,8 @@ export default function AuthGate({ children }) {
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
+                      name="password"
+                      autoComplete="current-password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -474,7 +349,7 @@ export default function AuthGate({ children }) {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -486,13 +361,13 @@ export default function AuthGate({ children }) {
                   disabled={submitting}
                   className="w-full py-3 px-5 bg-gradient-to-r from-[#6C47FF] to-[#8B5CF6] hover:opacity-95 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-600/25 active:scale-[0.99] transition-all cursor-pointer"
                 >
-                  {submitting ? <Loader2 size={16} className="animate-spin" /> : <span>Sign In to Your Vault</span>}
+                  {submitting ? <Loader2 size={16} className="animate-spin" /> : <span>Sign In</span>}
                   <ArrowRight size={14} />
                 </button>
               </form>
             ) : (
               /* --- CREATE ACCOUNT FORM --- */
-              <form noValidate onSubmit={handleEmailSignUp} className="space-y-3.5">
+              <form onSubmit={handleEmailSignUp} className="space-y-3.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Full Name
@@ -501,7 +376,9 @@ export default function AuthGate({ children }) {
                     <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
-                      placeholder="e.g. Raj Shinde"
+                      name="name"
+                      autoComplete="name"
+                      placeholder="Your Full Name"
                       value={regName}
                       onChange={(e) => setRegName(e.target.value)}
                       className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
@@ -518,7 +395,9 @@ export default function AuthGate({ children }) {
                     <input
                       type="email"
                       required
-                      placeholder="your.email@gmail.com"
+                      name="email"
+                      autoComplete="email"
+                      placeholder="name@example.com"
                       value={regEmail}
                       onChange={(e) => setRegEmail(e.target.value)}
                       className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
@@ -535,6 +414,8 @@ export default function AuthGate({ children }) {
                     <input
                       type={showRegPassword ? 'text' : 'password'}
                       required
+                      name="password"
+                      autoComplete="new-password"
                       placeholder="At least 6 characters"
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
@@ -543,7 +424,7 @@ export default function AuthGate({ children }) {
                     <button
                       type="button"
                       onClick={() => setShowRegPassword(!showRegPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                     >
                       {showRegPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -559,6 +440,8 @@ export default function AuthGate({ children }) {
                     <input
                       type="password"
                       required
+                      name="confirmPassword"
+                      autoComplete="new-password"
                       placeholder="Re-enter password"
                       value={regConfirmPassword}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
@@ -572,25 +455,26 @@ export default function AuthGate({ children }) {
                   disabled={submitting}
                   className="w-full py-3 px-5 bg-gradient-to-r from-[#6C47FF] to-[#8B5CF6] hover:opacity-95 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-600/25 active:scale-[0.99] transition-all cursor-pointer"
                 >
-                  {submitting ? <Loader2 size={16} className="animate-spin" /> : <span>Create Account & Vault</span>}
+                  {submitting ? <Loader2 size={16} className="animate-spin" /> : <span>Create Account</span>}
                   <ArrowRight size={14} />
                 </button>
               </form>
             )}
 
             {/* Divider */}
-            <div className="relative flex items-center justify-center pt-2">
+            <div className="relative flex items-center justify-center pt-1">
               <div className="border-t border-slate-200 dark:border-white/10 w-full" />
               <span className="bg-white dark:bg-[#16132A] px-3 text-[11px] text-slate-400 font-medium tracking-wide uppercase">
                 or
               </span>
             </div>
 
-            {/* Seamless 1-Click Fast Access / Google Button */}
+            {/* Universal Continue with Google Button */}
             <button
               type="button"
-              onClick={() => setShowAccountPicker(true)}
-              className="w-full py-3 px-4 bg-white dark:bg-[#1E1B38] border border-slate-200 dark:border-white/15 hover:border-[#6C47FF] dark:hover:border-[#8B5CF6] text-slate-700 dark:text-slate-200 rounded-2xl font-bold text-xs flex items-center justify-center gap-2.5 shadow-xs hover:shadow-sm transition-all active:scale-[0.99] cursor-pointer"
+              onClick={handleGoogleSignIn}
+              disabled={submitting}
+              className="w-full py-3 px-4 bg-white dark:bg-[#1E1B38] border border-slate-200 dark:border-white/15 hover:border-slate-300 dark:hover:border-white/30 text-slate-700 dark:text-slate-200 rounded-2xl font-bold text-xs flex items-center justify-center gap-2.5 shadow-xs hover:shadow-sm transition-all active:scale-[0.99] cursor-pointer"
             >
               <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -598,26 +482,109 @@ export default function AuthGate({ children }) {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
               </svg>
-              <span>Continue with Google / 1-Click Access</span>
+              <span>Continue with Google</span>
+            </button>
+
+            {/* Google OAuth Help link */}
+            <button
+              type="button"
+              onClick={() => setShowGoogleHelp(true)}
+              className="text-[11px] text-slate-400 hover:text-[#6C47FF] dark:hover:text-[#A78BFA] transition-colors flex items-center justify-center gap-1 mx-auto pt-0.5 cursor-pointer"
+            >
+              <HelpCircle size={13} />
+              <span>Seeing "Google hasn't verified this app"? Click here</span>
             </button>
           </div>
         )}
 
         {/* Consumer Trust & Privacy Footer */}
-        <div className="mt-7 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[11px] text-slate-400">
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck size={14} className="text-emerald-500" />
-            <span>100% Private</span>
+        <div className="mt-7 pt-4 border-t border-slate-100 dark:border-white/5 space-y-3">
+          <div className="flex items-center justify-between text-[11px] text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck size={14} className="text-emerald-500" />
+              <span>100% Private</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Database size={14} className="text-[#6C47FF] dark:text-[#A78BFA]" />
+              <span>Cloud Firestore</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <FileSpreadsheet size={14} className="text-blue-500" />
+              <span>Excel / CSV Export</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Database size={14} className="text-[#6C47FF] dark:text-[#A78BFA]" />
-            <span>Cloud Firestore</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <FileSpreadsheet size={14} className="text-blue-500" />
-            <span>Excel / CSV Export</span>
+
+          <div className="flex items-center justify-center gap-3 text-[11px] text-slate-400">
+            <button
+              type="button"
+              onClick={() => setLegalModalType('privacy')}
+              className="hover:text-[#6C47FF] dark:hover:text-[#A78BFA] transition-colors underline cursor-pointer"
+            >
+              Privacy Policy
+            </button>
+            <span>•</span>
+            <button
+              type="button"
+              onClick={() => setLegalModalType('terms')}
+              className="hover:text-[#6C47FF] dark:hover:text-[#A78BFA] transition-colors underline cursor-pointer"
+            >
+              Terms of Service
+            </button>
           </div>
         </div>
+
+        {/* Legal Modal */}
+        <LegalModal
+          isOpen={Boolean(legalModalType)}
+          onClose={() => setLegalModalType(null)}
+          initialTab={legalModalType || 'privacy'}
+        />
+
+        {/* Google OAuth Verification Guidance Modal */}
+        {showGoogleHelp && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+            <div className="fixed inset-0" onClick={() => setShowGoogleHelp(false)} />
+            <div className="relative w-full max-w-md bg-white dark:bg-[#16132A] rounded-3xl p-6 shadow-2xl z-10 border border-slate-100 dark:border-white/10 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-sm">
+                  <AlertCircle size={18} />
+                  <span>Google Sign-In Guidance</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowGoogleHelp(false)}
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                <p>
+                  Because Expense Tracker provisions a private Google Sheet directly into your personal Google Drive for data sovereignty, Google displays a standard developer notice:
+                </p>
+                <div className="bg-amber-50 dark:bg-amber-950/40 p-3.5 rounded-2xl border border-amber-200/60 dark:border-amber-800/50 space-y-2 text-[11px]">
+                  <p className="font-bold text-amber-900 dark:text-amber-200">How to proceed in 2 steps:</p>
+                  <ol className="list-decimal pl-4 space-y-1.5 text-amber-800 dark:text-amber-300">
+                    <li>Click <strong>"Advanced"</strong> at the bottom left of the Google popup window.</li>
+                    <li>Click <strong>"Go to Expense Tracker (unsafe)"</strong> to finish sign-in.</li>
+                  </ol>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Your credentials and financial data are 100% private to your account. This prompt will disappear once Google's official verification review completes.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowGoogleHelp(false)}
+                className="w-full py-2.5 bg-[#6C47FF] hover:bg-[#5835E5] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-purple-600/20 cursor-pointer"
+              >
+                Got It
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
+import {
   DollarSign, User, Tag, Download, Upload, Database, Check, AlertCircle,
   Plus, Trash2, RefreshCw, FileSpreadsheet, ShieldCheck, Sun, Moon, Sparkles,
   Cloud, Smartphone, ExternalLink, Link2, Key, LogOut
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
+import LegalModal from '../components/LegalModal';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import syncService from '../services/syncService';
 
 export default function Settings({
@@ -22,10 +24,15 @@ export default function Settings({
   onRefreshAll,
   formatCurrency,
   selectedMonth,
-  onLogout
+  onLogout,
+  onOpenTour
 }) {
   const { theme, toggleTheme, isDark } = useTheme();
+  const { showToast } = useToast();
   const [activeSection, setActiveSection] = useState(initialSection || 'budget');
+  const [restoreFilePending, setRestoreFilePending] = useState(null);
+  const [restoring, setRestoring] = useState(false);
+  const [legalModalType, setLegalModalType] = useState(null);
 
   React.useEffect(() => {
     if (initialSection) setActiveSection(initialSection);
@@ -33,7 +40,7 @@ export default function Settings({
   const [budgetVal, setBudgetVal] = useState(settings.monthly_budget || '12000');
   const [userNameVal, setUserNameVal] = useState(settings.user_name || 'Raj');
   const [currencyVal, setCurrencyVal] = useState(settings.currency || '₹');
-  
+
   // Category creation
   const [newCatName, setNewCatName] = useState('');
   const [newCatIcon, setNewCatIcon] = useState('Tag');
@@ -43,7 +50,7 @@ export default function Settings({
   // Auth and Sync
   const { user, authorizedEmail, updateAuthorizedEmail, googleClientId, updateGoogleClientId, logout } = useAuth();
   const [syncConfig, setSyncConfig] = useState(syncService.getConfig());
-  const [authorizedEmailVal, setAuthorizedEmailVal] = useState(authorizedEmail || 'raaajshinde@gmail.com');
+  const [authorizedEmailVal, setAuthorizedEmailVal] = useState(authorizedEmail || user?.email || '');
   const [googleClientIdVal, setGoogleClientIdVal] = useState(googleClientId || '');
   const [googleScriptUrlVal, setGoogleScriptUrlVal] = useState(syncConfig.google_script_url || '');
   const [authSecretVal, setAuthSecretVal] = useState(syncConfig.auth_secret || 'ET_SECURE_SYNC_KEY_2026');
@@ -177,25 +184,25 @@ export default function Settings({
     }
   };
 
-  const handleRestoreBackup = async (e) => {
+  const handleRestoreBackup = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!confirm('Restoring will overwrite current transactions with backup data. Continue?')) {
-      if (jsonInputRef.current) jsonInputRef.current.value = '';
-      return;
-    }
+    setRestoreFilePending(file);
+    if (jsonInputRef.current) jsonInputRef.current.value = '';
+  };
+
+  const executeRestore = async () => {
+    if (!restoreFilePending) return;
     try {
-      setStatusMsg({ type: 'info', text: 'Restoring backup data...' });
-      const result = await onRestoreBackup(file);
-      setStatusMsg({
-        type: 'success',
-        text: `Restored ${result.restored_transactions} transactions successfully!`
-      });
+      setRestoring(true);
+      const result = await onRestoreBackup(restoreFilePending);
+      showToast(`Restored ${result.restored_transactions} transactions successfully!`, 'success');
+      setRestoreFilePending(null);
       onRefreshAll();
     } catch (err) {
-      setStatusMsg({ type: 'error', text: err.message || 'Failed to restore backup' });
+      showToast(err.message || 'Failed to restore backup', 'error');
     } finally {
-      if (jsonInputRef.current) jsonInputRef.current.value = '';
+      setRestoring(false);
     }
   };
 
@@ -224,13 +231,12 @@ export default function Settings({
 
       {/* Status banner */}
       {statusMsg && (
-        <div className={`p-4 rounded-2xl flex items-center justify-between text-xs font-semibold ${
-          statusMsg.type === 'success'
-            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-            : statusMsg.type === 'info'
+        <div className={`p-4 rounded-2xl flex items-center justify-between text-xs font-semibold ${statusMsg.type === 'success'
+          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+          : statusMsg.type === 'info'
             ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
             : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-        }`}>
+          }`}>
           <div className="flex items-center gap-2">
             {statusMsg.type === 'success' ? <Check size={16} /> : <AlertCircle size={16} />}
             <span>{statusMsg.text}</span>
@@ -245,41 +251,36 @@ export default function Settings({
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 bg-slate-100 dark:bg-white/10 p-1.5 rounded-2xl text-xs font-semibold max-w-2xl">
         <button
           onClick={() => setActiveSection('budget')}
-          className={`py-2 px-2.5 rounded-xl transition-all ${
-            activeSection === 'budget' ? 'bg-[#6C47FF] text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
-          }`}
+          className={`py-2 px-2.5 rounded-xl transition-all ${activeSection === 'budget' ? 'bg-[#6C47FF] text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
+            }`}
         >
           Budget
         </button>
         <button
           onClick={() => setActiveSection('categories')}
-          className={`py-2 px-2.5 rounded-xl transition-all ${
-            activeSection === 'categories' ? 'bg-[#6C47FF] text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
-          }`}
+          className={`py-2 px-2.5 rounded-xl transition-all ${activeSection === 'categories' ? 'bg-[#6C47FF] text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
+            }`}
         >
           Categories
         </button>
         <button
           onClick={() => setActiveSection('data')}
-          className={`py-2 px-2.5 rounded-xl transition-all ${
-            activeSection === 'data' ? 'bg-[#6C47FF] text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
-          }`}
+          className={`py-2 px-2.5 rounded-xl transition-all ${activeSection === 'data' ? 'bg-[#6C47FF] text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
+            }`}
         >
           Data & Backup
         </button>
         <button
           onClick={() => setActiveSection('profile')}
-          className={`py-2 px-2.5 rounded-xl transition-all ${
-            activeSection === 'profile' ? 'bg-[#6C47FF] text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
-          }`}
+          className={`py-2 px-2.5 rounded-xl transition-all ${activeSection === 'profile' ? 'bg-[#6C47FF] text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
+            }`}
         >
           Theme & Profile
         </button>
         <button
           onClick={() => setActiveSection('sync')}
-          className={`py-2 px-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-            activeSection === 'sync' ? 'bg-[#6C47FF] text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
-          }`}
+          className={`py-2 px-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 ${activeSection === 'sync' ? 'bg-[#6C47FF] text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
+            }`}
         >
           <Cloud size={13} />
           <span>Sheets Sync</span>
@@ -373,11 +374,10 @@ export default function Settings({
                       key={ic}
                       type="button"
                       onClick={() => setNewCatIcon(ic)}
-                      className={`p-2 rounded-xl border transition-all ${
-                        newCatIcon === ic
-                          ? 'border-[#6C47FF] bg-purple-50 dark:bg-purple-950/60 text-[#6C47FF]'
-                          : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300'
-                      }`}
+                      className={`p-2 rounded-xl border transition-all ${newCatIcon === ic
+                        ? 'border-[#6C47FF] bg-purple-50 dark:bg-purple-950/60 text-[#6C47FF]'
+                        : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300'
+                        }`}
                     >
                       <CategoryIcon name="" icon={ic} color={newCatIcon === ic ? '#6C47FF' : '#64748B'} size={18} />
                     </button>
@@ -396,9 +396,8 @@ export default function Settings({
                       key={c}
                       type="button"
                       onClick={() => setNewCatColor(c)}
-                      className={`w-7 h-7 rounded-full border-2 transition-transform ${
-                        newCatColor === c ? 'scale-115 border-slate-900 dark:border-white shadow-sm' : 'border-transparent'
-                      }`}
+                      className={`w-7 h-7 rounded-full border-2 transition-transform ${newCatColor === c ? 'scale-115 border-slate-900 dark:border-white shadow-sm' : 'border-transparent'
+                        }`}
                       style={{ backgroundColor: c }}
                     />
                   ))}
@@ -584,11 +583,10 @@ export default function Settings({
               <button
                 type="button"
                 onClick={() => { if (isDark) toggleTheme(); }}
-                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
-                  !isDark
-                    ? 'border-[#6C47FF] bg-purple-50/50 shadow-sm'
-                    : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
-                }`}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${!isDark
+                  ? 'border-[#6C47FF] bg-purple-50/50 shadow-sm'
+                  : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
+                  }`}
               >
                 <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-xs mb-2">
                   <Sun size={20} className="text-amber-500" />
@@ -600,11 +598,10 @@ export default function Settings({
               <button
                 type="button"
                 onClick={() => { if (!isDark) toggleTheme(); }}
-                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
-                  isDark
-                    ? 'border-[#8B5CF6] bg-purple-950/40 shadow-sm'
-                    : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
-                }`}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${isDark
+                  ? 'border-[#8B5CF6] bg-purple-950/40 shadow-sm'
+                  : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
+                  }`}
               >
                 <div className="w-10 h-10 rounded-full bg-[#1A172B] flex items-center justify-center shadow-xs mb-2">
                   <Moon size={20} className="text-purple-400" />
@@ -669,6 +666,36 @@ export default function Settings({
             </form>
           </div>
 
+          {/* Product Tour & Walkthrough */}
+          {onOpenTour && (
+            <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center flex-shrink-0">
+                    <Sparkles size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Product Tour &amp; Walkthrough
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Revisit the 3-step guide on setting budgets, minimal categories, and fast logging
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={onOpenTour}
+                  className="py-2.5 px-4 bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-[#6C47FF] dark:text-[#A78BFA] rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-[0.98]"
+                >
+                  <Sparkles size={15} />
+                  <span>Take Product Tour</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Account Security & Logout */}
           <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -681,7 +708,7 @@ export default function Settings({
                     Account Security & Session
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Active Google Session: <strong className="text-slate-700 dark:text-slate-200">{user?.email || 'raaajshinde@gmail.com'}</strong>
+                    Active Session: <strong className="text-slate-700 dark:text-slate-200">{user?.email || 'Logged In Account'}</strong>
                   </p>
                 </div>
               </div>
@@ -698,6 +725,41 @@ export default function Settings({
             <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-100 dark:border-white/5">
               Logging out ends your active login session and protects your personal expense vault behind the Google authentication gate.
             </p>
+          </div>
+
+          {/* Privacy & Legal Governance */}
+          <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center flex-shrink-0">
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Privacy Policy &amp; Terms of Service
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Sovereign data governance, GDPR/CCPA disclosures &amp; terms
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLegalModalType('privacy')}
+                  className="py-2 px-3.5 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Privacy Policy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLegalModalType('terms')}
+                  className="py-2 px-3.5 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Terms of Service
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -722,11 +784,10 @@ export default function Settings({
                 </div>
               </div>
 
-              <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
-                user?.email === 'raaajshinde@gmail.com'
-                  ? 'bg-purple-50 dark:bg-purple-950/40 text-[#6C47FF] dark:text-[#A78BFA] border-purple-200 dark:border-purple-800'
-                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-              }`}>
+              <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${user?.email === 'raaajshinde@gmail.com'
+                ? 'bg-purple-50 dark:bg-purple-950/40 text-[#6C47FF] dark:text-[#A78BFA] border-purple-200 dark:border-purple-800'
+                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                }`}>
                 {user?.email === 'raaajshinde@gmail.com' ? 'Migrated Vault (Historical)' : 'Active Isolated Vault'}
               </span>
             </div>
@@ -737,7 +798,7 @@ export default function Settings({
                   Spreadsheet ID
                 </span>
                 <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 truncate block select-all">
-                  {user?.spreadsheet_id || '1x-master-raj-expenses-sheet-2026'}
+                  {user?.spreadsheet_id || (user?.email === 'raaajshinde@gmail.com' ? '1x-master-raj-expenses-sheet-2026' : 'Personal Cloud Storage')}
                 </span>
                 <span className="text-[10px] text-slate-400">
                   {user?.email === 'raaajshinde@gmail.com'
@@ -754,16 +815,22 @@ export default function Settings({
                   Expenses • Dashboard • Categories • Payment_Modes
                 </span>
                 <span className="text-[10px] text-slate-400">
-                  Standard 67 categories with zero transaction overlap
+                  {categories.length} personalized categories configured
                 </span>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-3 pt-2">
               <a
-                href={`https://docs.google.com/spreadsheets/d/${user?.spreadsheet_id || '1x-master-raj-expenses-sheet-2026'}/edit`}
-                target="_blank"
+                href={user?.spreadsheet_id ? `https://docs.google.com/spreadsheets/d/${user.spreadsheet_id}/edit` : '#'}
+                target={user?.spreadsheet_id ? '_blank' : '_self'}
                 rel="noreferrer"
+                onClick={(e) => {
+                  if (!user?.spreadsheet_id && user?.email !== 'raaajshinde@gmail.com') {
+                    e.preventDefault();
+                    showToast('Personal Google Sheet not yet linked. Sign in with Google to create one.', 'info');
+                  }
+                }}
                 className="py-2.5 px-4 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-800 dark:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2"
               >
                 <ExternalLink size={14} className="text-[#6C47FF] dark:text-[#A78BFA]" />
@@ -880,10 +947,10 @@ export default function Settings({
                     Installation Status
                   </span>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {isInstalledPwa 
-                      ? '✓ Installed in Standalone Mode' 
-                      : deferredInstallPrompt 
-                        ? 'Ready to Install on this device' 
+                    {isInstalledPwa
+                      ? '✓ Installed in Standalone Mode'
+                      : deferredInstallPrompt
+                        ? 'Ready to Install on this device'
                         : 'Web App Manifest & Service Worker Active'}
                   </span>
                 </div>
@@ -907,6 +974,50 @@ export default function Settings({
           </div>
         </div>
       )}
+
+      {/* Restore Confirmation Modal */}
+      {restoreFilePending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="relative w-full max-w-sm bg-white dark:bg-[#1A172B] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-2xl space-y-4 animate-scale-in">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center">
+              <AlertCircle size={22} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Restore Database Backup?
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Restoring from <strong>{restoreFilePending.name}</strong> will overwrite current transactions with backup records. Are you sure you want to proceed?
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setRestoreFilePending(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={restoring}
+                onClick={executeRestore}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#6C47FF] hover:bg-[#5B32EA] shadow-md shadow-purple-600/25 flex items-center gap-1.5"
+              >
+                {restoring ? <RefreshCw size={13} className="animate-spin" /> : <Check size={13} />}
+                <span>{restoring ? 'Restoring...' : 'Confirm Restore'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Legal Modal */}
+      <LegalModal
+        isOpen={Boolean(legalModalType)}
+        onClose={() => setLegalModalType(null)}
+        initialTab={legalModalType || 'privacy'}
+      />
     </div>
   );
 }

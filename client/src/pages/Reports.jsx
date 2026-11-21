@@ -260,29 +260,33 @@ export default function Reports({
               </span>
             </div>
 
-            <div className="flex gap-4 pt-4 pb-1">
-              {/* Y Axis ticks */}
-              <div className="flex flex-col justify-between text-[10px] font-semibold text-slate-400 dark:text-slate-500 pr-1 h-44">
-                <span>20K</span>
-                <span>16K</span>
-                <span>12K</span>
-                <span>8K</span>
-                <span>4K</span>
-                <span>0</span>
-              </div>
+            {(() => {
+              const maxTrendSpend = Math.max(...monthly_trend.map(m => m.total || 0), budget || 0, 1000);
+              const yAxisMax = Math.max(5000, Math.ceil(maxTrendSpend / 5000) * 5000);
+              const formatTick = (val) => (val >= 1000 ? `${Math.round(val / 1000)}K` : String(val));
+              const ticks = [yAxisMax, yAxisMax * 0.75, yAxisMax * 0.5, yAxisMax * 0.25, 0];
 
-              {/* Bars */}
-              <div className="flex-1 flex items-end justify-between gap-3 h-44 border-b border-slate-100 dark:border-white/10 pb-1">
-                {monthly_trend.map((m) => {
-                  const heightPercent = Math.min(100, Math.max(8, (m.total / 20000) * 100));
-                  const isCurrent = m.month_key === selectedMonth;
+              return (
+                <div className="flex gap-4 pt-4 pb-1">
+                  {/* Y Axis ticks */}
+                  <div className="flex flex-col justify-between text-[10px] font-semibold text-slate-400 dark:text-slate-500 pr-1 h-44">
+                    {ticks.map((t, idx) => (
+                      <span key={idx}>{formatTick(t)}</span>
+                    ))}
+                  </div>
 
-                  return (
-                    <div
-                      key={m.month_key}
-                      onClick={() => onSelectMonth(m.month_key)}
-                      className="flex-1 flex flex-col items-center gap-2 cursor-pointer group"
-                    >
+                  {/* Bars */}
+                  <div className="flex-1 flex items-end justify-between gap-3 h-44 border-b border-slate-100 dark:border-white/10 pb-1">
+                    {monthly_trend.map((m) => {
+                      const heightPercent = Math.min(100, Math.max(8, (m.total / yAxisMax) * 100));
+                      const isCurrent = m.month_key === selectedMonth;
+
+                      return (
+                        <div
+                          key={m.month_key}
+                          onClick={() => onSelectMonth(m.month_key)}
+                          className="flex-1 flex flex-col items-center gap-2 cursor-pointer group"
+                        >
                       {/* Tooltip / Highlight pill for active */}
                       <div className="h-6 flex items-center justify-center">
                         {isCurrent ? (
@@ -319,6 +323,8 @@ export default function Reports({
                 })}
               </div>
             </div>
+          );
+        })()}
           </div>
         </div>
       )}

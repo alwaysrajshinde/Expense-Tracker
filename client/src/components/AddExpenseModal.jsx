@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  X, Receipt, RotateCcw, Search, Calendar, FileText, Check,
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  X, Receipt, RotateCcw, Search, Calendar, FileText, Check, Plus,
   Send, Banknote, CreditCard, Landmark, ChevronDown
 } from 'lucide-react';
 import CategoryIcon from './CategoryIcon';
@@ -11,7 +11,8 @@ export default function AddExpenseModal({
   onSave,
   categories = [],
   editingTransaction = null,
-  initialDate = '2026-11-20'
+  initialDate = new Date().toISOString().slice(0, 10),
+  onSaveAnotherSuccess
 }) {
   const [isRefund, setIsRefund] = useState(false);
   const [amount, setAmount] = useState('');
@@ -23,37 +24,47 @@ export default function AddExpenseModal({
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [miniSuccess, setMiniSuccess] = useState(false);
 
-  // Quick categories as shown in the UI reference
-  const quickCategories = [
-    { name: 'Food', icon: 'Utensils', color: '#6C47FF' },
-    { name: 'Auto', icon: 'Car', color: '#F59E0B' },
-    { name: 'Metro', icon: 'Train', color: '#0EA5E9' },
-    { name: 'Fruits', icon: 'Apple', color: '#EF4444' },
-    { name: 'Cloths', icon: 'Shirt', color: '#3B82F6' },
-    { name: 'Shopping', icon: 'ShoppingBag', color: '#A855F7' }
-  ];
+  // Dynamically derive quick categories from user's custom or system categories
+  const quickCategories = useMemo(() => {
+    if (!categories || categories.length === 0) {
+      return [
+        { name: 'Food & Dining', icon: 'Utensils', color: '#6C47FF' },
+        { name: 'Groceries', icon: 'ShoppingBag', color: '#10B981' },
+        { name: 'Transportation', icon: 'Car', color: '#F59E0B' },
+        { name: 'Shopping', icon: 'Shirt', color: '#EC4899' },
+        { name: 'Bills & Utilities', icon: 'Zap', color: '#3B82F6' },
+        { name: 'Other', icon: 'Tag', color: '#64748B' }
+      ];
+    }
+    const quick = categories.filter((c) => Boolean(c.is_quick));
+    if (quick.length >= 3) return quick.slice(0, 6);
+    return categories.slice(0, 6);
+  }, [categories]);
 
   useEffect(() => {
     if (editingTransaction) {
       setIsRefund(Boolean(editingTransaction.amount < 0 || editingTransaction.is_refund));
       setAmount(String(Math.abs(editingTransaction.amount)));
-      setCategory(editingTransaction.category || 'Food');
+      setCategory(editingTransaction.category || (categories[0]?.name || 'Food'));
       setPaymentMode(editingTransaction.payment_mode || 'UPI');
       setDate(editingTransaction.date || initialDate);
       setDescription(editingTransaction.description || '');
     } else {
       setIsRefund(false);
       setAmount('');
-      setCategory('Food');
+      const defaultCat = quickCategories[0]?.name || categories[0]?.name || 'Food';
+      setCategory(defaultCat);
       setSearchCat('');
       setPaymentMode('UPI');
-      setDate(initialDate);
+      setDate(initialDate || new Date().toISOString().slice(0, 10));
       setDescription('');
     }
     setError('');
     setShowAllCategories(false);
-  }, [editingTransaction, isOpen, initialDate]);
+    setMiniSuccess(false);
+  }, [editingTransaction, isOpen, initialDate, categories, quickCategories]);
 
   // Support closing modal with Escape key
   useEffect(() => {
@@ -66,8 +77,8 @@ export default function AddExpenseModal({
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e, keepOpen = false) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       setError('Please enter a valid positive amount');
       return;
@@ -93,7 +104,16 @@ export default function AddExpenseModal({
         description,
         is_refund: isRefund
       });
-      onClose();
+
+      if (keepOpen) {
+        setAmount('');
+        setDescription('');
+        setMiniSuccess(true);
+        setTimeout(() => setMiniSuccess(false), 2000);
+        if (onSaveAnotherSuccess) onSaveAnotherSuccess();
+      } else {
+        onClose();
+      }
     } catch (err) {
       setError(err.message || 'Failed to save transaction');
     } finally {
@@ -101,8 +121,8 @@ export default function AddExpenseModal({
     }
   };
 
-  const filteredCategories = categories.filter(c => 
-    c.name.toLowerCase().includes(searchCat.toLowerCase())
+  const filteredCategories = categories.filter((c) =>
+    (c.name || '').toLowerCase().includes(searchCat.toLowerCase())
   );
 
   return (
@@ -117,9 +137,17 @@ export default function AddExpenseModal({
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/10">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            {editingTransaction ? 'Edit Expense' : 'Add Expense'}
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              {editingTransaction ? 'Edit Expense' : 'Add Expense'}
+            </h2>
+            {miniSuccess && (
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full animate-fade-in flex items-center gap-1">
+                <Check size={12} strokeWidth={2.5} />
+                <span>Saved!</span>
+              </span>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors"
@@ -129,7 +157,7 @@ export default function AddExpenseModal({
         </div>
 
         {/* Scrollable Form Body */}
-        <form noValidate onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <form noValidate onSubmit={(e) => handleSubmit(e, false)} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {error && (
             <div className="p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-xs font-semibold">
               {error}
@@ -141,11 +169,10 @@ export default function AddExpenseModal({
             <button
               type="button"
               onClick={() => setIsRefund(false)}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs transition-all ${
-                !isRefund
-                  ? 'bg-[#6C47FF] dark:bg-[#7C3AED] text-white shadow-md shadow-purple-500/20'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs transition-all ${!isRefund
+                ? 'bg-[#6C47FF] dark:bg-[#7C3AED] text-white shadow-md shadow-purple-500/20'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               <Receipt size={16} />
               <span>Expense</span>
@@ -153,11 +180,10 @@ export default function AddExpenseModal({
             <button
               type="button"
               onClick={() => setIsRefund(true)}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs transition-all ${
-                isRefund
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs transition-all ${isRefund
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               <RotateCcw size={16} />
               <span>Refund / Return</span>
@@ -175,6 +201,7 @@ export default function AddExpenseModal({
               </span>
               <input
                 type="number"
+                inputMode="decimal"
                 step="any"
                 min="0.01"
                 required
@@ -198,7 +225,7 @@ export default function AddExpenseModal({
                 onClick={() => setShowAllCategories(!showAllCategories)}
                 className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline"
               >
-                {showAllCategories ? 'Show Quick' : `All 67 Categories`}
+                {showAllCategories ? 'Show Quick' : `All ${categories.length} Categories`}
               </button>
             </div>
 
@@ -227,20 +254,18 @@ export default function AddExpenseModal({
                       key={cat.name}
                       type="button"
                       onClick={() => setCategory(cat.name)}
-                      className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all ${
-                        isSelected
-                          ? 'border-[#6C47FF] dark:border-[#8B5CF6] bg-purple-50/70 dark:bg-purple-950/60 text-[#6C47FF] dark:text-[#A78BFA] shadow-sm'
-                          : 'border-slate-200/80 dark:border-white/10 bg-white dark:bg-white/5 hover:border-slate-300 text-slate-700 dark:text-slate-300'
-                      }`}
+                      className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all ${isSelected
+                        ? 'border-[#6C47FF] dark:border-[#8B5CF6] bg-purple-50/70 dark:bg-purple-950/60 text-[#6C47FF] dark:text-[#A78BFA] shadow-sm'
+                        : 'border-slate-200/80 dark:border-white/10 bg-white dark:bg-white/5 hover:border-slate-300 text-slate-700 dark:text-slate-300'
+                        }`}
                     >
-                      <div className={`p-2 rounded-xl mb-1.5 ${
-                        isSelected
-                          ? 'bg-purple-100 dark:bg-purple-900/60 text-[#6C47FF] dark:text-[#A78BFA]'
-                          : 'bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400'
-                      }`}>
+                      <div className={`p-2 rounded-xl mb-1.5 ${isSelected
+                        ? 'bg-purple-100 dark:bg-purple-900/60 text-[#6C47FF] dark:text-[#A78BFA]'
+                        : 'bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400'
+                        }`}>
                         <CategoryIcon name={cat.name} icon={cat.icon} color={isSelected ? '#6C47FF' : undefined} size={20} />
                       </div>
-                      <span className="text-xs font-semibold">{cat.name}</span>
+                      <span className="text-xs font-semibold truncate max-w-full">{cat.name}</span>
                     </button>
                   );
                 })}
@@ -257,11 +282,10 @@ export default function AddExpenseModal({
                         setCategory(cat.name);
                         setShowAllCategories(false);
                       }}
-                      className={`flex items-center gap-2 p-2 rounded-xl border text-left text-xs transition-all ${
-                        isSelected
-                          ? 'border-[#6C47FF] dark:border-[#8B5CF6] bg-purple-50 dark:bg-purple-950/60 text-[#6C47FF] dark:text-[#A78BFA] font-bold shadow-sm'
-                          : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:border-slate-300 text-slate-700 dark:text-slate-300 font-medium'
-                      }`}
+                      className={`flex items-center gap-2 p-2 rounded-xl border text-left text-xs transition-all ${isSelected
+                        ? 'border-[#6C47FF] dark:border-[#8B5CF6] bg-purple-50 dark:bg-purple-950/60 text-[#6C47FF] dark:text-[#A78BFA] font-bold shadow-sm'
+                        : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:border-slate-300 text-slate-700 dark:text-slate-300 font-medium'
+                        }`}
                     >
                       <CategoryIcon name={cat.name} icon={cat.icon} color={cat.color} size={16} />
                       <span className="truncate">{cat.name}</span>
@@ -297,11 +321,10 @@ export default function AddExpenseModal({
                     key={mode.id}
                     type="button"
                     onClick={() => setPaymentMode(mode.id)}
-                    className={`flex items-center justify-center gap-2 py-2.5 px-2 rounded-2xl border font-semibold text-xs transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#6C47FF] dark:bg-[#7C3AED] border-[#6C47FF] text-white shadow-md shadow-purple-500/20'
-                        : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-slate-300'
-                    }`}
+                    className={`flex items-center justify-center gap-2 py-2.5 px-2 rounded-2xl border font-semibold text-xs transition-all cursor-pointer ${isSelected
+                      ? 'bg-[#6C47FF] dark:bg-[#7C3AED] border-[#6C47FF] text-white shadow-md shadow-purple-500/20'
+                      : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                      }`}
                   >
                     <Icon size={14} className={isSelected ? 'text-white' : 'text-slate-500'} />
                     <span className="truncate">{mode.label}</span>
@@ -342,12 +365,26 @@ export default function AddExpenseModal({
             </div>
           </div>
 
-          {/* Save Button */}
-          <div className="pt-2">
+          {/* Action Buttons: Save & Add Another + Save Expense */}
+          <div className="pt-2 flex items-center gap-3">
+            {!editingTransaction && (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={(e) => handleSubmit(e, true)}
+                className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 rounded-2xl font-bold text-xs active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 border border-slate-200 dark:border-white/10 cursor-pointer"
+              >
+                <Plus size={16} strokeWidth={2.5} />
+                <span>Save &amp; Add Another</span>
+              </button>
+            )}
+
             <button
               type="submit"
               disabled={saving}
-              className="w-full py-3.5 bg-gradient-to-r from-[#5B27DC] to-[#7B42F6] hover:from-[#4E1FC5] hover:to-[#6E32E9] text-white rounded-2xl font-bold text-sm shadow-lg shadow-purple-500/25 active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+              className={`py-3.5 bg-gradient-to-r from-[#5B27DC] to-[#7B42F6] hover:from-[#4E1FC5] hover:to-[#6E32E9] text-white rounded-2xl font-bold text-sm shadow-lg shadow-purple-500/25 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                editingTransaction ? 'w-full' : 'flex-1'
+              }`}
             >
               <Check size={18} strokeWidth={2.5} />
               <span>{saving ? 'Saving...' : editingTransaction ? 'Update Expense' : 'Save Expense'}</span>

@@ -18,8 +18,32 @@ import {
   computeDashboardFromTransactions, 
   computeReportsFromTransactions 
 } from './sheetsBackend';
+import { 
+  createPersonalGoogleSheet, 
+  appendExpenseToGoogleSheet, 
+  batchPopulateGoogleSheet 
+} from './googleDriveService';
 
-// Standard 67 Category Meta Definitions
+// Minimal Starter Categories for New Users (Clean, essential, non-overwhelming)
+export const MINIMAL_DEFAULT_CATEGORIES = [
+  { name: 'Food & Dining', icon: 'Utensils', color: '#6C47FF', is_quick: true },
+  { name: 'Groceries', icon: 'ShoppingBag', color: '#10B981', is_quick: true },
+  { name: 'Transportation', icon: 'Car', color: '#F59E0B', is_quick: true },
+  { name: 'Shopping', icon: 'Shirt', color: '#EC4899', is_quick: true },
+  { name: 'Bills & Utilities', icon: 'Zap', color: '#3B82F6', is_quick: false },
+  { name: 'Entertainment', icon: 'Film', color: '#8B5CF6', is_quick: false },
+  { name: 'Health', icon: 'HeartPulse', color: '#EF4444', is_quick: false },
+  { name: 'Other', icon: 'Tag', color: '#64748B', is_quick: false }
+];
+
+export function getLocalMonthKey() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+// Standard 67 Category Meta Definitions (for Raj's historical data migration)
 const CATEGORY_META = {
   'Food': { icon: 'Utensils', color: '#6C47FF' },
   'Auto': { icon: 'Car', color: '#F59E0B' },
@@ -54,29 +78,52 @@ const CATEGORY_META = {
 };
 
 /**
- * Ensures user profile and initializes default state or historical migration
+ * Ensures user profile, manages Google Drive spreadsheet initialization, and handles historical migration
  */
-export async function ensureUserProfile(userId, email, displayName = '') {
+export async function ensureUserProfile(userId, email, displayName = '', googleAccessToken = '') {
   if (!isFirebaseConfigured || !db) return;
 
   try {
     const userRef = doc(db, 'users', userId);
     const snap = await getDoc(userRef);
 
+    let spreadsheetId = null;
+    let spreadsheetUrl = null;
+
     if (!snap.exists()) {
       const isRaj = email.toLowerCase() === 'raaajshinde@gmail.com';
+      const name = displayName || (isRaj ? 'Raj Shinde' : email.split('@')[0]);
+
+      // If Google OAuth Access Token is present, automatically create user's personal Google Sheet in their Google Drive
+      if (googleAccessToken) {
+        try {
+          const sheet = await createPersonalGoogleSheet(googleAccessToken, name);
+          spreadsheetId = sheet.spreadsheetId;
+          spreadsheetUrl = sheet.spreadsheetUrl;
+          console.log(`Created personal Google Sheet for ${name}: ${spreadsheetId}`);
+        } catch (sheetErr) {
+          console.warn('Google Sheet creation deferred or skipped:', sheetErr.message);
+        }
+      }
+
       await setDoc(userRef, {
         email: email.toLowerCase(),
-        displayName: displayName || (isRaj ? 'Raj Shinde' : email.split('@')[0]),
-        monthly_budget: 12000,
+        displayName: name,
+        monthly_budget: isRaj ? 12000 : 0,
         currency: '₹',
         migrated: false,
+        onboarding_completed: isRaj,
+        spreadsheet_id: spreadsheetId,
+        spreadsheet_url: spreadsheetUrl,
         created_at: serverTimestamp()
       });
 
       // If Raj Shinde, run historical data migration
       if (isRaj) {
         await migrateRajHistoricalData(userId);
+        if (spreadsheetId && googleAccessToken) {
+          batchPopulateGoogleSheet(googleAccessToken, spreadsheetId, rajHistoricalData.transactions);
+        }
       } else {
         await seedDefaultCategories(userId);
       }
@@ -85,6 +132,22 @@ export async function ensureUserProfile(userId, email, displayName = '') {
       const isRaj = email.toLowerCase() === 'raaajshinde@gmail.com';
       if (isRaj && !data.migrated) {
         await migrateRajHistoricalData(userId);
+      }
+
+      // If user signed in with Google and doesn't have a spreadsheet yet, auto-create it now
+      if (!data.spreadsheet_id && googleAccessToken) {
+        try {
+          const sheet = await createPersonalGoogleSheet(googleAccessToken, data.displayName || 'Personal');
+          await updateDoc(userRef, {
+            spreadsheet_id: sheet.spreadsheetId,
+            spreadsheet_url: sheet.spreadsheetUrl
+          });
+          if (isRaj) {
+            batchPopulateGoogleSheet(googleAccessToken, sheet.spreadsheetId, rajHistoricalData.transactions);
+          }
+        } catch (e) {
+          console.warn('Auto Google Sheet creation notice:', e.message);
+        }
       }
     }
   } catch (err) {
@@ -155,7 +218,7 @@ export async function migrateRajHistoricalData(userId) {
 }
 
 /**
- * Seed default categories for new accounts
+ * Seed default categories for new accounts (Clean & Minimal starter set)
  */
 export async function seedDefaultCategories(userId) {
   if (!isFirebaseConfigured || !db) return;
@@ -164,14 +227,13 @@ export async function seedDefaultCategories(userId) {
     const catCol = collection(db, 'users', userId, 'categories');
     const batch = writeBatch(db);
 
-    const defaultNames = Object.keys(CATEGORY_META);
-    defaultNames.forEach((name, idx) => {
-      const meta = CATEGORY_META[name];
+    MINIMAL_DEFAULT_CATEGORIES.forEach((cat, idx) => {
       const docRef = doc(catCol, `cat_${idx + 1}`);
       batch.set(docRef, {
-        name,
-        icon: meta.icon,
-        color: meta.color,
+        name: cat.name,
+        icon: cat.icon,
+        color: cat.color,
+        is_quick: Boolean(cat.is_quick),
         is_system: true
       });
     });
@@ -183,17 +245,32 @@ export async function seedDefaultCategories(userId) {
 }
 
 /**
- * Get monthly dashboard data from Firestore
+ * Get monthly dashboard data from Firestore with Monthly Roll-up Cache
  */
-export async function getDashboardData(userId, monthKey = '2026-11') {
+export async function getDashboardData(userId, monthKey = getLocalMonthKey()) {
   if (!isFirebaseConfigured || !db) return null;
 
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
-    const profile = userDoc.exists() ? userDoc.data() : { monthly_budget: 12000, currency: '₹' };
-    const budget = parseFloat(profile.monthly_budget) || 12000;
+    const isRaj = userDoc.exists() && userDoc.data().email === 'raaajshinde@gmail.com';
+    const profile = userDoc.exists() ? userDoc.data() : { monthly_budget: 0, currency: '₹' };
+    const budget = profile.monthly_budget !== undefined ? (parseFloat(profile.monthly_budget) || 0) : (isRaj ? 12000 : 0);
 
-    // Query transactions for the selected month
+    // Check if pre-aggregated monthly summary document exists for instant 1-read load
+    const monthDocRef = doc(db, 'users', userId, 'months', monthKey);
+    try {
+      const monthSnap = await getDoc(monthDocRef);
+      if (monthSnap.exists()) {
+        const summary = monthSnap.data();
+        summary.budget = budget;
+        summary.currency = profile.currency || '₹';
+        summary.remaining = Math.max(0, budget - (summary.total_spent || 0));
+        summary.spent_percentage = budget > 0 ? Math.min(100, Math.round(((summary.total_spent || 0) / budget) * 100)) : 0;
+        return summary;
+      }
+    } catch (cacheErr) {}
+
+    // Otherwise, query transactions for the selected month
     const txCol = collection(db, 'users', userId, 'transactions');
     const q = query(txCol, where('month_key', '==', monthKey));
     const snap = await getDocs(q);
@@ -205,7 +282,17 @@ export async function getDashboardData(userId, monthKey = '2026-11') {
     const categories = await getCategories(userId);
 
     // Compute dashboard metrics
-    return computeDashboardFromTransactions(transactions, monthKey, budget, categories);
+    const computed = computeDashboardFromTransactions(transactions, monthKey, budget, categories);
+
+    // Cache summary document for instant future dashboard visits
+    try {
+      await setDoc(monthDocRef, {
+        ...computed,
+        cached_at: serverTimestamp()
+      }, { merge: true });
+    } catch (saveErr) {}
+
+    return computed;
   } catch (err) {
     console.error('Error in getDashboardData:', err);
     return null;
@@ -312,6 +399,29 @@ export async function addTransaction(userId, data) {
     };
 
     await setDoc(docRef, newTx);
+
+    // 1. Invalidate monthly roll-up cache so next dashboard visit re-calculates fresh totals
+    try {
+      await deleteDoc(doc(db, 'users', userId, 'months', monthKey));
+    } catch (cacheDelErr) {}
+
+    // 2. Background non-blocking mirror to user's Google Sheet in their Google Drive
+    try {
+      const sessionStr = typeof window !== 'undefined' ? localStorage.getItem('expense_tracker_auth_session') : null;
+      if (sessionStr) {
+        const session = JSON.parse(sessionStr);
+        const token = session.google_access_token;
+        if (token) {
+          getDoc(doc(db, 'users', userId)).then(userSnap => {
+            const sheetId = userSnap.data()?.spreadsheet_id;
+            if (sheetId) {
+              appendExpenseToGoogleSheet(token, sheetId, newTx);
+            }
+          }).catch(() => {});
+        }
+      }
+    } catch (sheetSyncErr) {}
+
     return newTx;
   } catch (err) {
     console.error('Error adding transaction to Firestore:', err);
@@ -369,12 +479,7 @@ export async function deleteTransaction(userId, id) {
  */
 export async function getCategories(userId) {
   if (!isFirebaseConfigured || !db) {
-    return Object.keys(CATEGORY_META).map((name, idx) => ({
-      id: idx + 1,
-      name,
-      icon: CATEGORY_META[name].icon,
-      color: CATEGORY_META[name].color
-    }));
+    return MINIMAL_DEFAULT_CATEGORIES.map((c, idx) => ({ id: idx + 1, ...c }));
   }
 
   try {
@@ -382,7 +487,10 @@ export async function getCategories(userId) {
     const snap = await getDocs(catCol);
     if (snap.empty) {
       await seedDefaultCategories(userId);
-      return getCategories(userId);
+      const newSnap = await getDocs(catCol);
+      const list = [];
+      newSnap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      return list;
     }
 
     const list = [];
@@ -390,12 +498,7 @@ export async function getCategories(userId) {
     return list;
   } catch (err) {
     console.error('Error fetching categories:', err);
-    return Object.keys(CATEGORY_META).map((name, idx) => ({
-      id: idx + 1,
-      name,
-      icon: CATEGORY_META[name].icon,
-      color: CATEGORY_META[name].color
-    }));
+    return MINIMAL_DEFAULT_CATEGORIES.map((c, idx) => ({ id: idx + 1, ...c }));
   }
 }
 
@@ -413,6 +516,7 @@ export async function addCategory(userId, catData) {
       name: catData.name,
       icon: catData.icon || 'Tag',
       color: catData.color || '#6C47FF',
+      is_quick: Boolean(catData.is_quick),
       is_system: false,
       created_at: serverTimestamp()
     };
@@ -446,10 +550,11 @@ export async function deleteCategory(userId, id) {
 export async function getSettings(userId) {
   if (!isFirebaseConfigured || !db) {
     return {
-      monthly_budget: '12000',
+      monthly_budget: '0',
       currency: '₹',
-      user_name: 'Raj Shinde',
-      user_email: 'raaajshinde@gmail.com'
+      user_name: 'User',
+      user_email: '',
+      onboarding_completed: false
     };
   }
 
@@ -458,11 +563,14 @@ export async function getSettings(userId) {
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       const d = snap.data();
+      const isRaj = d.email === 'raaajshinde@gmail.com';
       return {
-        monthly_budget: String(d.monthly_budget || 12000),
+        monthly_budget: String(d.monthly_budget !== undefined ? d.monthly_budget : (isRaj ? 12000 : 0)),
         currency: d.currency || '₹',
-        user_name: d.displayName || d.email.split('@')[0],
-        user_email: d.email
+        user_name: d.displayName || (d.email ? d.email.split('@')[0] : 'User'),
+        user_email: d.email || '',
+        spreadsheet_id: d.spreadsheet_id || '',
+        onboarding_completed: Boolean(d.onboarding_completed)
       };
     }
   } catch (err) {
@@ -470,10 +578,11 @@ export async function getSettings(userId) {
   }
 
   return {
-    monthly_budget: '12000',
+    monthly_budget: '0',
     currency: '₹',
-    user_name: 'Raj Shinde',
-    user_email: 'raaajshinde@gmail.com'
+    user_name: 'User',
+    user_email: '',
+    onboarding_completed: false
   };
 }
 
