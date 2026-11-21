@@ -44,8 +44,8 @@ export default function AddExpenseModal({
       ];
     }
     const quick = activeCategories.filter((c) => Boolean(c.is_quick));
-    if (quick.length >= 3) return quick.slice(0, 6);
-    return activeCategories.slice(0, 6);
+    if (quick.length >= 3) return quick.slice(0, 9);
+    return activeCategories.slice(0, 9);
   }, [activeCategories]);
 
   useEffect(() => {

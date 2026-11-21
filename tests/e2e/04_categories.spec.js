@@ -61,7 +61,7 @@ test.describe('Area D: Categories & Payment Modes', () => {
     if (await catInput.isVisible()) {
       const uniqueCat = `Gym_${Date.now()}`;
       await catInput.fill(uniqueCat);
-      await page.locator('button:has-text("Add Category")').click();
+      await page.locator('button:has-text("Add Category"), form button:has-text("Add")').first().click();
 
       // Verify category added to list
       await expect(page.getByText(uniqueCat, { exact: true })).toBeVisible({ timeout: 7000 });
