@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   DollarSign, User, Tag, Download, Upload, Database, Check, AlertCircle,
   Plus, Trash2, RefreshCw, FileSpreadsheet, ShieldCheck, Sun, Moon, Sparkles,
-  Cloud, Smartphone, ExternalLink, Link2, Key, LogOut
+  Cloud, Smartphone, ExternalLink, Link2, Key, LogOut, Bell
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
 import LegalModal from '../components/LegalModal';
@@ -41,6 +41,40 @@ export default function Settings({
   const [budgetVal, setBudgetVal] = useState(settings.monthly_budget || '12000');
   const [userNameVal, setUserNameVal] = useState(settings.user_name || 'Raj');
   const [currencyVal, setCurrencyVal] = useState(settings.currency || '₹');
+
+  // Notification Preferences
+  const [notify80, setNotify80] = useState(() => {
+    try {
+      const prefs = JSON.parse(localStorage.getItem('expense_tracker_notification_prefs') || '{}');
+      return prefs.notify80 !== false;
+    } catch (e) { return true; }
+  });
+  const [notify100, setNotify100] = useState(() => {
+    try {
+      const prefs = JSON.parse(localStorage.getItem('expense_tracker_notification_prefs') || '{}');
+      return prefs.notify100 !== false;
+    } catch (e) { return true; }
+  });
+  const [notifySync, setNotifySync] = useState(() => {
+    try {
+      const prefs = JSON.parse(localStorage.getItem('expense_tracker_notification_prefs') || '{}');
+      return prefs.notifySync !== false;
+    } catch (e) { return true; }
+  });
+
+  const handleTogglePref = (key, val) => {
+    const nextPrefs = {
+      notify80,
+      notify100,
+      notifySync,
+      [key]: val
+    };
+    if (key === 'notify80') setNotify80(val);
+    if (key === 'notify100') setNotify100(val);
+    if (key === 'notifySync') setNotifySync(val);
+    localStorage.setItem('expense_tracker_notification_prefs', JSON.stringify(nextPrefs));
+    showToast('Notification preference updated!', 'success');
+  };
 
   // Category creation
   const [newCatName, setNewCatName] = useState('');
@@ -290,7 +324,8 @@ export default function Settings({
 
       {/* SECTION 1: BUDGET */}
       {activeSection === 'budget' && (
-        <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 sm:p-7 border border-slate-100 dark:border-white/10 shadow-sm space-y-5 max-w-2xl transition-colors">
+        <div className="space-y-5">
+          <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 sm:p-7 border border-slate-100 dark:border-white/10 shadow-sm space-y-5 max-w-2xl transition-colors">
           <div className="flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#8B5CF6] flex items-center justify-center">
               <DollarSign size={22} />
@@ -338,6 +373,77 @@ export default function Settings({
             </button>
           </form>
         </div>
+
+        {/* Notification Preferences Card */}
+        <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 sm:p-7 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 max-w-2xl transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Bell size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Spending &amp; Budget Alert Preferences
+              </h3>
+              <p className="text-xs text-slate-400">
+                Control which alerts and threshold notifications are shown in your dashboard
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <label className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-white/5 rounded-2xl cursor-pointer hover:bg-slate-100/70 dark:hover:bg-white/10 transition-colors">
+              <div className="space-y-0.5 pr-4">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  80% Budget Warning
+                </span>
+                <span className="text-[11px] text-slate-400 block">
+                  Show notification when monthly expenses cross 80% of budget limit
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={notify80}
+                onChange={(e) => handleTogglePref('notify80', e.target.checked)}
+                className="w-5 h-5 accent-[#6C47FF] rounded-lg cursor-pointer"
+              />
+            </label>
+
+            <label className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-white/5 rounded-2xl cursor-pointer hover:bg-slate-100/70 dark:hover:bg-white/10 transition-colors">
+              <div className="space-y-0.5 pr-4">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  100% Budget Exceeded Alert
+                </span>
+                <span className="text-[11px] text-slate-400 block">
+                  Show high-priority alert when expenses exceed total monthly budget
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={notify100}
+                onChange={(e) => handleTogglePref('notify100', e.target.checked)}
+                className="w-5 h-5 accent-[#6C47FF] rounded-lg cursor-pointer"
+              />
+            </label>
+
+            <label className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-white/5 rounded-2xl cursor-pointer hover:bg-slate-100/70 dark:hover:bg-white/10 transition-colors">
+              <div className="space-y-0.5 pr-4">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  Cloud Vault Sync Notification
+                </span>
+                <span className="text-[11px] text-slate-400 block">
+                  Show notification confirming device sync status &amp; offline cache health
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={notifySync}
+                onChange={(e) => handleTogglePref('notifySync', e.target.checked)}
+                className="w-5 h-5 accent-[#6C47FF] rounded-lg cursor-pointer"
+              />
+            </label>
+          </div>
+        </div>
+      </div>
       )}
 
       {/* SECTION 2: CATEGORIES */}

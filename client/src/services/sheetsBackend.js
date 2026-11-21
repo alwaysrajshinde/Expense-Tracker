@@ -220,3 +220,121 @@ export function computeReportsFromTransactions(transactions = [], selectedMonth 
     monthly_trend: monthlyTrend
   };
 }
+
+/**
+ * Calculate Annual / Yearly Reports metrics from transactions list
+ */
+export function computeYearlyReportFromTransactions(transactions = [], selectedYear = new Date().getFullYear().toString(), categoryMeta = []) {
+  const yearStr = String(selectedYear);
+
+  // Filter transactions for selected year
+  const yearTransactions = transactions.filter(t => {
+    const d = t.date || t.month_key || '';
+    return d.startsWith(yearStr);
+  });
+
+  let totalSpent = 0;
+  const monthMap = {};
+  const categoryMap = {};
+  const paymentMap = {};
+
+  const monthNames = [
+    { key: '01', label: 'Jan' }, { key: '02', label: 'Feb' }, { key: '03', label: 'Mar' },
+    { key: '04', label: 'Apr' }, { key: '05', label: 'May' }, { key: '06', label: 'Jun' },
+    { key: '07', label: 'Jul' }, { key: '08', label: 'Aug' }, { key: '09', label: 'Sep' },
+    { key: '10', label: 'Oct' }, { key: '11', label: 'Nov' }, { key: '12', label: 'Dec' }
+  ];
+
+  monthNames.forEach(m => {
+    monthMap[m.key] = { label: m.label, total: 0, count: 0 };
+  });
+
+  yearTransactions.forEach(t => {
+    let amt = parseFloat(t.amount) || 0;
+    if (t.is_refund && amt > 0) amt = -amt;
+    totalSpent += amt;
+
+    const mKey = (t.date ? t.date.slice(5, 7) : (t.month_key ? t.month_key.slice(5, 7) : '01'));
+    if (monthMap[mKey]) {
+      monthMap[mKey].total += amt;
+      monthMap[mKey].count += 1;
+    }
+
+    const cat = t.category || 'Other';
+    if (!categoryMap[cat]) categoryMap[cat] = { total: 0, count: 0 };
+    categoryMap[cat].total += amt;
+    categoryMap[cat].count += 1;
+
+    const pm = t.payment_mode || 'UPI';
+    if (!paymentMap[pm]) paymentMap[pm] = { total: 0, count: 0 };
+    paymentMap[pm].total += amt;
+    paymentMap[pm].count += 1;
+  });
+
+  // Calculate highest spending month
+  let maxMonthTotal = 1;
+  let highestMonth = { label: 'None', total: 0 };
+  monthNames.forEach(m => {
+    const tot = monthMap[m.key].total;
+    if (tot > maxMonthTotal) maxMonthTotal = tot;
+    if (tot > highestMonth.total) highestMonth = { label: m.label, total: Math.round(tot) };
+  });
+
+  const monthsData = monthNames.map(m => {
+    const tot = Math.round(monthMap[m.key].total);
+    const heightPercent = maxMonthTotal > 0 ? Math.max(0, Math.round((tot / maxMonthTotal) * 100)) : 0;
+    return {
+      month_key: `${yearStr}-${m.key}`,
+      label: m.label,
+      total: tot,
+      count: monthMap[m.key].count,
+      height_percent: heightPercent
+    };
+  });
+
+  const categoryBreakdown = Object.keys(categoryMap).map(catName => {
+    const cat = categoryMap[catName];
+    const meta = categoryMeta.find(c => c.name.toLowerCase() === catName.toLowerCase());
+    const pct = totalSpent > 0 ? Math.round((cat.total / totalSpent) * 1000) / 10 : 0;
+    return {
+      category: catName,
+      total: Math.round(cat.total),
+      tx_count: cat.count,
+      percentage: Math.max(0, pct),
+      icon: meta?.icon || 'Tag',
+      color: meta?.color || '#6C47FF'
+    };
+  }).sort((a, b) => b.total - a.total);
+
+  const paymentBreakdown = Object.keys(paymentMap).map(pm => {
+    const p = paymentMap[pm];
+    const pct = totalSpent > 0 ? Math.round((p.total / totalSpent) * 1000) / 10 : 0;
+    return {
+      payment_mode: pm,
+      total: Math.round(p.total),
+      tx_count: p.count,
+      percentage: Math.max(0, pct)
+    };
+  }).sort((a, b) => b.total - a.total);
+
+  // Available unique years from all transactions
+  const yearsSet = new Set();
+  transactions.forEach(t => {
+    const y = (t.date || t.month_key || '').slice(0, 4);
+    if (y && y.match(/^\d{4}$/)) yearsSet.add(y);
+  });
+  if (yearsSet.size === 0) yearsSet.add(new Date().getFullYear().toString());
+  const availableYears = Array.from(yearsSet).sort().reverse();
+
+  return {
+    year: yearStr,
+    total_spent: Math.round(totalSpent),
+    tx_count: yearTransactions.length,
+    monthly_average: Math.round(totalSpent / 12),
+    highest_month: highestMonth,
+    months_data: monthsData,
+    category_breakdown: categoryBreakdown,
+    payment_breakdown: paymentBreakdown,
+    available_years: availableYears
+  };
+}
