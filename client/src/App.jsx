@@ -12,6 +12,8 @@ import AddExpenseModal from './components/AddExpenseModal';
 import NotificationsModal from './components/NotificationsModal';
 import OnboardingTourModal from './components/OnboardingTourModal';
 import ReleaseNotesModal from './components/ReleaseNotesModal';
+import IntelligentImportModal from './components/import/IntelligentImportModal';
+import ImportHistoryModal from './components/import/ImportHistoryModal';
 import AuthGate from './components/AuthGate';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -78,6 +80,8 @@ function MainApp() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isImportHistoryOpen, setIsImportHistoryOpen] = useState(false);
 
   // Native Mobile Back Navigation handler (popstate dismisses open modals before leaving view)
   useEffect(() => {
@@ -85,6 +89,10 @@ function MainApp() {
       if (isAddModalOpen) {
         setIsAddModalOpen(false);
         setEditingTransaction(null);
+      } else if (isImportModalOpen) {
+        setIsImportModalOpen(false);
+      } else if (isImportHistoryOpen) {
+        setIsImportHistoryOpen(false);
       } else if (isNotificationsOpen) {
         setIsNotificationsOpen(false);
       } else if (isReleaseNotesOpen) {
@@ -95,7 +103,7 @@ function MainApp() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isAddModalOpen, isNotificationsOpen, isReleaseNotesOpen, isOnboardingTourOpen]);
+  }, [isAddModalOpen, isImportModalOpen, isImportHistoryOpen, isNotificationsOpen, isReleaseNotesOpen, isOnboardingTourOpen]);
 
   const openAddModal = (tx = null) => {
     setEditingTransaction(tx);
@@ -206,7 +214,9 @@ function MainApp() {
     } else if (tabId === 'budget') {
       setActiveTab('settings');
       setSettingsSection('budget');
-    } else if (tabId === 'import_export' || tabId === 'backup_restore') {
+    } else if (tabId === 'import_export') {
+      setIsImportModalOpen(true);
+    } else if (tabId === 'backup_restore') {
       setActiveTab('settings');
       setSettingsSection('data');
     } else if (tabId === 'settings') {
@@ -363,6 +373,7 @@ function MainApp() {
                   onDeleteTransaction={handleDeleteTransaction}
                   formatCurrency={formatCurrency}
                   onSelectMonth={setSelectedMonth}
+                  onOpenImport={() => setIsImportModalOpen(true)}
                 />
               )}
 
@@ -409,6 +420,10 @@ function MainApp() {
                   onImportFile={api.importExcelOrCsv}
                   onRestoreBackup={api.restoreBackup}
                   onRefreshAll={handleRefreshAll}
+                  onOpenImport={() => setIsImportModalOpen(true)}
+                  onOpenImportHistory={() => setIsImportHistoryOpen(true)}
+                  onOpenNotifications={() => setIsNotificationsOpen(true)}
+                  hasUnreadNotifs={hasUnreadNotifs}
                   formatCurrency={formatCurrency}
                   selectedMonth={selectedMonth}
                 />
@@ -499,6 +514,7 @@ function MainApp() {
                   onDeleteTransaction={handleDeleteTransaction}
                   formatCurrency={formatCurrency}
                   onSelectMonth={setSelectedMonth}
+                  onOpenImport={() => setIsImportModalOpen(true)}
                 />
               </div>
             )}
@@ -549,6 +565,10 @@ function MainApp() {
                   onImportFile={api.importExcelOrCsv}
                   onRestoreBackup={api.restoreBackup}
                   onRefreshAll={handleRefreshAll}
+                  onOpenImport={() => setIsImportModalOpen(true)}
+                  onOpenImportHistory={() => setIsImportHistoryOpen(true)}
+                  onOpenNotifications={() => setIsNotificationsOpen(true)}
+                  hasUnreadNotifs={hasUnreadNotifs}
                   formatCurrency={formatCurrency}
                   selectedMonth={selectedMonth}
                 />
@@ -612,6 +632,28 @@ function MainApp() {
         }}
         currency={settings.currency || '₹'}
         userName={settings.user_name || 'User'}
+      />
+
+      {/* Intelligent Expense Import Modal (Excel, CSV, Bank Statements) */}
+      <IntelligentImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        userCategories={categories}
+        formatCurrency={formatCurrency}
+        onImportComplete={() => {
+          handleRefreshAll();
+          showToast('Transactions imported successfully!', 'success');
+        }}
+      />
+
+      {/* Import History & 1-Click Safe Undo Modal */}
+      <ImportHistoryModal
+        isOpen={isImportHistoryOpen}
+        onClose={() => setIsImportHistoryOpen(false)}
+        onUndoComplete={() => {
+          handleRefreshAll();
+          showToast('Import batch reverted successfully!', 'info');
+        }}
       />
     </div>
   );

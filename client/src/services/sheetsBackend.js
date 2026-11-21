@@ -44,6 +44,10 @@ export function computeDashboardFromTransactions(transactions = [], selectedMont
   const categoryTotals = {};
 
   monthTransactions.forEach(t => {
+    // Exclude internal transfers and pure income from spending calculations
+    if (t.is_transfer || t.type === 'transfer' || t.type === 'income') {
+      return;
+    }
     let amt = parseFloat(t.amount) || 0;
     if (t.is_refund && amt > 0) amt = -amt;
     totalSpent += amt;
@@ -133,6 +137,10 @@ export function computeReportsFromTransactions(transactions = [], selectedMonth 
   const paymentMap = {};
 
   monthTransactions.forEach(t => {
+    // Exclude internal transfers and pure income from spending calculations
+    if (t.is_transfer || t.type === 'transfer' || t.type === 'income') {
+      return;
+    }
     let amt = parseFloat(t.amount) || 0;
     if (t.is_refund && amt > 0) amt = -amt;
     totalSpent += amt;
@@ -250,6 +258,9 @@ export function computeYearlyReportFromTransactions(transactions = [], selectedY
   });
 
   yearTransactions.forEach(t => {
+    if (t.is_transfer || t.type === 'transfer' || t.type === 'income') {
+      return;
+    }
     let amt = parseFloat(t.amount) || 0;
     if (t.is_refund && amt > 0) amt = -amt;
     totalSpent += amt;

@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   DollarSign, User, Tag, Download, Upload, Database, Check, AlertCircle,
   Plus, Trash2, RefreshCw, FileSpreadsheet, ShieldCheck, Sun, Moon, Sparkles,
-  ExternalLink, LogOut, Bell, Info, Shield, HelpCircle, Palette, Key, CheckCircle2
+  ExternalLink, LogOut, Bell, Info, Shield, HelpCircle, Palette, Key, CheckCircle2,
+  History, ChevronRight, Sliders, Target, FileText, ArrowLeftRight, X, ArrowRight
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
 import LegalModal from '../components/LegalModal';
@@ -14,7 +15,7 @@ import { exportTransactionsToExcel, exportDataToJson } from '../services/exportS
 export default function Settings({
   settings = {},
   categories = [],
-  initialSection = 'preferences',
+  initialSection = null,
   onUpdateSettings,
   onUpdateBudget,
   onAddCategory,
@@ -26,32 +27,35 @@ export default function Settings({
   selectedMonth,
   onLogout,
   onOpenTour,
-  onOpenReleaseNotes
+  onOpenReleaseNotes,
+  onOpenImport,
+  onOpenImportHistory,
+  onOpenNotifications,
+  hasUnreadNotifs = false
 }) {
   const { theme, setTheme, toggleTheme, isDark, availableThemes } = useTheme();
   const { showToast } = useToast();
   const { user, logout, resendVerificationEmail, resetPassword } = useAuth();
 
-  // Normalize initial section to the 4 main groups
-  const normalizeSection = (sec) => {
-    if (sec === 'budget' || sec === 'categories' || sec === 'preferences') return 'preferences';
-    if (sec === 'profile' || sec === 'account' || sec === 'security') return 'account';
-    if (sec === 'data' || sec === 'backup' || sec === 'import_export') return 'data';
-    if (sec === 'info' || sec === 'about') return 'info';
-    return 'preferences';
-  };
-
-  const [activeSection, setActiveSection] = useState(() => normalizeSection(initialSection));
+  // Active Sub-Modal: null | 'profile' | 'budget' | 'categories' | 'theme' | 'export' | 'security' | 'help'
+  const [activeModal, setActiveModal] = useState(() => {
+    if (initialSection === 'budget') return 'budget';
+    if (initialSection === 'categories') return 'categories';
+    if (initialSection === 'account' || initialSection === 'security') return 'security';
+    if (initialSection === 'data' || initialSection === 'export') return 'export';
+    return null;
+  });
 
   useEffect(() => {
-    if (initialSection) {
-      setActiveSection(normalizeSection(initialSection));
-    }
+    if (initialSection === 'budget') setActiveModal('budget');
+    else if (initialSection === 'categories') setActiveModal('categories');
+    else if (initialSection === 'account' || initialSection === 'security') setActiveModal('security');
+    else if (initialSection === 'data' || initialSection === 'export') setActiveModal('export');
   }, [initialSection]);
 
   // Budget State with automatic prop-sync
   const [budgetVal, setBudgetVal] = useState(() => settings.monthly_budget || '12000');
-  const [userNameVal, setUserNameVal] = useState(() => settings.user_name || user?.name || 'User');
+  const [userNameVal, setUserNameVal] = useState(() => settings.user_name || user?.name || user?.displayName || 'Raj Kumar');
   const [currencyVal, setCurrencyVal] = useState(() => settings.currency || '₹');
 
   useEffect(() => {
@@ -65,8 +69,9 @@ export default function Settings({
 
   useEffect(() => {
     if (settings.user_name) setUserNameVal(settings.user_name);
+    else if (user?.displayName) setUserNameVal(user.displayName);
     if (settings.currency) setCurrencyVal(settings.currency);
-  }, [settings.user_name, settings.currency]);
+  }, [settings.user_name, user?.displayName, settings.currency]);
 
   // Notification Preferences
   const [notify80, setNotify80] = useState(() => {
@@ -106,7 +111,7 @@ export default function Settings({
   const jsonInputRef = useRef(null);
 
   const handleSaveBudget = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     try {
       setSaving(true);
       const numBudget = parseFloat(budgetVal);
@@ -118,6 +123,7 @@ export default function Settings({
       await onUpdateSettings({ monthly_budget: String(numBudget) });
       setStatusMsg({ type: 'success', text: `Monthly target budget updated to ${formatCurrency(numBudget)}` });
       showToast(`Monthly budget set to ${formatCurrency(numBudget)}`, 'success');
+      setActiveModal(null);
     } catch (err) {
       setStatusMsg({ type: 'error', text: err.message || 'Failed to update budget' });
     } finally {
@@ -126,12 +132,13 @@ export default function Settings({
   };
 
   const handleSaveProfile = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     try {
       setSaving(true);
       await onUpdateSettings({ user_name: userNameVal, currency: currencyVal });
       setStatusMsg({ type: 'success', text: 'Profile preferences updated successfully' });
       showToast('Profile updated!', 'success');
+      setActiveModal(null);
     } catch (err) {
       setStatusMsg({ type: 'error', text: err.message || 'Failed to update profile' });
     } finally {
@@ -157,62 +164,54 @@ export default function Settings({
     }
   };
 
-  const handleImportExcel = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleExcelExport = async () => {
     try {
-      setStatusMsg({ type: 'info', text: 'Importing Excel ledger...' });
-      const result = await onImportFile(file);
-      setStatusMsg({
-        type: 'success',
-        text: `Successfully imported ${result.imported} transactions (${result.skipped} skipped)`
-      });
-      showToast(`Imported ${result.imported} transactions!`, 'success');
-      if (onRefreshAll) onRefreshAll();
+      setStatusMsg({ type: 'info', text: 'Generating comprehensive Excel ledger...' });
+      await exportTransactionsToExcel();
+      setStatusMsg({ type: 'success', text: 'Excel ledger exported successfully!' });
+      showToast('Excel ledger downloaded!', 'success');
     } catch (err) {
-      setStatusMsg({ type: 'error', text: err.message || 'Failed to import Excel' });
-    } finally {
-      if (excelInputRef.current) excelInputRef.current.value = '';
+      setStatusMsg({ type: 'error', text: err.message || 'Failed to export Excel file' });
     }
   };
 
-  const handleRestoreBackup = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setRestoreFilePending(file);
-    if (jsonInputRef.current) jsonInputRef.current.value = '';
+  const handleJsonExport = async () => {
+    try {
+      setStatusMsg({ type: 'info', text: 'Creating full JSON data backup...' });
+      await exportDataToJson();
+      setStatusMsg({ type: 'success', text: 'JSON backup downloaded successfully!' });
+      showToast('JSON backup downloaded!', 'success');
+    } catch (err) {
+      setStatusMsg({ type: 'error', text: err.message || 'Failed to export JSON backup' });
+    }
   };
 
-  const executeRestore = async () => {
+  const handleRestoreJson = async () => {
     if (!restoreFilePending) return;
     try {
       setRestoring(true);
+      setStatusMsg({ type: 'info', text: 'Restoring transactions and categories...' });
       const result = await onRestoreBackup(restoreFilePending);
-      showToast(`Restored ${result.restored_transactions} transactions successfully!`, 'success');
-      setStatusMsg({ type: 'success', text: `Restored ${result.restored_transactions} records from backup!` });
+      setStatusMsg({
+        type: 'success',
+        text: `Successfully restored ${result.transactions_restored || 0} transactions and ${result.categories_restored || 0} categories!`
+      });
+      showToast('Data restored successfully!', 'success');
       setRestoreFilePending(null);
       if (onRefreshAll) onRefreshAll();
+      setActiveModal(null);
     } catch (err) {
-      showToast(err.message || 'Failed to restore backup', 'error');
+      setStatusMsg({ type: 'error', text: err.message || 'Failed to restore backup' });
     } finally {
       setRestoring(false);
+      if (jsonInputRef.current) jsonInputRef.current.value = '';
     }
   };
 
-  const handleSendPasswordReset = async () => {
-    if (!user?.email) return;
-    try {
-      await resetPassword(user.email);
-      showToast(`Password reset link sent to ${user.email}`, 'success');
-    } catch (err) {
-      showToast(err.message || 'Failed to send password reset', 'error');
-    }
-  };
-
-  const iconOptions = [
-    'Tag', 'Utensils', 'ShoppingBag', 'Car', 'Shirt', 'Zap',
-    'Home', 'HeartPulse', 'Film', 'GraduationCap', 'Compass',
-    'Sparkles', 'CreditCard', 'Coffee', 'Apple', 'Smartphone'
+  const categoryIcons = [
+    'Tag', 'Utensils', 'Car', 'ShoppingBag', 'Zap', 'Home',
+    'HeartPulse', 'Film', 'GraduationCap', 'Plane', 'Sparkles', 'Coffee',
+    'Wifi', 'Phone', 'BookOpen', 'Music', 'DollarSign', 'Gift'
   ];
 
   const colorOptions = [
@@ -220,16 +219,37 @@ export default function Settings({
     '#EF4444', '#8B5CF6', '#0EA5E9', '#F97316', '#F43F5E', '#64748B'
   ];
 
+  const userInitial = (userNameVal || user?.displayName || user?.email || 'R').charAt(0).toUpperCase();
+  const isEmailVerified = Boolean(user?.emailVerified || user?.isGoogleUser);
+
   return (
-    <div className="space-y-5 px-4 sm:px-6 lg:px-8 py-4 pb-24 lg:pb-8 max-w-5xl mx-auto">
-      {/* Page Header */}
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-          Settings &amp; Preferences
-        </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Manage your account, financial budgets, categories, and personal data backups
-        </p>
+    <div className="space-y-6 px-3 sm:px-6 lg:px-8 py-3 pb-28 lg:pb-8 max-w-xl mx-auto transition-colors">
+      
+      {/* ========================================================
+          1. SCREEN HEADER (Strictly matching Dark Violet Design)
+         ======================================================== */}
+      <div className="flex items-center justify-between pt-1">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            More
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-[#A78BFA]/80 mt-0.5">
+            Settings, data management and support
+          </p>
+        </div>
+
+        {/* Circular Notification Bell with unread dot */}
+        <button
+          type="button"
+          onClick={onOpenNotifications}
+          aria-label="Notifications"
+          className="relative w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-[#1C1635] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 transition-all shadow-xs cursor-pointer"
+        >
+          <Bell size={18} />
+          {hasUnreadNotifs && (
+            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#A855F7] ring-2 ring-white dark:ring-[#1C1635]" />
+          )}
+        </button>
       </div>
 
       {/* Status banner */}
@@ -238,7 +258,7 @@ export default function Settings({
           statusMsg.type === 'success'
             ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
             : statusMsg.type === 'info'
-              ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+              ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
               : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
         }`}>
           <div className="flex items-center gap-2">
@@ -251,703 +271,846 @@ export default function Settings({
         </div>
       )}
 
-      {/* 4 Clean Primary Section Tabs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-100 dark:bg-white/10 p-1.5 rounded-2xl text-xs font-semibold">
-        <button
-          onClick={() => setActiveSection('account')}
-          className={`py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-            activeSection === 'account'
-              ? 'bg-[#6C47FF] text-white shadow-xs font-bold'
-              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-          }`}
-        >
-          <User size={14} />
-          <span>Account</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSection('preferences')}
-          className={`py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-            activeSection === 'preferences'
-              ? 'bg-[#6C47FF] text-white shadow-xs font-bold'
-              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-          }`}
-        >
-          <DollarSign size={14} />
-          <span>Preferences</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSection('data')}
-          className={`py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-            activeSection === 'data'
-              ? 'bg-[#6C47FF] text-white shadow-xs font-bold'
-              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-          }`}
-        >
-          <Database size={14} />
-          <span>Data Backup</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSection('info')}
-          className={`py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-            activeSection === 'info'
-              ? 'bg-[#6C47FF] text-white shadow-xs font-bold'
-              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-          }`}
-        >
-          <Info size={14} />
-          <span>Information</span>
-        </button>
-      </div>
-
       {/* ========================================================
-          SECTION 1: ACCOUNT & SECURITY
+          2. USER PROFILE CARD (Top Elevated Card)
          ======================================================== */}
-      {activeSection === 'account' && (
-        <div className="space-y-5 animate-fade-in">
-          {/* Profile Details Card */}
-          <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-5 transition-colors">
-            <div className="flex items-center gap-3.5 pb-4 border-b border-slate-100 dark:border-white/5">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#371485] to-[#763cf8] text-white font-bold text-base flex items-center justify-center shadow-md shadow-purple-600/20">
-                {(user?.name || user?.email || 'RS').slice(0, 2).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
-                  {user?.name || 'Active Account'}
-                </h3>
-                <p className="text-xs text-slate-400 truncate">{user?.email || 'user@example.com'}</p>
-                <div className="mt-1 flex items-center gap-2">
-                  {user?.isGoogleUser ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[10px] font-semibold">
-                      <CheckCircle2 size={11} />
-                      <span>Google Account Verified</span>
-                    </span>
-                  ) : user?.emailVerified ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold">
-                      <CheckCircle2 size={11} />
-                      <span>Email Verified</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[10px] font-semibold">
-                      <AlertCircle size={11} />
-                      <span>Pending Email Verification</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Profile Form */}
-            <form onSubmit={handleSaveProfile} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Display Name
-                  </label>
-                  <input
-                    type="text"
-                    value={userNameVal}
-                    onChange={(e) => setUserNameVal(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Currency Symbol
-                  </label>
-                  <select
-                    value={currencyVal}
-                    onChange={(e) => setCurrencyVal(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-                  >
-                    <option value="₹">₹ - Indian Rupee (INR)</option>
-                    <option value="$">$ - US Dollar (USD)</option>
-                    <option value="€">€ - Euro (EUR)</option>
-                    <option value="£">£ - British Pound (GBP)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="py-2.5 px-5 bg-[#6C47FF] hover:bg-[#5B32EA] text-white rounded-xl font-bold text-xs shadow-md shadow-purple-500/20 transition-all cursor-pointer"
-                >
-                  {saving ? 'Saving...' : 'Save Profile Preferences'}
-                </button>
-              </div>
-            </form>
+      <div
+        onClick={() => setActiveModal('profile')}
+        role="button"
+        tabIndex={0}
+        className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-sm flex items-center justify-between cursor-pointer hover:border-purple-500/30 transition-all active:scale-[0.99] group"
+      >
+        <div className="flex items-center gap-3.5">
+          {/* Avatar with Vibrant Purple Circle */}
+          <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-[#6C47FF] to-[#A855F7] text-white font-extrabold text-xl flex items-center justify-center shadow-md shadow-purple-600/30 flex-shrink-0">
+            {userInitial}
           </div>
 
-          {/* Security & Sign Out Card */}
-          <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Shield size={16} className="text-[#6C47FF]" />
-              <span>Account Security &amp; Session</span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              {!user?.isGoogleUser && (
-                <button
-                  type="button"
-                  onClick={handleSendPasswordReset}
-                  className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-300 text-left space-y-1 transition-colors cursor-pointer group"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#6C47FF]">
-                      Reset Password
-                    </span>
-                    <Key size={14} className="text-slate-400 group-hover:text-[#6C47FF]" />
-                  </div>
-                  <p className="text-[11px] text-slate-400">
-                    Send password reset instructions to your registered email address
-                  </p>
-                </button>
+          <div className="space-y-0.5">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
+              {userNameVal || 'Raj Kumar'}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+              {user?.email || 'raj@example.com'}
+            </p>
+            <div>
+              {isEmailVerified ? (
+                <span className="inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                  <Check size={11} strokeWidth={3} />
+                  <span>Verified</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                  <span>Unverified · Tap to check</span>
+                </span>
               )}
-
-              {user && !user.emailVerified && !user.isGoogleUser && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await resendVerificationEmail();
-                    showToast('Verification email resent!', 'success');
-                  }}
-                  className="p-4 rounded-2xl border border-amber-200 dark:border-amber-800/40 bg-amber-50/50 dark:bg-amber-950/20 text-left space-y-1 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-900 dark:text-amber-300">
-                      Resend Verification Link
-                    </span>
-                    <AlertCircle size={14} className="text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                    Send a fresh email verification link to confirm account ownership
-                  </p>
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={onLogout || logout}
-                className="p-4 rounded-2xl border border-rose-100 dark:border-rose-900/30 bg-rose-50/50 dark:bg-rose-950/20 text-left space-y-1 transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-rose-700 dark:text-rose-400">
-                    Sign Out / Disconnect
-                  </span>
-                  <LogOut size={14} className="text-rose-600 dark:text-rose-400" />
-                </div>
-                <p className="text-[11px] text-rose-600/80 dark:text-rose-400/80">
-                  Safely log out of your personal financial vault on this device
-                </p>
-              </button>
             </div>
           </div>
         </div>
-      )}
+
+        <ChevronRight size={19} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+      </div>
 
       {/* ========================================================
-          SECTION 2: PREFERENCES & BUDGET
+          3. GROUP 1: MANAGE FINANCES
          ======================================================== */}
-      {activeSection === 'preferences' && (
-        <div className="space-y-5 animate-fade-in">
-          {/* Target Monthly Budget Card */}
-          <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center">
-                <DollarSign size={20} />
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider px-1">
+          <Sliders size={14} />
+          <span>Manage Finances</span>
+        </div>
+
+        <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
+          {/* Monthly Budget Row */}
+          <button
+            type="button"
+            onClick={() => setActiveModal('budget')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                <Target size={18} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Monthly Target Budget
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Controls your dashboard spending gauges, budget pace, and warnings
-                </p>
+                <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
+                  Monthly Budget
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Set or update your monthly budget ({formatCurrency(parseFloat(budgetVal) || 0)})
+                </div>
               </div>
             </div>
+            <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+          </button>
 
-            <form onSubmit={handleSaveBudget} className="space-y-4 pt-1">
+          {/* Categories Row */}
+          <button
+            type="button"
+            onClick={() => setActiveModal('categories')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                <Tag size={18} />
+              </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Target Amount ({currencyVal})
+                <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
+                  Categories
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Manage expense categories ({categories.length} active)
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================
+          4. GROUP 2: PERSONALIZATION
+         ======================================================== */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider px-1">
+          <Palette size={14} />
+          <span>Personalization</span>
+        </div>
+
+        <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs overflow-hidden">
+          {/* Appearance & Theme Row */}
+          <button
+            type="button"
+            onClick={() => setActiveModal('theme')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                <Moon size={18} />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
+                  Appearance &amp; Theme
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 capitalize">
+                  Choose a theme ({theme})
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================
+          5. GROUP 3: DATA MANAGEMENT
+         ======================================================== */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider">
+            <ArrowLeftRight size={14} />
+            <span>Data Management</span>
+          </div>
+
+          {onOpenImportHistory && (
+            <button
+              type="button"
+              onClick={onOpenImportHistory}
+              className="text-[11px] font-semibold text-[#6C47FF] dark:text-[#C084FC] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <History size={12} />
+              <span>Import History</span>
+            </button>
+          )}
+        </div>
+
+        <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
+          {/* Import Transactions Row */}
+          <button
+            type="button"
+            onClick={onOpenImport}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                <Upload size={18} />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2">
+                  <span>Import Transactions</span>
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-[#6C47FF]/10 text-[#6C47FF] dark:text-[#C084FC]">
+                    NEW
+                  </span>
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Add expenses from Excel, CSV or bank statement
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          {/* Export Transactions Row */}
+          <button
+            type="button"
+            onClick={() => setActiveModal('export')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                <Download size={18} />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
+                  Export Transactions
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Download your expense data (Excel / CSV)
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================
+          6. GROUP 4: ACCOUNT & SUPPORT
+         ======================================================== */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider px-1">
+          <Shield size={14} />
+          <span>Account &amp; Support</span>
+        </div>
+
+        <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
+          {/* Security Row */}
+          <button
+            type="button"
+            onClick={() => setActiveModal('security')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                <Shield size={18} />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
+                  Security
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Password, email and account security
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          {/* Help & Support Row */}
+          <button
+            type="button"
+            onClick={() => setActiveModal('help')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                <HelpCircle size={18} />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
+                  Help &amp; Support
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Get help, FAQs and contact support
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          {/* Privacy Policy Row */}
+          <button
+            type="button"
+            onClick={() => setLegalModalType('privacy')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                <FileText size={18} />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
+                  Privacy Policy
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  How we handle your data
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          {/* About Row */}
+          <button
+            type="button"
+            onClick={onOpenReleaseNotes}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                <Info size={18} />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
+                  About
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  App version, release notes and more
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================
+          SUB-MODAL 1: MONTHLY BUDGET DIALOG
+         ======================================================== */}
+      {activeModal === 'budget' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 animate-scale-in">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
+                  <Target size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Monthly Target Budget</h3>
+                  <p className="text-xs text-slate-400">Set your spending ceiling for {selectedMonth || 'this month'}</p>
+                </div>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBudget} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                  Monthly Budget Amount ({currencyVal})
                 </label>
-                <div className="relative max-w-sm">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-bold text-slate-400">
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-base font-bold text-[#6C47FF] dark:text-[#C084FC]">
                     {currencyVal}
                   </span>
                   <input
                     type="number"
-                    step="100"
                     min="0"
-                    required
+                    step="500"
                     value={budgetVal}
                     onChange={(e) => setBudgetVal(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-lg font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF] transition-all"
+                    placeholder="12000"
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 font-extrabold text-lg text-slate-900 dark:text-white focus:outline-none focus:border-[#6C47FF]"
                   />
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1.5">
-                  Synchronized with Dashboard overview, monthly remaining balance, and analytics reports.
-                </p>
               </div>
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="py-2.5 px-6 bg-[#6C47FF] hover:bg-[#5B32EA] text-white rounded-xl font-bold text-xs shadow-md shadow-purple-500/20 transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <Check size={15} />
-                <span>{saving ? 'Saving...' : 'Save Target Budget'}</span>
-              </button>
+              {/* Quick Preset Buttons */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {[10000, 15000, 20000, 25000, 30000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setBudgetVal(String(amt))}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-[#6C47FF] hover:text-white hover:border-[#6C47FF] transition-all cursor-pointer"
+                  >
+                    {formatCurrency(amt)}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2 rounded-xl bg-[#6C47FF] hover:bg-[#5835E5] text-white text-xs font-bold transition-all shadow-md shadow-purple-600/30 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {saving && <RefreshCw size={13} className="animate-spin" />}
+                  <span>Save Budget</span>
+                </button>
+              </div>
             </form>
           </div>
+        </div>
+      )}
 
-          {/* Spending Alert Preferences Card */}
-          <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                <Bell size={20} />
+      {/* ========================================================
+          SUB-MODAL 2: CATEGORIES MANAGER DIALOG
+         ======================================================== */}
+      {activeModal === 'categories' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="relative w-full max-w-lg bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 max-h-[85vh] flex flex-col overflow-hidden animate-scale-in">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10 flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
+                  <Tag size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Expense Categories</h3>
+                  <p className="text-xs text-slate-400">Organize and customize categories for tracking</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Spending &amp; Budget Alerts
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Configure active notifications when spending approaches target thresholds
-                </p>
+              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 space-y-4 pr-1">
+              {/* Existing Categories List */}
+              <div className="grid grid-cols-2 gap-2">
+                {categories.map((c) => (
+                  <div key={c.id || c.name} className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: c.color || '#6C47FF' }}>
+                        <CategoryIcon name={c.icon || 'Tag'} size={14} />
+                      </div>
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{c.name}</span>
+                    </div>
+                    {!c.is_system && (
+                      <button
+                        onClick={() => onDeleteCategory(c.id)}
+                        className="text-slate-400 hover:text-rose-500 p-1 transition-colors"
+                        title="Delete category"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
+
+              {/* Add New Category Form */}
+              <form onSubmit={handleCreateCategory} className="p-4 rounded-2xl border border-dashed border-purple-300 dark:border-purple-800/40 bg-purple-50/30 dark:bg-purple-950/20 space-y-3">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">Add New Category</h4>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Category Name"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#18132F] focus:outline-none focus:border-[#6C47FF]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newCatName.trim()}
+                    className="px-4 py-2 bg-[#6C47FF] hover:bg-[#5835E5] disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md shadow-purple-600/30 transition-all flex items-center gap-1"
+                  >
+                    <Plus size={14} />
+                    <span>Add</span>
+                  </button>
+                </div>
+
+                {/* Color Selector */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {colorOptions.map((hex) => (
+                    <button
+                      key={hex}
+                      type="button"
+                      onClick={() => setNewCatColor(hex)}
+                      className={`w-6 h-6 rounded-full transition-transform ${newCatColor === hex ? 'scale-125 ring-2 ring-white shadow-md' : 'opacity-80 hover:opacity-100'}`}
+                      style={{ backgroundColor: hex }}
+                    />
+                  ))}
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          SUB-MODAL 3: APPEARANCE & THEME DIALOG
+         ======================================================== */}
+      {activeModal === 'theme' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
+                  <Moon size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Appearance &amp; Theme</h3>
+                  <p className="text-xs text-slate-400">Choose your preferred visual presentation</p>
+                </div>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => { setTheme('light'); showToast('Switched to Light Theme', 'info'); }}
+                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer space-y-2 ${
+                  theme === 'light'
+                    ? 'border-[#6C47FF] bg-purple-50/50 dark:bg-purple-900/20 shadow-md ring-2 ring-[#6C47FF]/20'
+                    : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
+                }`}
+              >
+                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                  <Sun size={18} />
+                </div>
+                <div className="font-bold text-sm text-slate-900 dark:text-white">Light Mode</div>
+                <div className="text-[11px] text-slate-400">Crisp white aesthetic</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setTheme('dark'); showToast('Switched to Dark Theme', 'info'); }}
+                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer space-y-2 ${
+                  theme === 'dark'
+                    ? 'border-[#6C47FF] bg-purple-50/50 dark:bg-purple-900/20 shadow-md ring-2 ring-[#6C47FF]/20'
+                    : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
+                }`}
+              >
+                <div className="w-8 h-8 rounded-xl bg-[#281D4C] text-[#C084FC] flex items-center justify-center">
+                  <Moon size={18} />
+                </div>
+                <div className="font-bold text-sm text-slate-900 dark:text-white">Dark Violet</div>
+                <div className="text-[11px] text-slate-400">Deep violet Android palette</div>
+              </button>
+            </div>
+
+            <div className="pt-3">
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          SUB-MODAL 4: EXPORT TRANSACTIONS & DATA BACKUP DIALOG
+         ======================================================== */}
+      {activeModal === 'export' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
+                  <Download size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Export &amp; Sovereign Data</h3>
+                  <p className="text-xs text-slate-400">Download your personal financial records</p>
+                </div>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10">
+                <X size={16} />
+              </button>
             </div>
 
             <div className="space-y-3 pt-1">
-              <label className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-white/5 rounded-2xl cursor-pointer hover:bg-slate-100/70 dark:hover:bg-white/10 transition-colors">
-                <div className="space-y-0.5 pr-4">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                    80% Budget Warning
-                  </span>
-                  <span className="text-[11px] text-slate-400 block">
-                    Warn when monthly expenses reach 80% of your configured budget
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={notify80}
-                  onChange={(e) => handleTogglePref('notify80', e.target.checked)}
-                  className="w-5 h-5 accent-[#6C47FF] rounded-lg cursor-pointer"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-white/5 rounded-2xl cursor-pointer hover:bg-slate-100/70 dark:hover:bg-white/10 transition-colors">
-                <div className="space-y-0.5 pr-4">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                    100% Budget Exceeded Limit
-                  </span>
-                  <span className="text-[11px] text-slate-400 block">
-                    Display alert when expenses exceed total monthly budget
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={notify100}
-                  onChange={(e) => handleTogglePref('notify100', e.target.checked)}
-                  className="w-5 h-5 accent-[#6C47FF] rounded-lg cursor-pointer"
-                />
-              </label>
-            </div>
-          </div>
-
-          {/* Theme & Appearance Card */}
-          <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] flex items-center justify-center">
-                <Palette size={20} />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Appearance &amp; Theme
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Select your preferred visual styling across mobile and desktop
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-              {availableThemes.map((t) => {
-                const active = theme === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTheme(t.id)}
-                    className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative ${
-                      active
-                        ? 'border-[#6C47FF] bg-purple-50/60 dark:bg-purple-950/40 shadow-xs ring-2 ring-purple-500/20'
-                        : 'border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: t.accent }} />
-                      {active && <Check size={14} className="text-[#6C47FF]" />}
+              {/* Excel Export Button */}
+              <button
+                type="button"
+                onClick={handleExcelExport}
+                className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-[#6C47FF] flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center">
+                    <FileSpreadsheet size={18} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
+                      Excel Spreadsheet (.xlsx)
                     </div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                      {t.name}
-                    </span>
-                    <span className="text-[10px] text-slate-400 block mt-0.5 truncate">
-                      {t.id === 'light' ? 'Light Theme' : t.id === 'dark' ? 'Dark Purple' : t.id === 'midnight' ? 'High Contrast OLED' : 'Emerald Green'}
-                    </span>
-                  </button>
-                );
-              })}
+                    <div className="text-[11px] text-slate-400">Formatted workbook with summaries</div>
+                  </div>
+                </div>
+                <Download size={16} className="text-slate-400 group-hover:text-[#6C47FF]" />
+              </button>
+
+              {/* JSON Data Backup */}
+              <button
+                type="button"
+                onClick={handleJsonExport}
+                className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-[#6C47FF] flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center">
+                    <Database size={18} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
+                      Full JSON Data Backup
+                    </div>
+                    <div className="text-[11px] text-slate-400">Transactions &amp; user categories</div>
+                  </div>
+                </div>
+                <Download size={16} className="text-slate-400 group-hover:text-[#6C47FF]" />
+              </button>
+
+              {/* Import History */}
+              {onOpenImportHistory && (
+                <button
+                  type="button"
+                  onClick={() => { setActiveModal(null); onOpenImportHistory(); }}
+                  className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-[#6C47FF] flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-[#6C47FF] flex items-center justify-center">
+                      <History size={18} />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
+                        Import History &amp; 1-Click Safe Undo
+                      </div>
+                      <div className="text-[11px] text-slate-400">View previous imports and revert batches</div>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} className="text-slate-400 group-hover:text-[#6C47FF]" />
+                </button>
+              )}
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Categories Management Card */}
-          <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-5 transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] flex items-center justify-center">
-                  <Tag size={20} />
+      {/* ========================================================
+          SUB-MODAL 5: SECURITY & ACCOUNT DIALOG
+         ======================================================== */}
+      {activeModal === 'security' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 animate-scale-in">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
+                  <Shield size={18} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Expense Categories ({categories.length})
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Standard starter categories and user-defined custom categories
-                  </p>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Security &amp; Account</h3>
+                  <p className="text-xs text-slate-400">{user?.email}</p>
+                </div>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 space-y-1">
+                <div className="text-xs font-bold text-slate-900 dark:text-white">Authentication Method</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  {user?.isGoogleUser ? 'Google OAuth 2.0 (Single Sign-On)' : 'Firebase Email & Password Auth'}
+                </div>
+              </div>
+
+              {!user?.isGoogleUser && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await resetPassword(user?.email);
+                      showToast('Password reset link sent to your email!', 'success');
+                    } catch (err) {
+                      showToast(err.message || 'Could not send reset email', 'error');
+                    }
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Key size={14} />
+                  <span>Send Password Reset Email</span>
+                </button>
+              )}
+
+              {!isEmailVerified && !user?.isGoogleUser && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await resendVerificationEmail();
+                      showToast('Verification email resent!', 'success');
+                    } catch (err) {
+                      showToast(err.message || 'Could not resend email', 'error');
+                    }
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-xs font-bold hover:bg-amber-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <CheckCircle2 size={14} />
+                  <span>Resend Email Verification Link</span>
+                </button>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setActiveModal(null); if (onLogout) onLogout(); }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/30 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <LogOut size={14} />
+                  <span>Log Out of Account</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          SUB-MODAL 6: HELP & SUPPORT DIALOG
+         ======================================================== */}
+      {activeModal === 'help' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
+                  <HelpCircle size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Help &amp; Support</h3>
+                  <p className="text-xs text-slate-400">Guides, tours and contact support</p>
+                </div>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              <button
+                type="button"
+                onClick={() => { setActiveModal(null); if (onOpenTour) onOpenTour(); }}
+                className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-[#6C47FF] flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-[#6C47FF] flex items-center justify-center">
+                    <Sparkles size={18} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
+                      Restart Guided Tour
+                    </div>
+                    <div className="text-[11px] text-slate-400">Review 3-step app onboarding tour</div>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-slate-400 group-hover:text-[#6C47FF]" />
+              </button>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 space-y-1 text-xs">
+                <div className="font-bold text-slate-900 dark:text-white">Contact Developer &amp; Support</div>
+                <div className="text-slate-500 dark:text-slate-400">
+                  Email: <a href="mailto:raaajshinde@gmail.com" className="text-[#6C47FF] dark:text-[#C084FC] underline">raaajshinde@gmail.com</a>
+                </div>
+                <div className="text-slate-500 dark:text-slate-400 mt-2">
+                  Open Source GitHub: <a href="https://github.com/Alwaysrajshinde/Expense-Tracker" target="_blank" rel="noreferrer" className="text-[#6C47FF] dark:text-[#C084FC] underline">Repository</a>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* Create Custom Category Form */}
-            <form onSubmit={handleCreateCategory} className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl space-y-3.5 border border-slate-100 dark:border-white/5">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                + Add Custom Category
-              </span>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                <div className="sm:col-span-6">
-                  <input
-                    type="text"
-                    required
-                    placeholder="Category name (e.g., Subscriptions, Books...)"
-                    value={newCatName}
-                    onChange={(e) => setNewCatName(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-white dark:bg-[#151226] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-                  />
+      {/* ========================================================
+          SUB-MODAL 7: PROFILE EDIT DIALOG
+         ======================================================== */}
+      {activeModal === 'profile' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 animate-scale-in">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
+                  <User size={18} />
                 </div>
-
-                <div className="sm:col-span-3">
-                  <select
-                    value={newCatIcon}
-                    onChange={(e) => setNewCatIcon(e.target.value)}
-                    className="w-full px-3 py-2 bg-white dark:bg-[#151226] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-                  >
-                    {iconOptions.map(ic => <option key={ic} value={ic}>{ic}</option>)}
-                  </select>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">User Profile</h3>
+                  <p className="text-xs text-slate-400">Display name &amp; currency preferences</p>
                 </div>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10">
+                <X size={16} />
+              </button>
+            </div>
 
-                <div className="sm:col-span-3 flex items-center gap-2">
-                  <select
-                    value={newCatColor}
-                    onChange={(e) => setNewCatColor(e.target.value)}
-                    className="w-full px-3 py-2 bg-white dark:bg-[#151226] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-                  >
-                    {colorOptions.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-[#6C47FF] hover:bg-[#5B32EA] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer flex-shrink-0"
-                  >
-                    Add
-                  </button>
-                </div>
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  Your Full Name
+                </label>
+                <input
+                  type="text"
+                  value={userNameVal}
+                  onChange={(e) => setUserNameVal(e.target.value)}
+                  placeholder="Raj Kumar"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#6C47FF]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  Currency Symbol
+                </label>
+                <select
+                  value={currencyVal}
+                  onChange={(e) => setCurrencyVal(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#6C47FF]"
+                >
+                  <option value="₹">₹ Indian Rupee (INR)</option>
+                  <option value="$">$ US Dollar (USD)</option>
+                  <option value="€">€ Euro (EUR)</option>
+                  <option value="£">£ British Pound (GBP)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2 rounded-xl bg-[#6C47FF] hover:bg-[#5835E5] text-white text-xs font-bold transition-all shadow-md shadow-purple-600/30 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {saving && <RefreshCw size={13} className="animate-spin" />}
+                  <span>Save Profile</span>
+                </button>
               </div>
             </form>
-
-            {/* Existing Categories List */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto pr-1">
-              {categories.map((c) => (
-                <div
-                  key={c.id || c.name}
-                  className="p-3 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-between border border-slate-100 dark:border-white/5"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div
-                      className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: `${c.color || '#6C47FF'}20` }}
-                    >
-                      <CategoryIcon name={c.name} icon={c.icon} color={c.color} size={14} />
-                    </div>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                      {c.name}
-                    </span>
-                  </div>
-                  {c.id && c.id > 100 && (
-                    <button
-                      type="button"
-                      onClick={() => onDeleteCategory(c.id)}
-                      className="text-slate-400 hover:text-rose-600 p-1 rounded-lg transition-colors cursor-pointer"
-                      title="Delete custom category"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       )}
 
-      {/* ========================================================
-          SECTION 3: DATA MANAGEMENT & BACKUPS
-         ======================================================== */}
-      {activeSection === 'data' && (
-        <div className="space-y-5 animate-fade-in">
-          {/* Export Options Card */}
-          <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Download size={16} className="text-[#6C47FF]" />
-              <span>Export Your Ledgers &amp; Backups</span>
-            </h3>
-            <p className="text-xs text-slate-400">
-              Download complete, unencrypted exports of all your expense records anytime
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-              <a
-                href={`/api/export/excel?user_email=${encodeURIComponent(user?.email || '')}`}
-                onClick={(e) => {
-                  if (window.location.hostname.includes('github.io') || !window.location.port) {
-                    e.preventDefault();
-                    exportTransactionsToExcel([], `Expenses_${selectedMonth || 'all'}.xlsx`);
-                  }
-                }}
-                download="Daily_Expenses_Export.xlsx"
-                className="p-5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-emerald-300 dark:hover:border-emerald-600/40 text-left space-y-1.5 transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600">
-                    Microsoft Excel (.xlsx)
-                  </span>
-                  <FileSpreadsheet size={18} className="text-emerald-600" />
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Formatted spreadsheet compatible with Microsoft Excel, Apple Numbers, and Google Sheets
-                </p>
-              </a>
-
-              <a
-                href={`/api/export/json?user_email=${encodeURIComponent(user?.email || '')}`}
-                onClick={(e) => {
-                  if (window.location.hostname.includes('github.io') || !window.location.port) {
-                    e.preventDefault();
-                    exportDataToJson({}, `expense_tracker_backup.json`);
-                  }
-                }}
-                download="expense_tracker_backup.json"
-                className="p-5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-300 dark:hover:border-purple-600/40 text-left space-y-1.5 transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#6C47FF]">
-                    Full JSON Database Backup
-                  </span>
-                  <Database size={18} className="text-[#6C47FF]" />
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Complete structured data snapshot for local storage, migration, or future restore
-                </p>
-              </a>
-            </div>
-          </div>
-
-          {/* Import & Restore Options Card */}
-          <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Upload size={16} className="text-[#6C47FF]" />
-              <span>Import &amp; Restore</span>
-            </h3>
-            <p className="text-xs text-slate-400">
-              Import past Excel ledgers or restore your account from a JSON backup file
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-              <div className="p-5 rounded-2xl border border-dashed border-slate-200 dark:border-white/15 text-left space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Import Excel Ledger
-                  </span>
-                  <FileSpreadsheet size={16} className="text-emerald-500" />
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Select an Excel file (.xlsx) with columns for Date, Category, Amount, and Description
-                </p>
-                <input
-                  type="file"
-                  accept=".xlsx, .xls"
-                  ref={excelInputRef}
-                  onChange={handleImportExcel}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => excelInputRef.current?.click()}
-                  className="w-full py-2 px-3 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                >
-                  Select Excel File (.xlsx)
-                </button>
-              </div>
-
-              <div className="p-5 rounded-2xl border border-dashed border-slate-200 dark:border-white/15 text-left space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Restore JSON Backup
-                  </span>
-                  <Database size={16} className="text-[#6C47FF]" />
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Restore past transactions and categories from an Expense Tracker JSON export
-                </p>
-                <input
-                  type="file"
-                  accept=".json"
-                  ref={jsonInputRef}
-                  onChange={handleRestoreBackup}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => jsonInputRef.current?.click()}
-                  className="w-full py-2 px-3 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                >
-                  Select JSON Backup (.json)
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================
-          SECTION 4: APP INFORMATION & HELP
-         ======================================================== */}
-      {activeSection === 'info' && (
-        <div className="space-y-5 animate-fade-in">
-          {/* App Info Card */}
-          <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Personal Expense Tracker
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Private financial accounting application with isolated cloud storage
-                </p>
-              </div>
-              <span className="px-3 py-1 bg-purple-50 dark:bg-purple-900/40 text-[#6C47FF] dark:text-[#A78BFA] rounded-full text-xs font-extrabold">
-                Version 1.2.0
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-              <button
-                type="button"
-                onClick={onOpenReleaseNotes}
-                className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-300 text-left space-y-1 transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#6C47FF]">
-                    What's New in v1.2.0
-                  </span>
-                  <Sparkles size={14} className="text-[#6C47FF]" />
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  View changelog, bug fixes, and feature improvements
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={onOpenTour}
-                className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-300 text-left space-y-1 transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#6C47FF]">
-                    Replay Tour
-                  </span>
-                  <HelpCircle size={14} className="text-[#6C47FF]" />
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Walk through the application features, charts, and shortcuts
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setLegalModalType('privacy')}
-                className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-300 text-left space-y-1 transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#6C47FF]">
-                    Privacy &amp; Security
-                  </span>
-                  <ShieldCheck size={14} className="text-[#6C47FF]" />
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Review sovereign data rights and cryptographic isolation
-                </p>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation Modal for Restore */}
-      {restoreFilePending && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="relative w-full max-w-sm bg-white dark:bg-[#16132A] rounded-3xl p-6 shadow-2xl space-y-4 border border-slate-100 dark:border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center">
-                <AlertCircle size={20} />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white">Confirm Data Restore</h4>
-                <p className="text-xs text-slate-400">File: {restoreFilePending.name}</p>
-              </div>
-            </div>
-            <p className="text-xs text-slate-600 dark:text-slate-300">
-              Restoring from this backup will merge historical transactions and custom categories into your vault.
-            </p>
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setRestoreFilePending(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={restoring}
-                onClick={executeRestore}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-[#6C47FF] hover:bg-[#5B32EA] text-white shadow-xs cursor-pointer"
-              >
-                {restoring ? 'Restoring...' : 'Confirm Restore'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Legal Modal Trigger */}
+      {/* Global Legal Modal (Privacy Policy & Terms) */}
       <LegalModal
         isOpen={Boolean(legalModalType)}
-        onClose={() => setLegalModalType(null)}
         initialTab={legalModalType || 'privacy'}
+        onClose={() => setLegalModalType(null)}
       />
     </div>
   );

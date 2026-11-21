@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Search, Filter, Calendar, Edit2, Trash2, ArrowDownLeft, ArrowUpRight,
-  ChevronLeft, ChevronRight, X, AlertCircle, FileSpreadsheet, Download
+  ChevronLeft, ChevronRight, X, AlertCircle, FileSpreadsheet, Download, Upload
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
 import { getTransactions, getCurrentUserEmail } from '../services/api';
@@ -15,7 +15,8 @@ export default function Transactions({
   onEditTransaction,
   onDeleteTransaction,
   formatCurrency,
-  onSelectMonth
+  onSelectMonth,
+  onOpenImport
 }) {
   const { showToast } = useToast();
   const [transactionsData, setTransactionsData] = useState(null);
@@ -117,8 +118,18 @@ export default function Transactions({
           </p>
         </div>
 
-        {/* Desktop Quick Export buttons */}
+        {/* Desktop Quick Export and Import buttons */}
         <div className="flex items-center gap-2">
+          {onOpenImport && (
+            <button
+              type="button"
+              onClick={onOpenImport}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#6C47FF] hover:bg-[#5835E5] text-white rounded-xl text-xs font-bold shadow-sm shadow-purple-600/20 transition-all cursor-pointer"
+            >
+              <Upload size={14} />
+              <span>Import</span>
+            </button>
+          )}
           <a
             href={`/api/export/excel?user_email=${encodeURIComponent(getCurrentUserEmail())}`}
             onClick={(e) => {
