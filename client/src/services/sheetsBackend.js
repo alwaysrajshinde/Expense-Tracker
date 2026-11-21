@@ -44,7 +44,8 @@ export function computeDashboardFromTransactions(transactions = [], selectedMont
   const categoryTotals = {};
 
   monthTransactions.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    let amt = parseFloat(t.amount) || 0;
+    if (t.is_refund && amt > 0) amt = -amt;
     totalSpent += amt;
 
     if (t.date === todayStr) {
@@ -132,7 +133,8 @@ export function computeReportsFromTransactions(transactions = [], selectedMonth 
   const paymentMap = {};
 
   monthTransactions.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    let amt = parseFloat(t.amount) || 0;
+    if (t.is_refund && amt > 0) amt = -amt;
     totalSpent += amt;
 
     const cat = t.category || 'Other';
@@ -161,8 +163,8 @@ export function computeReportsFromTransactions(transactions = [], selectedMonth 
     };
   }).sort((a, b) => b.total - a.total);
 
-  // Donut slices
-  const chartData = categoryBreakdown.slice(0, 6).map(c => ({
+  // Donut slices (Filter positive categories for clean chart rendering)
+  const chartData = categoryBreakdown.filter(c => c.total > 0).slice(0, 6).map(c => ({
     name: c.category,
     amount: c.total,
     percentage: c.percentage,

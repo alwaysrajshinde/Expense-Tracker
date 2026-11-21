@@ -74,11 +74,10 @@ export default function AndroidHome({
 
             <div className="pt-0.5">
               {budget > 0 ? (
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-xs ${
-                  remaining_budget >= 0
-                    ? 'bg-emerald-100 text-emerald-950'
-                    : 'bg-rose-100 text-rose-950'
-                }`}>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-xs ${remaining_budget >= 0
+                  ? 'bg-emerald-100 text-emerald-950'
+                  : 'bg-rose-100 text-rose-950'
+                  }`}>
                   {remaining_budget >= 0 ? 'Remaining: ' : 'Remaining: Over by '}
                   {formatCurrency(Math.abs(remaining_budget))}
                 </span>

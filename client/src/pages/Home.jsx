@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  Calendar, BarChart2, Plus, ArrowRight, MoreVertical, Receipt, 
+import {
+  Calendar, BarChart2, Plus, ArrowRight, MoreVertical, Receipt,
   RotateCcw, Tag, FileText, Check, ChevronDown
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
@@ -151,11 +151,10 @@ export default function Home({
 
               <div className="pt-0.5">
                 {budget > 0 ? (
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
-                    remaining_budget >= 0
-                      ? 'bg-emerald-100 text-emerald-950'
-                      : 'bg-rose-100 text-rose-950'
-                  }`}>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-sm ${remaining_budget >= 0
+                    ? 'bg-emerald-100 text-emerald-950'
+                    : 'bg-rose-100 text-rose-950'
+                    }`}>
                     {remaining_budget >= 0 ? 'Remaining: ' : 'Remaining: Over by '}
                     {formatCurrency(Math.abs(remaining_budget))}
                   </span>
@@ -404,18 +403,16 @@ export default function Home({
                     {/* Bar */}
                     <div className="w-full max-w-[24px] h-24 flex items-end">
                       <div
-                        className={`w-full rounded-t-md transition-all duration-500 ${
-                          isCurrent
-                            ? 'bg-gradient-to-t from-[#5B27DC] to-[#7B42F6] dark:from-[#7C3AED] dark:to-[#A78BFA] shadow-xs'
-                            : 'bg-purple-100 dark:bg-white/10 hover:bg-purple-200 dark:hover:bg-white/20'
-                        }`}
+                        className={`w-full rounded-t-md transition-all duration-500 ${isCurrent
+                          ? 'bg-gradient-to-t from-[#5B27DC] to-[#7B42F6] dark:from-[#7C3AED] dark:to-[#A78BFA] shadow-xs'
+                          : 'bg-purple-100 dark:bg-white/10 hover:bg-purple-200 dark:hover:bg-white/20'
+                          }`}
                         style={{ height: `${heightPercent}%` }}
                       />
                     </div>
 
-                    <span className={`text-[10px] ${
-                      isCurrent ? 'font-bold text-[#6C47FF] dark:text-[#A78BFA]' : 'text-slate-400'
-                    }`}>
+                    <span className={`text-[10px] ${isCurrent ? 'font-bold text-[#6C47FF] dark:text-[#A78BFA]' : 'text-slate-400'
+                      }`}>
                       {m.label}
                     </span>
                   </div>
@@ -520,11 +517,10 @@ export default function Home({
               <button
                 type="button"
                 onClick={() => setQuickIsRefund(false)}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all ${
-                  !quickIsRefund
-                    ? 'bg-[#6C47FF] text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all ${!quickIsRefund
+                  ? 'bg-[#6C47FF] text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                  }`}
               >
                 <Receipt size={13} />
                 <span>Expense</span>
@@ -532,11 +528,10 @@ export default function Home({
               <button
                 type="button"
                 onClick={() => setQuickIsRefund(true)}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all ${
-                  quickIsRefund
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all ${quickIsRefund
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                  }`}
               >
                 <RotateCcw size={13} />
                 <span>Refund / Return</span>

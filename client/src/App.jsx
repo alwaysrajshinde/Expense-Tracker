@@ -11,6 +11,7 @@ import Settings from './pages/Settings';
 import AddExpenseModal from './components/AddExpenseModal';
 import NotificationsModal from './components/NotificationsModal';
 import OnboardingTourModal from './components/OnboardingTourModal';
+import ReleaseNotesModal from './components/ReleaseNotesModal';
 import AuthGate from './components/AuthGate';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -20,7 +21,7 @@ import * as api from './services/api';
 
 function MainApp() {
   const { theme, toggleTheme, isDark } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, resendVerificationEmail } = useAuth();
   const { showToast } = useToast();
 
   // Screen size detection for responsive platform presentation
@@ -45,6 +46,7 @@ function MainApp() {
   const [categories, setCategories] = useState([]);
   const [hasUnreadNotifs, setHasUnreadNotifs] = useState(true);
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
+  const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
   const [settings, setSettings] = useState({
     monthly_budget: '0',
     currency: '₹',
@@ -65,6 +67,57 @@ function MainApp() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  // Native Mobile Back Navigation handler (popstate dismisses open modals before leaving view)
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isAddModalOpen) {
+        setIsAddModalOpen(false);
+        setEditingTransaction(null);
+      } else if (isNotificationsOpen) {
+        setIsNotificationsOpen(false);
+      } else if (isReleaseNotesOpen) {
+        setIsReleaseNotesOpen(false);
+      } else if (isOnboardingTourOpen) {
+        setIsOnboardingTourOpen(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isAddModalOpen, isNotificationsOpen, isReleaseNotesOpen, isOnboardingTourOpen]);
+
+  const openAddModal = (tx = null) => {
+    setEditingTransaction(tx);
+    setIsAddModalOpen(true);
+    if (typeof window !== 'undefined' && window.history) {
+      window.history.pushState({ modal: 'add' }, '');
+    }
+  };
+
+  const openNotificationsModal = () => {
+    setIsNotificationsOpen(true);
+    if (typeof window !== 'undefined' && window.history) {
+      window.history.pushState({ modal: 'notifications' }, '');
+    }
+  };
+
+  const openReleaseNotesModal = () => {
+    setIsReleaseNotesOpen(true);
+    if (typeof window !== 'undefined' && window.history) {
+      window.history.pushState({ modal: 'releaseNotes' }, '');
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      if (resendVerificationEmail) {
+        await resendVerificationEmail();
+      }
+      showToast('Verification email sent! Please check your inbox and spam folder.', 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to send verification email', 'error');
+    }
+  };
 
   // Load initial data
   const loadInitialData = async () => {
@@ -156,10 +209,6 @@ function MainApp() {
 
   const handleSaveTransaction = async (data) => {
     try {
-      // 1. Enqueue for offline resilience and two-way Google Sheets synchronization
-      syncService.enqueue(data.id ? 'update' : 'create', data, data.id);
-
-      // 2. Save to active backend
       if (data.id) {
         await api.updateTransaction(data.id, data);
         showToast('Expense updated successfully!', 'success');
@@ -176,11 +225,11 @@ function MainApp() {
 
   const handleDeleteTransaction = async (id) => {
     try {
-      syncService.enqueue('delete', {}, id);
       await api.deleteTransaction(id);
       showToast('Expense deleted successfully', 'success');
     } catch (err) {
-      console.warn('Direct delete deferred to queue:', err);
+      console.warn('Delete transaction error:', err);
+      showToast('Failed to delete expense', 'error');
     }
     handleRefreshAll();
   };
@@ -198,10 +247,7 @@ function MainApp() {
             <WindowsSidebar
               activeTab={activeTab === 'settings' ? settingsSection : activeTab}
               onTabChange={handleSidebarTabChange}
-              onOpenAddExpense={() => {
-                setEditingTransaction(null);
-                setIsAddModalOpen(true);
-              }}
+              onOpenAddExpense={() => openAddModal(null)}
               userName={settings.user_name || user?.name || 'User'}
               userEmail={settings.user_email || user?.email || ''}
               onLogout={logout}
@@ -210,6 +256,22 @@ function MainApp() {
 
           {/* Main Desktop Work Area */}
           <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+            {/* Unverified Email Warning Banner (Desktop) */}
+            {user && !user.emailVerified && !user.isGoogleUser && (
+              <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-3 transition-colors">
+                <span className="font-medium">
+                  Please verify your email address to secure your account.
+                </span>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  className="font-bold text-[#6C47FF] dark:text-[#A78BFA] hover:underline cursor-pointer"
+                >
+                  Resend Verification Email
+                </button>
+              </div>
+            )}
+
             {/* Windows Header Bar (Matching Purple Expense Tracker Dashboard.png) */}
             <div className="px-5 sm:px-7 pt-5">
               <WindowsHeader
@@ -218,7 +280,7 @@ function MainApp() {
                 selectedMonth={selectedMonth}
                 availableMonths={availableMonths}
                 onSelectMonth={setSelectedMonth}
-                onOpenNotifications={() => setIsNotificationsOpen(true)}
+                onOpenNotifications={openNotificationsModal}
                 onOpenProfile={() => {
                   setActiveTab('settings');
                   setSettingsSection('profile');
@@ -226,6 +288,10 @@ function MainApp() {
                 onLogout={logout}
                 hasUnreadNotifications={hasUnreadNotifs}
                 onRefresh={handleRefreshAll}
+                activeTab={activeTab}
+                authProvider={user?.providerId || 'password'}
+                emailVerified={user?.emailVerified ?? true}
+                onResendVerification={handleResendVerification}
               />
             </div>
 
@@ -238,10 +304,7 @@ function MainApp() {
                   categories={categories}
                   selectedMonth={selectedMonth}
                   availableMonths={availableMonths}
-                  onOpenAddExpense={() => {
-                    setEditingTransaction(null);
-                    setIsAddModalOpen(true);
-                  }}
+                  onOpenAddExpense={() => openAddModal(null)}
                   onQuickAddExpense={handleSaveTransaction}
                   onViewAllCategories={() => {
                     setActiveTab('settings');
@@ -262,10 +325,7 @@ function MainApp() {
                   selectedMonth={selectedMonth}
                   categories={categories}
                   availableMonths={availableMonths}
-                  onEditTransaction={(tx) => {
-                    setEditingTransaction(tx);
-                    setIsAddModalOpen(true);
-                  }}
+                  onEditTransaction={(tx) => openAddModal(tx)}
                   onDeleteTransaction={handleDeleteTransaction}
                   formatCurrency={formatCurrency}
                   onSelectMonth={setSelectedMonth}
@@ -289,6 +349,7 @@ function MainApp() {
                   initialSection={settingsSection}
                   onLogout={logout}
                   onOpenTour={() => setIsOnboardingTourOpen(true)}
+                  onOpenReleaseNotes={openReleaseNotesModal}
                   onUpdateSettings={async (data) => {
                     const updated = await api.updateSettings(data);
                     setSettings(prev => ({ ...prev, ...updated }));
@@ -327,6 +388,20 @@ function MainApp() {
            Strictly following Modern Purple Expense Tracker UI.png
            ======================================================== */
         <div className="w-full max-w-lg mx-auto min-h-screen bg-[var(--bg-app)] flex flex-col relative transition-colors">
+          {/* Unverified Email Warning Banner (Mobile) */}
+          {user && !user.emailVerified && !user.isGoogleUser && (
+            <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2 transition-colors">
+              <span className="truncate">Please verify your email address.</span>
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                className="font-bold text-[#6C47FF] dark:text-[#A78BFA] hover:underline cursor-pointer flex-shrink-0"
+              >
+                Resend
+              </button>
+            </div>
+          )}
+
           {/* Android Mobile Header */}
           <Header
             userName={settings.user_name || user?.name || 'User'}
@@ -334,24 +409,25 @@ function MainApp() {
             selectedMonth={selectedMonth}
             availableMonths={availableMonths}
             onSelectMonth={setSelectedMonth}
-            onOpenNotifications={() => setIsNotificationsOpen(true)}
+            onOpenNotifications={openNotificationsModal}
             onOpenProfile={() => {
               setActiveTab('settings');
               setSettingsSection('profile');
             }}
             onLogout={logout}
             hasUnreadNotifications={hasUnreadNotifs}
+            activeTab={activeTab}
+            authProvider={user?.providerId || 'password'}
+            emailVerified={user?.emailVerified ?? true}
+            onResendVerification={handleResendVerification}
           />
 
           {/* Android Mobile Main Tabs */}
-          <main className="flex-1 pb-16">
+          <main className="flex-1 pb-20">
             {activeTab === 'home' && (
               <AndroidHome
                 dashboardData={dashboardData}
-                onOpenAddExpense={() => {
-                  setEditingTransaction(null);
-                  setIsAddModalOpen(true);
-                }}
+                onOpenAddExpense={() => openAddModal(null)}
                 onViewAllCategories={() => {
                   setActiveTab('settings');
                   setSettingsSection('categories');
@@ -371,10 +447,7 @@ function MainApp() {
                   selectedMonth={selectedMonth}
                   categories={categories}
                   availableMonths={availableMonths}
-                  onEditTransaction={(tx) => {
-                    setEditingTransaction(tx);
-                    setIsAddModalOpen(true);
-                  }}
+                  onEditTransaction={(tx) => openAddModal(tx)}
                   onDeleteTransaction={handleDeleteTransaction}
                   formatCurrency={formatCurrency}
                   onSelectMonth={setSelectedMonth}
@@ -402,6 +475,7 @@ function MainApp() {
                   initialSection={settingsSection}
                   onLogout={logout}
                   onOpenTour={() => setIsOnboardingTourOpen(true)}
+                  onOpenReleaseNotes={openReleaseNotesModal}
                   onUpdateSettings={async (data) => {
                     const updated = await api.updateSettings(data);
                     setSettings(prev => ({ ...prev, ...updated }));
@@ -434,10 +508,11 @@ function MainApp() {
             )}
           </main>
 
-          {/* Android Mobile Bottom Navigation Bar */}
+          {/* Android Mobile Bottom Navigation Bar with Center FAB */}
           <Navbar
             activeTab={activeTab}
             onTabChange={setActiveTab}
+            onOpenAddExpense={() => openAddModal(null)}
           />
         </div>
       )}
@@ -463,6 +538,12 @@ function MainApp() {
         dashboardData={dashboardData}
         formatCurrency={formatCurrency}
         onClearUnread={() => setHasUnreadNotifs(false)}
+      />
+
+      {/* Release Notes Modal (v1.1.0) */}
+      <ReleaseNotesModal
+        isOpen={isReleaseNotesOpen}
+        onClose={() => setIsReleaseNotesOpen(false)}
       />
 
       {/* First-Time User Guided Tour & Onboarding Modal */}

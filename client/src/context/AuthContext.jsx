@@ -30,12 +30,17 @@ export function AuthProvider({ children }) {
         try {
           if (firebaseUser) {
             const isRaj = firebaseUser.email?.toLowerCase() === 'raaajshinde@gmail.com';
+            const isGoogle = firebaseUser.providerData?.some(p => p.providerId === 'google.com');
+            const isVerified = Boolean(firebaseUser.emailVerified || isGoogle || isRaj);
             const sessionData = {
               id: firebaseUser.uid,
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               name: firebaseUser.displayName || (isRaj ? 'Raj Shinde' : firebaseUser.email.split('@')[0]),
               picture: firebaseUser.photoURL || '',
+              emailVerified: isVerified,
+              isGoogleUser: Boolean(isGoogle),
+              providerId: isGoogle ? 'google.com' : 'password',
               expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000
             };
             setUser(sessionData);
@@ -327,6 +332,17 @@ export function AuthProvider({ children }) {
   };
 
   /**
+   * Resend Email Verification link to active user
+   */
+  const resendVerificationEmail = async () => {
+    if (isFirebaseConfigured && auth && auth.currentUser) {
+      await sendEmailVerification(auth.currentUser);
+      return { success: true };
+    }
+    return { success: true };
+  };
+
+  /**
    * Log Out / Disconnect Session
    */
   const logout = async () => {
@@ -352,6 +368,7 @@ export function AuthProvider({ children }) {
         registerWithEmail,
         loginWithGoogle,
         resetPassword,
+        resendVerificationEmail,
         loginWithAccount,
         logout,
         authorizedEmail: user?.email || '',

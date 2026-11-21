@@ -25,9 +25,10 @@ export default function Settings({
   formatCurrency,
   selectedMonth,
   onLogout,
-  onOpenTour
+  onOpenTour,
+  onOpenReleaseNotes
 }) {
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { theme, setTheme, toggleTheme, isDark, availableThemes } = useTheme();
   const { showToast } = useToast();
   const [activeSection, setActiveSection] = useState(initialSection || 'budget');
   const [restoreFilePending, setRestoreFilePending] = useState(null);
@@ -574,41 +575,61 @@ export default function Settings({
                   Theme Appearance
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Switch between Light and Windows Dark fintech theme
+                  Choose from 4 professionally designed themes
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => { if (isDark) toggleTheme(); }}
-                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${!isDark
-                  ? 'border-[#6C47FF] bg-purple-50/50 shadow-sm'
-                  : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
-                  }`}
-              >
-                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-xs mb-2">
-                  <Sun size={20} className="text-amber-500" />
-                </div>
-                <span className="text-xs font-bold text-slate-900 dark:text-white">Light Theme</span>
-                <span className="text-[10px] text-slate-400">Original reference theme</span>
-              </button>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              {(availableThemes || []).map((t) => {
+                const isSelected = theme === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTheme(t.id)}
+                    className={`flex flex-col items-center justify-center p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-[#6C47FF] dark:border-[#8B5CF6] bg-purple-50/60 dark:bg-purple-950/40 shadow-xs ring-2 ring-purple-500/20'
+                        : 'border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
+                    }`}
+                  >
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shadow-xs mb-2 border border-slate-200/60 dark:border-white/10"
+                      style={{ backgroundColor: t.bg }}
+                    >
+                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: t.accent }} />
+                    </div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white text-center">{t.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-              <button
-                type="button"
-                onClick={() => { if (!isDark) toggleTheme(); }}
-                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${isDark
-                  ? 'border-[#8B5CF6] bg-purple-950/40 shadow-sm'
-                  : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
-                  }`}
-              >
-                <div className="w-10 h-10 rounded-full bg-[#1A172B] flex items-center justify-center shadow-xs mb-2">
-                  <Moon size={20} className="text-purple-400" />
-                </div>
-                <span className="text-xs font-bold text-slate-900 dark:text-white">Dark Theme</span>
-                <span className="text-[10px] text-slate-400">Windows dark fintech</span>
-              </button>
+          {/* Release Notes & App Version Card */}
+          <div className="bg-white dark:bg-[#151226] rounded-3xl p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-3 transition-colors">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Version Information</span>
+                  <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-[#6C47FF] dark:text-[#A78BFA] text-[10px] font-black">
+                    v1.1.0
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  See what features, security updates, and performance optimizations were introduced
+                </p>
+              </div>
+              {onOpenReleaseNotes && (
+                <button
+                  type="button"
+                  onClick={onOpenReleaseNotes}
+                  className="py-2.5 px-4 bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
+                >
+                  View Release Notes
+                </button>
+              )}
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  Home, ReceiptText, Plus, BarChart2, Tag, Target, ArrowLeftRight, 
+import {
+  Home, ReceiptText, Plus, BarChart2, Tag, Target, ArrowLeftRight,
   Cloud, Settings, ChevronDown, Wallet, LogOut, CheckCircle2, User
 } from 'lucide-react';
 
@@ -88,11 +88,10 @@ export default function WindowsSidebar({
               <button
                 key={item.id}
                 onClick={() => handleClick(item)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-[#F0EEFF] dark:bg-purple-900/40 text-[#6C47FF] dark:text-[#A78BFA] font-bold shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${isActive
+                  ? 'bg-[#F0EEFF] dark:bg-purple-900/40 text-[#6C47FF] dark:text-[#A78BFA] font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
+                  }`}
               >
                 <Icon size={17} strokeWidth={isActive ? 2.5 : 2} />
                 <span>{item.label}</span>
