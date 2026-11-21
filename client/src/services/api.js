@@ -1,7 +1,9 @@
 import syncService from './syncService';
+import * as firestoreService from './firestoreService';
+import { isFirebaseConfigured } from '../firebase/config';
 import { 
   computeDashboardFromTransactions, 
-  computeReportsFromTransactions
+  computeReportsFromTransactions 
 } from './sheetsBackend';
 
 const API_BASE = '/api';
@@ -37,6 +39,18 @@ export function getCurrentUserEmail() {
   return 'raaajshinde@gmail.com';
 }
 
+// Helper: Get active user ID (Firebase UID or numeric ID)
+export function getCurrentUserId() {
+  try {
+    const sessionStr = localStorage.getItem('expense_tracker_auth_session');
+    if (sessionStr) {
+      const session = JSON.parse(sessionStr);
+      return session.uid || String(session.id) || 'default_user';
+    }
+  } catch (e) {}
+  return '1';
+}
+
 // Get cached transactions from local storage (scoped strictly per user)
 export function getLocalTransactions() {
   try {
@@ -59,6 +73,17 @@ export function saveLocalTransactions(txs) {
 }
 
 export async function getDashboard(month = '2026-11') {
+  // 1. Cloud Firestore Route (Primary Serverless Cloud Engine)
+  if (isFirebaseConfigured) {
+    try {
+      const fsData = await firestoreService.getDashboardData(getCurrentUserId(), month);
+      if (fsData) return fsData;
+    } catch (e) {
+      console.warn('Firestore getDashboard fallback:', e);
+    }
+  }
+
+  // 2. Local REST API Route (if server running)
   try {
     const url = month ? `${API_BASE}/dashboard?month=${encodeURIComponent(month)}` : `${API_BASE}/dashboard`;
     const res = await fetch(url, {
@@ -68,11 +93,9 @@ export async function getDashboard(month = '2026-11') {
       const json = await res.json();
       return json.data;
     }
-  } catch (err) {
-    // Fall back to client-side engine (for GitHub Pages / Offline)
-  }
+  } catch (err) {}
 
-  // Client-Side Fallback Engine
+  // 3. Client-Side Fallback Engine (for GitHub Pages / Offline)
   const txs = getLocalTransactions();
   const settings = await getSettings();
   const categories = await getCategories();
@@ -81,6 +104,17 @@ export async function getDashboard(month = '2026-11') {
 }
 
 export async function getTransactions(filters = {}) {
+  // 1. Cloud Firestore Route (Primary Serverless Cloud Engine)
+  if (isFirebaseConfigured) {
+    try {
+      const fsData = await firestoreService.getTransactions(getCurrentUserId(), filters);
+      if (fsData) return fsData;
+    } catch (e) {
+      console.warn('Firestore getTransactions fallback:', e);
+    }
+  }
+
+  // 2. Local REST API Route
   try {
     const params = new URLSearchParams();
     if (filters.month) params.append('month', filters.month);
@@ -122,11 +156,9 @@ export async function getTransactions(filters = {}) {
       }
       return json.data;
     }
-  } catch (err) {
-    // Fallback to local storage query
-  }
+  } catch (err) {}
 
-  // Client-Side Query Engine
+  // 3. Client-Side Query Engine
   let txs = getLocalTransactions();
   if (filters.month && filters.month !== 'all') {
     txs = txs.filter(t => (t.month_key || t.date?.slice(0, 7)) === filters.month);
@@ -158,19 +190,31 @@ export async function getTransactions(filters = {}) {
   const grouped = {};
   paginated.forEach(t => {
     const d = t.date || 'Unknown';
-    if (!grouped[d]) grouped[d] = { date: d, day_total: 0, items: [] };
-    grouped[d].items.push(t);
-    grouped[d].day_total += (parseFloat(t.amount) || 0);
+    if (!grouped[d]) grouped[d] = { date: d, total: 0, transactions: [] };
+    grouped[d].transactions.push(t);
+    grouped[d].total += (parseFloat(t.amount) || 0);
   });
 
   return {
     transactions: paginated,
     grouped: Object.values(grouped),
+    total_count: total,
+    total_amount: txs.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0),
     pagination: { page, limit, total, total_pages: totalPages }
   };
 }
 
 export async function createTransaction(data) {
+  // 1. Cloud Firestore Route
+  if (isFirebaseConfigured) {
+    try {
+      const fsTx = await firestoreService.addTransaction(getCurrentUserId(), data);
+      if (fsTx) return fsTx;
+    } catch (e) {
+      console.warn('Firestore addTransaction fallback:', e);
+    }
+  }
+
   const txId = data.id || ('TX-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
   const newTx = {
     ...data,
@@ -179,15 +223,15 @@ export async function createTransaction(data) {
     updated_at: new Date().toISOString()
   };
 
-  // 1. Enqueue in Two-Way Sync Queue
+  // Enqueue in Two-Way Sync Queue
   syncService.enqueue('create', newTx, txId);
 
-  // 2. Update local storage cache
+  // Update local storage cache
   const local = getLocalTransactions();
   local.unshift(newTx);
   saveLocalTransactions(local);
 
-  // 3. If local API server is running, forward to it
+  // Forward to local API server if running
   try {
     const res = await fetch(`${API_BASE}/transactions`, {
       method: 'POST',
@@ -207,6 +251,16 @@ export async function createTransaction(data) {
 }
 
 export async function updateTransaction(id, data) {
+  // 1. Cloud Firestore Route
+  if (isFirebaseConfigured) {
+    try {
+      const fsTx = await firestoreService.updateTransaction(getCurrentUserId(), id, data);
+      if (fsTx) return fsTx;
+    } catch (e) {
+      console.warn('Firestore updateTransaction fallback:', e);
+    }
+  }
+
   const updatedTx = {
     ...data,
     id: id,
@@ -219,7 +273,7 @@ export async function updateTransaction(id, data) {
   const local = getLocalTransactions();
   const idx = local.findIndex(t => String(t.id) === String(id));
   if (idx !== -1) {
-    local[idx] = { ...local[idx], ...updatedTx };
+    local[idx] = updatedTx;
     saveLocalTransactions(local);
   }
 
@@ -242,6 +296,16 @@ export async function updateTransaction(id, data) {
 }
 
 export async function deleteTransaction(id) {
+  // 1. Cloud Firestore Route
+  if (isFirebaseConfigured) {
+    try {
+      await firestoreService.deleteTransaction(getCurrentUserId(), id);
+      return { success: true };
+    } catch (e) {
+      console.warn('Firestore deleteTransaction fallback:', e);
+    }
+  }
+
   syncService.enqueue('delete', {}, id);
 
   const local = getLocalTransactions();
@@ -249,17 +313,24 @@ export async function deleteTransaction(id) {
   saveLocalTransactions(filtered);
 
   try {
-    const res = await fetch(`${API_BASE}/transactions/${id}`, { 
+    const res = await fetch(`${API_BASE}/transactions/${id}`, {
       method: 'DELETE',
       headers: { ...getAuthHeaders() }
     });
     if (res.ok) return await res.json();
   } catch (err) {}
 
-  return { success: true, id };
+  return { success: true };
 }
 
 export async function getCategories() {
+  if (isFirebaseConfigured) {
+    try {
+      const cats = await firestoreService.getCategories(getCurrentUserId());
+      if (cats && cats.length > 0) return cats;
+    } catch (e) {}
+  }
+
   try {
     const res = await fetch(`${API_BASE}/categories`, {
       headers: { ...getAuthHeaders() }
@@ -277,18 +348,22 @@ export async function getCategories() {
   } catch (e) {}
 
   return [
-    { id: 1, name: 'Food', icon: 'Utensils', color: '#6C47FF', is_quick: 1 },
-    { id: 2, name: 'Auto', icon: 'Car', color: '#F59E0B', is_quick: 1 },
-    { id: 3, name: 'Metro', icon: 'Train', color: '#0EA5E9', is_quick: 1 },
-    { id: 4, name: 'Fruits', icon: 'Apple', color: '#EF4444', is_quick: 1 },
-    { id: 5, name: 'Cloths', icon: 'Shirt', color: '#3B82F6', is_quick: 1 },
-    { id: 6, name: 'Shopping', icon: 'ShoppingBag', color: '#A855F7', is_quick: 1 },
-    { id: 7, name: 'Bills', icon: 'FileText', color: '#EAB308', is_quick: 1 },
-    { id: 8, name: 'Medical', icon: 'HeartPulse', color: '#EC4899', is_quick: 0 }
+    { id: 1, name: 'Food', icon: 'Utensils', color: '#6C47FF' },
+    { id: 2, name: 'Auto', icon: 'Car', color: '#F59E0B' },
+    { id: 3, name: 'Metro', icon: 'Train', color: '#0EA5E9' },
+    { id: 4, name: 'Fruits', icon: 'Apple', color: '#EF4444' },
+    { id: 5, name: 'Cloths', icon: 'Shirt', color: '#3B82F6' },
+    { id: 6, name: 'Shopping', icon: 'ShoppingBag', color: '#A855F7' }
   ];
 }
 
 export async function createCategory(data) {
+  if (isFirebaseConfigured) {
+    try {
+      return await firestoreService.addCategory(getCurrentUserId(), data);
+    } catch (e) {}
+  }
+
   try {
     const res = await fetch(`${API_BASE}/categories`, {
       method: 'POST',
@@ -309,6 +384,12 @@ export async function createCategory(data) {
 }
 
 export async function deleteCategory(id) {
+  if (isFirebaseConfigured) {
+    try {
+      return await firestoreService.deleteCategory(getCurrentUserId(), id);
+    } catch (e) {}
+  }
+
   try {
     const res = await fetch(`${API_BASE}/categories/${id}`, { 
       method: 'DELETE',
@@ -340,6 +421,13 @@ export async function getReports(month = '2026-11') {
 }
 
 export async function getSettings() {
+  if (isFirebaseConfigured) {
+    try {
+      const fsSettings = await firestoreService.getSettings(getCurrentUserId());
+      if (fsSettings) return fsSettings;
+    } catch (e) {}
+  }
+
   try {
     const res = await fetch(`${API_BASE}/settings`, {
       headers: { ...getAuthHeaders() }
@@ -368,6 +456,12 @@ export async function getSettings() {
 }
 
 export async function updateSettings(data) {
+  if (isFirebaseConfigured) {
+    try {
+      return await firestoreService.updateSettings(getCurrentUserId(), data);
+    } catch (e) {}
+  }
+
   try {
     const res = await fetch(`${API_BASE}/settings`, {
       method: 'PUT',
@@ -388,6 +482,12 @@ export async function updateSettings(data) {
 }
 
 export async function updateBudget(month, budget) {
+  if (isFirebaseConfigured) {
+    try {
+      return await firestoreService.updateBudget(getCurrentUserId(), month, budget);
+    } catch (e) {}
+  }
+
   try {
     const res = await fetch(`${API_BASE}/budget`, {
       method: 'PUT',
@@ -404,7 +504,6 @@ export async function updateBudget(month, budget) {
   return { success: true };
 }
 
-// User Profile & Spreadsheet Mapping APIs
 export async function getUserProfile() {
   try {
     const res = await fetch(`${API_BASE}/user/profile`, {

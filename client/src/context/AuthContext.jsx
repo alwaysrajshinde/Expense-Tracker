@@ -1,137 +1,260 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  sendPasswordResetEmail, 
+  onAuthStateChanged,
+  updateProfile 
+} from 'firebase/auth';
+import { auth, isFirebaseConfigured } from '../firebase/config';
+import { ensureUserProfile } from '../services/firestoreService';
 
 const AuthContext = createContext();
-
 const STORAGE_KEY = 'expense_tracker_auth_session';
-
-// Built-in standard Google OAuth Client ID (developer configured)
-const DEFAULT_CLIENT_ID = typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.GOOGLE_CLIENT_ID
-  ? window.APP_CONFIG.GOOGLE_CLIENT_ID
-  : (import.meta.env.VITE_GOOGLE_CLIENT_ID || '789123456789-expensetracker.apps.googleusercontent.com');
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
-  const [googleClientId] = useState(DEFAULT_CLIENT_ID);
 
-  // Load existing valid session on startup
+  // Monitor Firebase Auth state or restore saved session
   useEffect(() => {
-    try {
-      const savedSession = localStorage.getItem(STORAGE_KEY);
-      if (savedSession) {
-        const session = JSON.parse(savedSession);
-        // Validate session lifespan (30 days)
-        if (session.expires_at && session.expires_at > Date.now()) {
-          setUser(session);
-        } else {
-          localStorage.removeItem(STORAGE_KEY);
+    let unsubscribe = null;
+
+    if (isFirebaseConfigured && auth) {
+      unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        try {
+          if (firebaseUser) {
+            const isRaj = firebaseUser.email?.toLowerCase() === 'raaajshinde@gmail.com';
+            const sessionData = {
+              id: firebaseUser.uid,
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              name: firebaseUser.displayName || (isRaj ? 'Raj Shinde' : firebaseUser.email.split('@')[0]),
+              picture: firebaseUser.photoURL || '',
+              expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000
+            };
+            setUser(sessionData);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+            await ensureUserProfile(firebaseUser.uid, firebaseUser.email, sessionData.name);
+          } else {
+            // Check if local demo session exists
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+              const session = JSON.parse(saved);
+              if (session.is_demo || (session.expires_at && session.expires_at > Date.now())) {
+                setUser(session);
+              } else {
+                localStorage.removeItem(STORAGE_KEY);
+                setUser(null);
+              }
+            } else {
+              setUser(null);
+            }
+          }
+        } catch (err) {
+          console.error('Error handling auth state change:', err);
+        } finally {
+          setIsLoading(false);
         }
+      });
+    } else {
+      // Local / Offline fallback mode
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const session = JSON.parse(saved);
+          if (session.expires_at && session.expires_at > Date.now()) {
+            setUser(session);
+          } else {
+            localStorage.removeItem(STORAGE_KEY);
+          }
+        }
+      } catch (err) {
+        localStorage.removeItem(STORAGE_KEY);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      console.error('Error restoring session:', err);
-      localStorage.removeItem(STORAGE_KEY);
-    } finally {
-      setIsLoading(false);
     }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
-  // Decode JWT payload from Google Identity Services
-  const parseJwt = (token) => {
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-      return JSON.parse(jsonPayload);
-    } catch (e) {
-      return null;
+  /**
+   * Universal Sign In with Email & Password
+   */
+  const loginWithEmail = async (email, password) => {
+    setAuthError(null);
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      const err = 'Please enter a valid email address';
+      setAuthError(err);
+      throw new Error(err);
+    }
+    if (!password) {
+      const err = 'Please enter your password';
+      setAuthError(err);
+      throw new Error(err);
+    }
+
+    if (isFirebaseConfigured && auth) {
+      try {
+        const userCred = await signInWithEmailAndPassword(auth, cleanEmail, password);
+        const fbUser = userCred.user;
+        const isRaj = cleanEmail === 'raaajshinde@gmail.com';
+        const sessionData = {
+          id: fbUser.uid,
+          uid: fbUser.uid,
+          email: cleanEmail,
+          name: fbUser.displayName || (isRaj ? 'Raj Shinde' : cleanEmail.split('@')[0]),
+          picture: fbUser.photoURL || '',
+          expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000
+        };
+        setUser(sessionData);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+        await ensureUserProfile(fbUser.uid, cleanEmail, sessionData.name);
+        return { success: true, user: sessionData };
+      } catch (fbErr) {
+        let msg = fbErr.message;
+        if (fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/wrong-password') {
+          msg = 'Incorrect password or email. Please check your credentials.';
+        } else if (fbErr.code === 'auth/user-not-found') {
+          msg = 'No account found with this email. Please create an account.';
+        } else if (fbErr.code === 'auth/too-many-requests') {
+          msg = 'Too many failed login attempts. Please reset your password or try later.';
+        }
+        setAuthError(msg);
+        throw new Error(msg);
+      }
+    } else {
+      // Local fallback session
+      return loginWithAccount(cleanEmail, cleanEmail.split('@')[0]);
     }
   };
 
   /**
-   * Automatic User Onboarding:
-   * Authenticates the user and automatically associates or creates their private Google Sheet
+   * Universal Registration with Email, Password & Display Name
    */
-  const onboardUser = async (email, name = '', sub = '', picture = '', token = '') => {
+  const registerWithEmail = async (email, password, displayName = '') => {
     setAuthError(null);
     const cleanEmail = email.trim().toLowerCase();
-    const userName = name || cleanEmail.split('@')[0];
-    const googleSub = sub || ('google_' + Date.now());
+
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      const err = 'Please enter a valid email address';
+      setAuthError(err);
+      throw new Error(err);
+    }
+    if (!password || password.length < 6) {
+      const err = 'Password must be at least 6 characters long';
+      setAuthError(err);
+      throw new Error(err);
+    }
+
+    if (isFirebaseConfigured && auth) {
+      try {
+        const userCred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+        const fbUser = userCred.user;
+        const name = displayName.trim() || cleanEmail.split('@')[0];
+        
+        try {
+          await updateProfile(fbUser, { displayName: name });
+        } catch (profileErr) {}
+
+        const sessionData = {
+          id: fbUser.uid,
+          uid: fbUser.uid,
+          email: cleanEmail,
+          name,
+          picture: '',
+          is_new_user: true,
+          expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000
+        };
+        setUser(sessionData);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+        await ensureUserProfile(fbUser.uid, cleanEmail, name);
+        return { success: true, user: sessionData, is_new: true };
+      } catch (fbErr) {
+        let msg = fbErr.message;
+        if (fbErr.code === 'auth/email-already-in-use') {
+          msg = 'An account with this email already exists. Please sign in instead.';
+        } else if (fbErr.code === 'auth/weak-password') {
+          msg = 'Password is too weak. Please use at least 6 characters.';
+        }
+        setAuthError(msg);
+        throw new Error(msg);
+      }
+    } else {
+      // Local fallback session
+      return loginWithAccount(cleanEmail, displayName || cleanEmail.split('@')[0]);
+    }
+  };
+
+  /**
+   * Send Password Reset Email
+   */
+  const resetPassword = async (email) => {
+    setAuthError(null);
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      throw new Error('Please enter a valid email address to receive reset instructions.');
+    }
+
+    if (isFirebaseConfigured && auth) {
+      await sendPasswordResetEmail(auth, cleanEmail);
+      return { success: true };
+    } else {
+      return { success: true, message: 'Password reset instructions sent.' };
+    }
+  };
+
+  /**
+   * 1-Click Consumer / Demo Login (Instant Vault Connect)
+   */
+  const loginWithAccount = async (email, name = '') => {
+    setAuthError(null);
+    const cleanEmail = email.trim().toLowerCase();
+    const isRaj = cleanEmail === 'raaajshinde@gmail.com';
+    const userName = name || (isRaj ? 'Raj Shinde' : cleanEmail.split('@')[0]);
 
     let backendUser = null;
     try {
       const res = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, name: userName, sub: googleSub, picture })
+        body: JSON.stringify({ email: cleanEmail, name: userName })
       });
-      if (res.ok) {
-        backendUser = await res.json();
-      }
-    } catch (backendErr) {
-      console.warn('Backend user onboarding sync deferred:', backendErr);
-    }
-
-    const isRaj = cleanEmail === 'raaajshinde@gmail.com';
-    const spreadsheetId = backendUser?.spreadsheet?.spreadsheet_id || 
-      (isRaj ? '1x-master-raj-expenses-sheet-2026' : `1sheet_user_${Date.now()}`);
-    const spreadsheetUrl = backendUser?.spreadsheet?.spreadsheet_url || 
-      `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+      if (res.ok) backendUser = await res.json();
+    } catch (e) {}
 
     const sessionData = {
       id: backendUser?.user?.id || (isRaj ? 1 : Date.now()),
+      uid: String(backendUser?.user?.id || (isRaj ? 1 : Date.now())),
       email: cleanEmail,
       name: userName,
-      picture: picture || '',
-      sub: googleSub,
-      id_token: token,
-      spreadsheet_id: spreadsheetId,
-      spreadsheet_url: spreadsheetUrl,
-      is_new_user: backendUser?.is_new_user || false,
+      picture: '',
+      is_demo: !isFirebaseConfigured,
       expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000,
       login_time: new Date().toISOString()
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
     setUser(sessionData);
-    return { success: true, user: sessionData, is_new: sessionData.is_new_user };
+    return { success: true, user: sessionData };
   };
 
-  // Login via Google Identity Services token
-  const loginWithGoogle = async (credentialResponse) => {
+  /**
+   * Log Out / Disconnect Session
+   */
+  const logout = async () => {
     try {
-      const token = credentialResponse.credential || credentialResponse;
-      const payload = parseJwt(token);
-
-      if (!payload || !payload.email) {
-        throw new Error('Invalid Google credential payload received.');
+      if (isFirebaseConfigured && auth) {
+        await signOut(auth);
       }
-
-      return await onboardUser(
-        payload.email,
-        payload.name,
-        payload.sub,
-        payload.picture,
-        token
-      );
-    } catch (err) {
-      setAuthError(err.message || 'Google authentication failed');
-      throw err;
-    }
-  };
-
-  // Consumer 1-click Sign-In with any Google account
-  const loginWithAccount = async (email, name = '') => {
-    return await onboardUser(email, name);
-  };
-
-  // Disconnect / Logout
-  const logout = () => {
+    } catch (e) {}
     localStorage.removeItem(STORAGE_KEY);
     setUser(null);
     setAuthError(null);
@@ -141,16 +264,19 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated: Boolean(user),
         isLoading,
         authError,
-        googleClientId,
-        authorizedEmail: user?.email || 'raaajshinde@gmail.com',
-        updateAuthorizedEmail: () => {},
-        updateGoogleClientId: () => {},
-        loginWithGoogle,
+        isFirebaseConfigured,
+        loginWithEmail,
+        registerWithEmail,
+        resetPassword,
         loginWithAccount,
-        logout
+        logout,
+        authorizedEmail: user?.email || '',
+        updateAuthorizedEmail: () => {},
+        googleClientId: '',
+        updateGoogleClientId: () => {}
       }}
     >
       {children}
@@ -160,6 +286,8 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 }

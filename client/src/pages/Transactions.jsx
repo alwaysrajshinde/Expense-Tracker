@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, Filter, Calendar, Edit2, Trash2, ArrowDownLeft, ArrowUpRight, 
+import {
+  Search, Filter, Calendar, Edit2, Trash2, ArrowDownLeft, ArrowUpRight,
   ChevronLeft, ChevronRight, X, AlertCircle, FileSpreadsheet, Download
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
 import { getTransactions, getCurrentUserEmail } from '../services/api';
+import { exportTransactionsToExcel, exportDataToJson } from '../services/exportService';
 
 export default function Transactions({
   selectedMonth,
@@ -70,7 +71,7 @@ export default function Transactions({
     const dt = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    
+
     const formatted = dt.toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' });
     if (dateStr === '2026-11-20' || dateStr === todayStr) {
       return `Today · ${formatted}`;
@@ -102,6 +103,12 @@ export default function Transactions({
         <div className="flex items-center gap-2">
           <a
             href={`/api/export/excel?user_email=${encodeURIComponent(getCurrentUserEmail())}`}
+            onClick={(e) => {
+              if (window.location.hostname.includes('github.io') || !window.location.port) {
+                e.preventDefault();
+                exportTransactionsToExcel(transactionsData?.transactions || [], `Expenses_${selectedMonth || 'all'}.xlsx`);
+              }
+            }}
             download="Daily_Expenses_Export.xlsx"
             className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-[#151226] border border-slate-200 dark:border-white/10 hover:border-purple-300 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-xs transition-colors"
           >
@@ -110,6 +117,12 @@ export default function Transactions({
           </a>
           <a
             href={`/api/export/json?user_email=${encodeURIComponent(getCurrentUserEmail())}`}
+            onClick={(e) => {
+              if (window.location.hostname.includes('github.io') || !window.location.port) {
+                e.preventDefault();
+                exportDataToJson(transactionsData || {}, `Expenses_${selectedMonth || 'all'}.json`);
+              }
+            }}
             download="expense_tracker_backup.json"
             className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-[#151226] border border-slate-200 dark:border-white/10 hover:border-purple-300 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-xs transition-colors"
           >
@@ -224,11 +237,10 @@ export default function Transactions({
                 <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">
                   {formatDateHeader(group.date)}
                 </span>
-                <span className={`text-xs font-extrabold px-3 py-1 rounded-full ${
-                  group.total < 0
-                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
-                    : 'bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-slate-200'
-                }`}>
+                <span className={`text-xs font-extrabold px-3 py-1 rounded-full ${group.total < 0
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
+                  : 'bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-slate-200'
+                  }`}>
                   Daily: {formatCurrency(group.total)}
                 </span>
               </div>
@@ -275,11 +287,10 @@ export default function Transactions({
 
                       {/* Right: Amount & Actions */}
                       <div className="flex items-center gap-3">
-                        <span className={`text-xs sm:text-sm font-extrabold tracking-tight ${
-                          isRefund
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-slate-900 dark:text-white'
-                        }`}>
+                        <span className={`text-xs sm:text-sm font-extrabold tracking-tight ${isRefund
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-slate-900 dark:text-white'
+                          }`}>
                           {isRefund ? `+${formatCurrency(Math.abs(tx.amount))}` : formatCurrency(tx.amount)}
                         </span>
 

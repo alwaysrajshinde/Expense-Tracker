@@ -15,7 +15,9 @@ data/*.db-shm
 .env
 .env.local
 .env.*.local
-config.js
+/config.js
+/client/public/config.js
+/client/public/firebase-config.js
 
 # Logs
 logs/
