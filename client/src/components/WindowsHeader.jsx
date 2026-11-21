@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, ChevronDown, RefreshCw, Bell, Sun, Moon, CheckCircle2, WifiOff, LogOut, User } from 'lucide-react';
+import { Calendar, ChevronDown, RefreshCw, Bell, Sun, Moon, CheckCircle2, LogOut, User } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import syncService from '../services/syncService';
 
 export default function WindowsHeader({
   userName = "User",
@@ -22,19 +21,7 @@ export default function WindowsHeader({
   const { theme, toggleTheme, isDark } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [syncState, setSyncState] = useState({
-    status: syncService.status,
-    isSyncing: syncService.isSyncing,
-    pendingCount: syncService.getQueue().length,
-    lastSyncTime: syncService.lastSyncTime
-  });
-
-  useEffect(() => {
-    const unsub = syncService.subscribe((state) => {
-      setSyncState(state);
-    });
-    return unsub;
-  }, []);
+  const [refreshing, setRefreshing] = useState(false);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -50,12 +37,14 @@ export default function WindowsHeader({
     return date.toLocaleString('default', { month: 'short', year: 'numeric' });
   };
 
-  const handleSync = async () => {
+  const handleRefresh = async () => {
     try {
-      await syncService.syncNow();
+      setRefreshing(true);
       if (onRefresh) await onRefresh();
     } catch (e) {
-      console.warn('Sync failed:', e);
+      console.warn('Refresh failed:', e);
+    } finally {
+      setTimeout(() => setRefreshing(false), 400);
     }
   };
 
@@ -65,14 +54,6 @@ export default function WindowsHeader({
     .join('')
     .toUpperCase()
     .slice(0, 2) || 'RS';
-
-  const isSyncing = syncState.isSyncing;
-  const isOffline = syncState.status === 'offline';
-  const syncLabel = isOffline 
-    ? `Offline (${syncState.pendingCount} pending)`
-    : isSyncing 
-      ? 'Syncing...' 
-      : syncService.getFormattedLastSync();
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
@@ -127,23 +108,15 @@ export default function WindowsHeader({
           </div>
         )}
 
-        {/* Sync Status Badge (Mint Green) */}
+        {/* Refresh Data Button */}
         <button
-          onClick={handleSync}
-          disabled={isSyncing}
-          title="Click to perform two-way synchronization with Google Sheets"
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-semibold shadow-xs transition-colors cursor-pointer ${
-            isOffline
-              ? 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 text-amber-800 dark:text-amber-300'
-              : 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100/70'
-          }`}
+          onClick={handleRefresh}
+          disabled={refreshing}
+          title="Refresh expense records and dashboard"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-semibold shadow-xs transition-colors cursor-pointer bg-purple-50 dark:bg-purple-950/40 border border-purple-200/70 dark:border-purple-800/40 text-[#6C47FF] dark:text-[#A78BFA] hover:bg-purple-100/70"
         >
-          {isOffline ? (
-            <WifiOff size={14} className="text-amber-600 dark:text-amber-400" />
-          ) : (
-            <RefreshCw size={14} className={`text-emerald-600 dark:text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
-          )}
-          <span className="hidden md:inline">{syncLabel}</span>
+          <RefreshCw size={14} className={`text-[#6C47FF] dark:text-[#A78BFA] ${refreshing ? 'animate-spin' : ''}`} />
+          <span className="hidden md:inline">Refresh Data</span>
         </button>
 
         {/* Theme Toggle Button */}

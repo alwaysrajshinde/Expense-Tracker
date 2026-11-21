@@ -104,7 +104,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
               <section className="space-y-1.5">
                 <h3 className="font-bold text-sm text-slate-800 dark:text-white">3. Data Storage &amp; Cloud Security</h3>
                 <p>
-                  Your information is encrypted in transit using industry-standard TLS 1.3/HTTPS and stored in isolated Google Cloud Firestore databases protected by strict User ID Authentication Security Rules. If you link Google Drive, expense synchronization communicates directly between your browser and your private Google Sheets account via least-privilege OAuth scopes.
+                  Your information is encrypted in transit using industry-standard TLS 1.3/HTTPS and stored in isolated Google Cloud Firestore databases protected by strict User ID Authentication Security Rules. Your financial ledger is strictly isolated to your verified account.
                 </p>
               </section>
 

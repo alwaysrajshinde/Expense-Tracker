@@ -18,11 +18,6 @@ import {
   computeDashboardFromTransactions, 
   computeReportsFromTransactions 
 } from './sheetsBackend';
-import { 
-  createPersonalGoogleSheet, 
-  appendExpenseToGoogleSheet, 
-  batchPopulateGoogleSheet 
-} from './googleDriveService';
 
 // Minimal Starter Categories for New Users (Clean, essential, non-overwhelming)
 export const MINIMAL_DEFAULT_CATEGORIES = [
@@ -31,9 +26,14 @@ export const MINIMAL_DEFAULT_CATEGORIES = [
   { name: 'Transportation', icon: 'Car', color: '#F59E0B', is_quick: true },
   { name: 'Shopping', icon: 'Shirt', color: '#EC4899', is_quick: true },
   { name: 'Bills & Utilities', icon: 'Zap', color: '#3B82F6', is_quick: false },
-  { name: 'Entertainment', icon: 'Film', color: '#8B5CF6', is_quick: false },
+  { name: 'Rent & Housing', icon: 'Home', color: '#6366F1', is_quick: false },
   { name: 'Health', icon: 'HeartPulse', color: '#EF4444', is_quick: false },
-  { name: 'Other', icon: 'Tag', color: '#64748B', is_quick: false }
+  { name: 'Entertainment', icon: 'Film', color: '#8B5CF6', is_quick: false },
+  { name: 'Education', icon: 'GraduationCap', color: '#0EA5E9', is_quick: false },
+  { name: 'Travel', icon: 'Compass', color: '#F97316', is_quick: false },
+  { name: 'Personal Care', icon: 'Sparkles', color: '#F43F5E', is_quick: false },
+  { name: 'EMI & Loans', icon: 'CreditCard', color: '#64748B', is_quick: false },
+  { name: 'Other', icon: 'Tag', color: '#94A3B8', is_quick: false }
 ];
 
 export function getLocalMonthKey() {
@@ -78,33 +78,18 @@ const CATEGORY_META = {
 };
 
 /**
- * Ensures user profile, manages Google Drive spreadsheet initialization, and handles historical migration
+ * Ensures user profile and handles historical migration safely
  */
-export async function ensureUserProfile(userId, email, displayName = '', googleAccessToken = '') {
+export async function ensureUserProfile(userId, email, displayName = '') {
   if (!isFirebaseConfigured || !db) return;
 
   try {
     const userRef = doc(db, 'users', userId);
     const snap = await getDoc(userRef);
 
-    let spreadsheetId = null;
-    let spreadsheetUrl = null;
-
     if (!snap.exists()) {
       const isRaj = email.toLowerCase() === 'raaajshinde@gmail.com';
       const name = displayName || (isRaj ? 'Raj Shinde' : email.split('@')[0]);
-
-      // If Google OAuth Access Token is present, automatically create user's personal Google Sheet in their Google Drive
-      if (googleAccessToken) {
-        try {
-          const sheet = await createPersonalGoogleSheet(googleAccessToken, name);
-          spreadsheetId = sheet.spreadsheetId;
-          spreadsheetUrl = sheet.spreadsheetUrl;
-          console.log(`Created personal Google Sheet for ${name}: ${spreadsheetId}`);
-        } catch (sheetErr) {
-          console.warn('Google Sheet creation deferred or skipped:', sheetErr.message);
-        }
-      }
 
       await setDoc(userRef, {
         email: email.toLowerCase(),
@@ -113,17 +98,12 @@ export async function ensureUserProfile(userId, email, displayName = '', googleA
         currency: '₹',
         migrated: false,
         onboarding_completed: isRaj,
-        spreadsheet_id: spreadsheetId,
-        spreadsheet_url: spreadsheetUrl,
         created_at: serverTimestamp()
       });
 
       // If Raj Shinde, run historical data migration
       if (isRaj) {
         await migrateRajHistoricalData(userId);
-        if (spreadsheetId && googleAccessToken) {
-          batchPopulateGoogleSheet(googleAccessToken, spreadsheetId, rajHistoricalData.transactions);
-        }
       } else {
         await seedDefaultCategories(userId);
       }
@@ -132,22 +112,6 @@ export async function ensureUserProfile(userId, email, displayName = '', googleA
       const isRaj = email.toLowerCase() === 'raaajshinde@gmail.com';
       if (isRaj && !data.migrated) {
         await migrateRajHistoricalData(userId);
-      }
-
-      // If user signed in with Google and doesn't have a spreadsheet yet, auto-create it now
-      if (!data.spreadsheet_id && googleAccessToken) {
-        try {
-          const sheet = await createPersonalGoogleSheet(googleAccessToken, data.displayName || 'Personal');
-          await updateDoc(userRef, {
-            spreadsheet_id: sheet.spreadsheetId,
-            spreadsheet_url: sheet.spreadsheetUrl
-          });
-          if (isRaj) {
-            batchPopulateGoogleSheet(googleAccessToken, sheet.spreadsheetId, rajHistoricalData.transactions);
-          }
-        } catch (e) {
-          console.warn('Auto Google Sheet creation notice:', e.message);
-        }
       }
     }
   } catch (err) {
@@ -405,23 +369,6 @@ export async function addTransaction(userId, data) {
       await deleteDoc(doc(db, 'users', userId, 'months', monthKey));
     } catch (cacheDelErr) {}
 
-    // 2. Background non-blocking mirror to user's Google Sheet in their Google Drive
-    try {
-      const sessionStr = typeof window !== 'undefined' ? localStorage.getItem('expense_tracker_auth_session') : null;
-      if (sessionStr) {
-        const session = JSON.parse(sessionStr);
-        const token = session.google_access_token;
-        if (token) {
-          getDoc(doc(db, 'users', userId)).then(userSnap => {
-            const sheetId = userSnap.data()?.spreadsheet_id;
-            if (sheetId) {
-              appendExpenseToGoogleSheet(token, sheetId, newTx);
-            }
-          }).catch(() => {});
-        }
-      }
-    } catch (sheetSyncErr) {}
-
     return newTx;
   } catch (err) {
     console.error('Error adding transaction to Firestore:', err);
@@ -610,7 +557,6 @@ export async function getSettings(userId) {
         currency: d.currency || '₹',
         user_name: d.displayName || (d.email ? d.email.split('@')[0] : 'User'),
         user_email: d.email || '',
-        spreadsheet_id: d.spreadsheet_id || '',
         onboarding_completed: Boolean(d.onboarding_completed)
       };
     }
@@ -619,7 +565,7 @@ export async function getSettings(userId) {
   }
 
   return {
-    monthly_budget: '0',
+    monthly_budget: '12000',
     currency: '₹',
     user_name: 'User',
     user_email: '',
@@ -654,10 +600,16 @@ export async function updateBudget(userId, month, budget) {
 
   try {
     const docRef = doc(db, 'users', userId);
+    const numBudget = parseFloat(budget) || 0;
     await updateDoc(docRef, {
-      monthly_budget: parseFloat(budget) || 12000,
+      monthly_budget: numBudget,
       updated_at: serverTimestamp()
     });
+    if (month) {
+      try {
+        await deleteDoc(doc(db, 'users', userId, 'months', month));
+      } catch (cacheErr) {}
+    }
     return { success: true };
   } catch (err) {
     console.error('Error updating budget:', err);

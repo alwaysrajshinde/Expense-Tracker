@@ -6,40 +6,40 @@ export default function ReleaseNotesModal({ isOpen, onClose }) {
 
   const highlights = [
     {
-      icon: Zap,
-      title: 'Mobile Quick Expense Entry (FAB)',
-      description: 'Prominent elevated floating action button on mobile navigation bar enables 1-tap instant expense entry with autofocus.',
-      tag: 'UX Enhancement'
-    },
-    {
       icon: ShieldCheck,
-      title: 'Financial Calculations & Deletion Integrity',
-      description: 'Atomic deletion and update reconciliation with real-time monthly roll-up cache invalidation, ensuring zero calculation drift.',
+      title: 'Unified Monthly Budget Architecture',
+      description: 'Single source of truth synchronizing Dashboard and Settings. Existing budgets are strictly preserved with zero drift.',
       tag: 'Core Reliability'
     },
     {
-      icon: Palette,
-      title: '4 Curated Color Themes',
-      description: 'Seamlessly switch between Clean Slate (Light), Dark Violet (Dark), Midnight Velvet (OLED), and Emerald Fintech.',
-      tag: 'Visual Experience'
+      icon: Zap,
+      title: 'Email Verification Auto-Refresh & Dismiss',
+      description: 'Added visible dismiss button with session-state memory and real-time Firebase reload on tab focus without manual page reloads.',
+      tag: 'Authentication'
     },
     {
       icon: Layers,
-      title: 'Multi-Tenant Clean Experience',
-      description: 'New accounts receive 8 essential starter categories. Existing accounts preserve 100% of historical categories and transactions.',
-      tag: 'Data Architecture'
+      title: 'Simplified 13 Standard Categories',
+      description: 'Streamlined practical categories (Food, Groceries, Housing, Loans, etc.) preserving 100% of custom and historical records.',
+      tag: 'Information Architecture'
+    },
+    {
+      icon: Palette,
+      title: 'Redesigned 4-Section Settings Hub',
+      description: 'Organized into Account, Preferences, Data Management, and Information, eliminating unverified sync claims.',
+      tag: 'UI/UX Redesign'
     },
     {
       icon: Smartphone,
-      title: 'Native PWA & Mobile Back Navigation',
-      description: 'Hardware and browser back button support cleanly closes active modals; safe-area insets prevent gesture collision.',
-      tag: 'Native Feel'
+      title: 'Single Add Expense Primary Action',
+      description: 'Removed redundant dashboard button in favor of the high-accessibility center bottom navigation action.',
+      tag: 'Navigation'
     },
     {
       icon: History,
-      title: 'Context-Aware Month Navigation',
-      description: 'Month picker is rendered only on financial views (Dashboard, Transactions, Reports) for a clean, uncluttered interface.',
-      tag: 'Navigation'
+      title: 'Direct Privacy Policy & Public Showcase',
+      description: 'Dedicated public landing view and legal page compliant with Google OAuth and data sovereignty requirements.',
+      tag: 'Compliance'
     }
   ];
 
@@ -59,7 +59,7 @@ export default function ReleaseNotesModal({ isOpen, onClose }) {
                   What's New in Expense Tracker
                 </h3>
                 <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-[#6C47FF] dark:text-[#A78BFA] text-[10px] font-black tracking-wide">
-                  v1.1.0
+                  v1.2.0
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium">

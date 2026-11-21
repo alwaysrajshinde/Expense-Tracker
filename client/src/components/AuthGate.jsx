@@ -14,10 +14,13 @@ import {
   Lock,
   User,
   HelpCircle,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import LegalModal from './LegalModal';
+import PublicLanding from './PublicLanding';
+import PublicLegalView from './PublicLegalView';
 
 export default function AuthGate({ children }) {
   const { 
@@ -65,6 +68,16 @@ export default function AuthGate({ children }) {
   const [legalModalType, setLegalModalType] = useState(null);
   const [showGoogleHelp, setShowGoogleHelp] = useState(false);
 
+  // Hash route & Public Homepage state (Resolves Google OAuth Verification Requirements)
+  const [currentHash, setCurrentHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash : ''));
+  const [showAuthCard, setShowAuthCard] = useState(true);
+
+  useEffect(() => {
+    const onHashChange = () => setCurrentHash(window.location.hash);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
   // Check URL for Firebase Action Codes (resetPassword / verifyEmail)
   useEffect(() => {
     try {
@@ -108,6 +121,35 @@ export default function AuthGate({ children }) {
           <span className="text-xs font-semibold tracking-wide">Connecting to your personal vault...</span>
         </div>
       </div>
+    );
+  }
+
+  // Public standalone legal pages (Direct access for Google OAuth verification & public compliance)
+  if (currentHash === '#privacy' || currentHash === '#terms') {
+    return (
+      <PublicLegalView
+        initialTab={currentHash === '#terms' ? 'terms' : 'privacy'}
+        onBack={() => {
+          window.location.hash = '';
+          setCurrentHash('');
+        }}
+      />
+    );
+  }
+
+  // Public Landing Page (Homepage is NOT behind a login wall, complying with Google OAuth guidelines)
+  if (!showAuthCard && !resetOobCode) {
+    return (
+      <PublicLanding
+        onOpenAuth={(tab) => {
+          setActiveAuthTab(tab);
+          setShowAuthCard(true);
+        }}
+        onOpenLegal={(tab) => {
+          window.location.hash = '#' + tab;
+          setCurrentHash('#' + tab);
+        }}
+      />
     );
   }
 
@@ -233,6 +275,19 @@ export default function AuthGate({ children }) {
       <div className="w-full max-w-md bg-white dark:bg-[#16132A] rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200/80 dark:border-white/10 relative overflow-hidden transition-all">
         {/* Ambient background glow */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-500/15 rounded-full blur-2xl pointer-events-none" />
+
+        {/* Back to Homepage Button */}
+        <button
+          type="button"
+          onClick={() => {
+            setShowAuthCard(false);
+            setErrorMsg('');
+          }}
+          className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+        >
+          <ArrowLeft size={14} />
+          <span>Back to Overview</span>
+        </button>
 
         {/* Brand Header */}
         <div className="text-center space-y-2 mb-6">
@@ -641,7 +696,10 @@ export default function AuthGate({ children }) {
           <div className="flex items-center justify-center gap-3 text-[11px] text-slate-400">
             <button
               type="button"
-              onClick={() => setLegalModalType('privacy')}
+              onClick={() => {
+                window.location.hash = '#privacy';
+                setCurrentHash('#privacy');
+              }}
               className="hover:text-[#6C47FF] dark:hover:text-[#A78BFA] transition-colors underline cursor-pointer"
             >
               Privacy Policy
@@ -649,7 +707,10 @@ export default function AuthGate({ children }) {
             <span>•</span>
             <button
               type="button"
-              onClick={() => setLegalModalType('terms')}
+              onClick={() => {
+                window.location.hash = '#terms';
+                setCurrentHash('#terms');
+              }}
               className="hover:text-[#6C47FF] dark:hover:text-[#A78BFA] transition-colors underline cursor-pointer"
             >
               Terms of Service
@@ -685,17 +746,16 @@ export default function AuthGate({ children }) {
 
               <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                 <p>
-                  Because Expense Tracker provisions a private Google Sheet directly into your personal Google Drive for data sovereignty, Google displays a standard developer notice:
+                  Expense Tracker authenticates securely with Google using standard profile and email identity scopes to access your encrypted personal vault.
                 </p>
                 <div className="bg-amber-50 dark:bg-amber-950/40 p-3.5 rounded-2xl border border-amber-200/60 dark:border-amber-800/50 space-y-2 text-[11px]">
-                  <p className="font-bold text-amber-900 dark:text-amber-200">How to proceed in 2 steps:</p>
-                  <ol className="list-decimal pl-4 space-y-1.5 text-amber-800 dark:text-amber-300">
-                    <li>Click <strong>"Advanced"</strong> at the bottom left of the Google popup window.</li>
-                    <li>Click <strong>"Go to Expense Tracker (unsafe)"</strong> to finish sign-in.</li>
-                  </ol>
+                  <p className="font-bold text-amber-900 dark:text-amber-200">How to proceed:</p>
+                  <p className="text-amber-800 dark:text-amber-300">
+                    Sign in with your standard Google Account. Your account permissions only verify your email and profile name without accessing any private files or emails.
+                  </p>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Your credentials and financial data are 100% private to your account. This prompt will disappear once Google's official verification review completes.
+                  Your credentials and financial data are 100% private to your account and stored in your isolated cloud vault.
                 </p>
               </div>
 

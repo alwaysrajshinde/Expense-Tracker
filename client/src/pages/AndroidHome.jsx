@@ -298,20 +298,6 @@ export default function AndroidHome({
           )}
         </div>
       </div>
-
-      {/* ========================================================
-          4. Big Full-Width "+ Add Expense" Button
-             (Exactly matching Modern Purple Expense Tracker UI.png)
-         ======================================================== */}
-      <div className="pt-2">
-        <button
-          onClick={onOpenAddExpense}
-          className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#6C47FF] to-[#8B5CF6] hover:from-[#5B36EE] hover:to-[#7A4BE5] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-purple-600/25 active:scale-[0.98] transition-all cursor-pointer"
-        >
-          <Plus size={18} strokeWidth={2.5} />
-          <span>+ Add Expense</span>
-        </button>
-      </div>
     </div>
   );
 }

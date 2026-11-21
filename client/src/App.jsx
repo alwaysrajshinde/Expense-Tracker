@@ -16,7 +16,7 @@ import AuthGate from './components/AuthGate';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { ToastProvider, useToast } from './context/ToastContext';
-import syncService from './services/syncService';
+import { ShieldCheck, X } from 'lucide-react';
 import * as api from './services/api';
 
 function MainApp() {
@@ -47,8 +47,19 @@ function MainApp() {
   const [hasUnreadNotifs, setHasUnreadNotifs] = useState(true);
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
+  const [dismissedEmailBanner, setDismissedEmailBanner] = useState(() => {
+    return typeof window !== 'undefined' && sessionStorage.getItem('et_dismiss_verify_banner') === 'true';
+  });
+
+  const handleDismissEmailBanner = () => {
+    setDismissedEmailBanner(true);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('et_dismiss_verify_banner', 'true');
+    }
+  };
+
   const [settings, setSettings] = useState({
-    monthly_budget: '0',
+    monthly_budget: '12000',
     currency: '₹',
     user_name: user?.name || (user?.email ? user.email.split('@')[0] : 'User'),
     user_email: user?.email || ''
@@ -128,8 +139,11 @@ function MainApp() {
       ]);
       setCategories(cats);
       const isRaj = user?.email?.toLowerCase() === 'raaajshinde@gmail.com';
+      const rawBudget = sett.monthly_budget !== undefined && sett.monthly_budget !== null && sett.monthly_budget !== '' 
+        ? String(sett.monthly_budget) 
+        : (isRaj ? '12000' : '12000');
       const updatedSettings = {
-        monthly_budget: isRaj ? '12000' : (sett.monthly_budget !== undefined ? String(sett.monthly_budget) : '0'),
+        monthly_budget: rawBudget,
         currency: sett.currency || '₹',
         user_name: user?.name || sett.user_name || (user?.email ? user.email.split('@')[0] : 'User'),
         user_email: user?.email || sett.user_email || ''
@@ -160,6 +174,12 @@ function MainApp() {
       setReportsData(rep);
       if (dash.available_months && dash.available_months.length > 0) {
         setAvailableMonths(dash.available_months);
+      }
+      if (dash && dash.budget !== undefined && Number(dash.budget) > 0) {
+        setSettings(prev => ({
+          ...prev,
+          monthly_budget: String(dash.budget)
+        }));
       }
     } catch (err) {
       console.error('Error loading month data:', err);
@@ -257,18 +277,32 @@ function MainApp() {
           {/* Main Desktop Work Area */}
           <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
             {/* Unverified Email Warning Banner (Desktop) */}
-            {user && !user.emailVerified && !user.isGoogleUser && (
-              <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-3 transition-colors">
-                <span className="font-medium">
-                  Please verify your email address to secure your account.
-                </span>
-                <button
-                  type="button"
-                  onClick={handleResendVerification}
-                  className="font-bold text-[#6C47FF] dark:text-[#A78BFA] hover:underline cursor-pointer"
-                >
-                  Resend Verification Email
-                </button>
+            {user && !user.emailVerified && !user.isGoogleUser && !dismissedEmailBanner && (
+              <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-4 transition-colors">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <ShieldCheck size={16} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                  <span className="font-medium truncate">
+                    Please verify your email ({user.email}). Email verification helps confirm you own this address, protects your account, and enables password recovery.
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    className="font-bold text-[#6C47FF] dark:text-[#A78BFA] hover:underline cursor-pointer"
+                  >
+                    Resend Email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDismissEmailBanner}
+                    aria-label="Dismiss verification notification"
+                    title="Dismiss for this session"
+                    className="p-1 rounded-lg text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
               </div>
             )}
 
@@ -389,16 +423,30 @@ function MainApp() {
            ======================================================== */
         <div className="w-full max-w-lg mx-auto min-h-screen bg-[var(--bg-app)] flex flex-col relative transition-colors">
           {/* Unverified Email Warning Banner (Mobile) */}
-          {user && !user.emailVerified && !user.isGoogleUser && (
-            <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2 transition-colors">
-              <span className="truncate">Please verify your email address.</span>
-              <button
-                type="button"
-                onClick={handleResendVerification}
-                className="font-bold text-[#6C47FF] dark:text-[#A78BFA] hover:underline cursor-pointer flex-shrink-0"
-              >
-                Resend
-              </button>
+          {user && !user.emailVerified && !user.isGoogleUser && !dismissedEmailBanner && (
+            <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2 transition-colors">
+              <div className="flex-1 min-w-0 pr-1">
+                <span className="font-semibold block truncate">Please verify your email ({user.email})</span>
+                <span className="text-[10px] text-amber-700 dark:text-amber-400/90 line-clamp-1">Protects your account &amp; enables password recovery</span>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  className="font-bold text-[#6C47FF] dark:text-[#A78BFA] hover:underline cursor-pointer text-[11px]"
+                >
+                  Resend
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDismissEmailBanner}
+                  aria-label="Dismiss verification notification"
+                  title="Dismiss for this session"
+                  className="p-1 rounded-lg text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
             </div>
           )}
 

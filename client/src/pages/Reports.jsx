@@ -533,27 +533,27 @@ export default function Reports({
                 className="p-3.5 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-slate-400 w-5">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                    <span className="text-xs font-bold text-slate-400 w-5 flex-shrink-0">
                       #{idx + 1}
                     </span>
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center shadow-xs"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center shadow-xs flex-shrink-0"
                       style={{ backgroundColor: `${cat.color || '#6C47FF'}20` }}
                     >
                       <CategoryIcon name={cat.name} icon={cat.icon} color={cat.color} size={18} />
                     </div>
-                    <div>
-                      <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 block">
+                    <div className="min-w-0 flex-1">
+                      <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 block truncate">
                         {cat.name}
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-400 block truncate">
                         {cat.count} {cat.count === 1 ? 'transaction' : 'transactions'}
                       </span>
                     </div>
                   </div>
 
-                  <div className="text-right">
+                  <div className="text-right flex-shrink-0">
                     <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white block">
                       {formatCurrency(cat.amount)}
                     </span>

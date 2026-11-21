@@ -1,4 +1,3 @@
-import syncService from './syncService';
 import * as firestoreService from './firestoreService';
 import { isFirebaseConfigured } from '../firebase/config';
 import { 
@@ -233,9 +232,6 @@ export async function createTransaction(data) {
 
   if (createdTx) return createdTx;
 
-  // Enqueue in Two-Way Sync Queue for offline fallback
-  syncService.enqueue('create', newTx, txId);
-
   // Forward to local API server if running
   try {
     const res = await fetch(`${API_BASE}/transactions`, {
@@ -281,8 +277,6 @@ export async function updateTransaction(id, data) {
     }
   }
 
-  syncService.enqueue('update', updatedTx, id);
-
   try {
     const res = await fetch(`${API_BASE}/transactions/${id}`, {
       method: 'PUT',
@@ -316,8 +310,6 @@ export async function deleteTransaction(id) {
       console.warn('Firestore deleteTransaction fallback:', e);
     }
   }
-
-  syncService.enqueue('delete', {}, id);
 
   try {
     const res = await fetch(`${API_BASE}/transactions/${id}`, {
@@ -360,9 +352,14 @@ export async function getCategories() {
     { id: 3, name: 'Transportation', icon: 'Car', color: '#F59E0B', is_quick: true },
     { id: 4, name: 'Shopping', icon: 'Shirt', color: '#EC4899', is_quick: true },
     { id: 5, name: 'Bills & Utilities', icon: 'Zap', color: '#3B82F6', is_quick: false },
-    { id: 6, name: 'Entertainment', icon: 'Film', color: '#8B5CF6', is_quick: false },
+    { id: 6, name: 'Rent & Housing', icon: 'Home', color: '#6366F1', is_quick: false },
     { id: 7, name: 'Health', icon: 'HeartPulse', color: '#EF4444', is_quick: false },
-    { id: 8, name: 'Other', icon: 'Tag', color: '#64748B', is_quick: false }
+    { id: 8, name: 'Entertainment', icon: 'Film', color: '#8B5CF6', is_quick: false },
+    { id: 9, name: 'Education', icon: 'GraduationCap', color: '#0EA5E9', is_quick: false },
+    { id: 10, name: 'Travel', icon: 'Compass', color: '#F97316', is_quick: false },
+    { id: 11, name: 'Personal Care', icon: 'Sparkles', color: '#F43F5E', is_quick: false },
+    { id: 12, name: 'EMI & Loans', icon: 'CreditCard', color: '#64748B', is_quick: false },
+    { id: 13, name: 'Other', icon: 'Tag', color: '#94A3B8', is_quick: false }
   ];
 }
 
@@ -504,10 +501,13 @@ export async function updateSettings(data) {
 }
 
 export async function updateBudget(month, budget) {
+  const numericBudget = parseFloat(budget) || 0;
   if (isFirebaseConfigured) {
     try {
-      return await firestoreService.updateBudget(getCurrentUserId(), month, budget);
-    } catch (e) {}
+      await firestoreService.updateBudget(getCurrentUserId(), month, numericBudget);
+    } catch (e) {
+      console.warn('Firestore updateBudget fallback:', e);
+    }
   }
 
   try {
@@ -517,13 +517,16 @@ export async function updateBudget(month, budget) {
         'Content-Type': 'application/json',
         ...getAuthHeaders()
       },
-      body: JSON.stringify({ month, budget })
+      body: JSON.stringify({ month, budget: numericBudget })
     });
-    if (res.ok) return await res.json();
+    if (res.ok) {
+      await updateSettings({ monthly_budget: String(numericBudget) });
+      return await res.json();
+    }
   } catch (err) {}
 
-  await updateSettings({ monthly_budget: String(budget) });
-  return { success: true };
+  await updateSettings({ monthly_budget: String(numericBudget) });
+  return { success: true, budget: numericBudget };
 }
 
 export async function getUserProfile() {

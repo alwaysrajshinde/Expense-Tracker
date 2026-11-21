@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -25,6 +25,25 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState(null);
 
   // Monitor Firebase Auth state or restore saved session
+  // Auto-reload user profile when window gains focus or tab becomes visible to detect email verification without manual page refresh
+  const checkVerificationStatus = useCallback(async () => {
+    if (isFirebaseConfigured && auth && auth.currentUser) {
+      try {
+        await auth.currentUser.reload();
+        if (auth.currentUser.emailVerified) {
+          setUser(prev => {
+            if (!prev || prev.emailVerified) return prev;
+            const updated = { ...prev, emailVerified: true };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+            return updated;
+          });
+        }
+      } catch (e) {
+        console.warn('Silent email verification check:', e.message);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     let unsubscribe = null;
 
@@ -89,10 +108,18 @@ export function AuthProvider({ children }) {
       }
     }
 
+    window.addEventListener('focus', checkVerificationStatus);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') checkVerificationStatus();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       if (unsubscribe) unsubscribe();
+      window.removeEventListener('focus', checkVerificationStatus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [checkVerificationStatus]);
 
   /**
    * Universal Sign In with Email & Password
@@ -396,6 +423,7 @@ export function AuthProvider({ children }) {
         handleConfirmPasswordReset,
         handleVerifyEmailCode,
         resendVerificationEmail,
+        checkVerificationStatus,
         loginWithAccount,
         logout,
         authorizedEmail: user?.email || '',

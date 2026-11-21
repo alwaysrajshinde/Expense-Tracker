@@ -280,30 +280,30 @@ export default function Transactions({
                       className="flex items-center justify-between group hover:bg-slate-50/80 dark:hover:bg-white/5 p-2.5 rounded-2xl transition-colors"
                     >
                       {/* Left: Icon & Details */}
-                      <div className="flex items-center gap-3.5">
+                      <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                          className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                           style={{ backgroundColor: `${tx.color || '#6C47FF'}20` }}
                         >
-                          <CategoryIcon name={tx.category} icon={tx.icon} color={tx.color} size={18} />
+                          <CategoryIcon name={tx.category} icon={tx.icon} color={tx.color} size={16} />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
                               {tx.description || tx.category}
                             </span>
                             {isRefund && (
-                              <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 px-2 py-0.5 rounded-full">
+                              <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 px-1.5 py-0.5 rounded-full flex-shrink-0">
                                 Refund
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                          <div className="flex items-center gap-1.5 mt-0.5 truncate">
+                            <span className="text-[10px] sm:text-[11px] font-medium text-slate-400 dark:text-slate-500 truncate">
                               {tx.category}
                             </span>
-                            <span className="text-[11px] text-slate-300 dark:text-slate-600">·</span>
-                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded">
+                            <span className="text-[10px] text-slate-300 dark:text-slate-600">·</span>
+                            <span className="text-[9px] sm:text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded flex-shrink-0">
                               {tx.payment_mode}
                             </span>
                           </div>
@@ -311,28 +311,28 @@ export default function Transactions({
                       </div>
 
                       {/* Right: Amount & Actions */}
-                      <div className="flex items-center gap-3">
-                        <span className={`text-xs sm:text-sm font-extrabold tracking-tight ${isRefund
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                        <span className={`text-xs sm:text-sm font-extrabold tracking-tight text-right ${isRefund
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : 'text-slate-900 dark:text-white'
                           }`}>
                           {isRefund ? `+${formatCurrency(Math.abs(tx.amount))}` : formatCurrency(tx.amount)}
                         </span>
 
-                        <div className="flex items-center opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                        <div className="flex items-center opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity gap-0.5 sm:gap-1">
                           <button
                             onClick={() => onEditTransaction(tx)}
                             title="Edit"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-[#6C47FF] hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-[#6C47FF] hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors cursor-pointer"
                           >
-                            <Edit2 size={14} />
+                            <Edit2 size={13} />
                           </button>
                           <button
                             onClick={() => setDeleteConfirmId(tx.id)}
                             title="Delete"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </div>
