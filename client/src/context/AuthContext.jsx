@@ -8,7 +8,10 @@ import {
   onAuthStateChanged,
   updateProfile,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  confirmPasswordReset,
+  applyActionCode,
+  verifyPasswordResetCode
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../firebase/config';
 import { ensureUserProfile } from '../services/firestoreService';
@@ -343,6 +346,28 @@ export function AuthProvider({ children }) {
   };
 
   /**
+   * Confirm password reset with Firebase oobCode (Action Link)
+   */
+  const handleConfirmPasswordReset = async (oobCode, newPassword) => {
+    if (isFirebaseConfigured && auth) {
+      await confirmPasswordReset(auth, oobCode, newPassword);
+      return { success: true };
+    }
+    return { success: true };
+  };
+
+  /**
+   * Verify email with Firebase oobCode
+   */
+  const handleVerifyEmailCode = async (oobCode) => {
+    if (isFirebaseConfigured && auth) {
+      await applyActionCode(auth, oobCode);
+      return { success: true };
+    }
+    return { success: true };
+  };
+
+  /**
    * Log Out / Disconnect Session
    */
   const logout = async () => {
@@ -368,6 +393,8 @@ export function AuthProvider({ children }) {
         registerWithEmail,
         loginWithGoogle,
         resetPassword,
+        handleConfirmPasswordReset,
+        handleVerifyEmailCode,
         resendVerificationEmail,
         loginWithAccount,
         logout,

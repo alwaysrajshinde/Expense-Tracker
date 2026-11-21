@@ -3,7 +3,8 @@ import * as firestoreService from './firestoreService';
 import { isFirebaseConfigured } from '../firebase/config';
 import { 
   computeDashboardFromTransactions, 
-  computeReportsFromTransactions 
+  computeReportsFromTransactions,
+  computeYearlyReportFromTransactions
 } from './sheetsBackend';
 
 const API_BASE = '/api';
@@ -354,12 +355,14 @@ export async function getCategories() {
   } catch (e) {}
 
   return [
-    { id: 1, name: 'Food', icon: 'Utensils', color: '#6C47FF' },
-    { id: 2, name: 'Auto', icon: 'Car', color: '#F59E0B' },
-    { id: 3, name: 'Metro', icon: 'Train', color: '#0EA5E9' },
-    { id: 4, name: 'Fruits', icon: 'Apple', color: '#EF4444' },
-    { id: 5, name: 'Cloths', icon: 'Shirt', color: '#3B82F6' },
-    { id: 6, name: 'Shopping', icon: 'ShoppingBag', color: '#A855F7' }
+    { id: 1, name: 'Food & Dining', icon: 'Utensils', color: '#6C47FF', is_quick: true },
+    { id: 2, name: 'Groceries', icon: 'ShoppingBag', color: '#10B981', is_quick: true },
+    { id: 3, name: 'Transportation', icon: 'Car', color: '#F59E0B', is_quick: true },
+    { id: 4, name: 'Shopping', icon: 'Shirt', color: '#EC4899', is_quick: true },
+    { id: 5, name: 'Bills & Utilities', icon: 'Zap', color: '#3B82F6', is_quick: false },
+    { id: 6, name: 'Entertainment', icon: 'Film', color: '#8B5CF6', is_quick: false },
+    { id: 7, name: 'Health', icon: 'HeartPulse', color: '#EF4444', is_quick: false },
+    { id: 8, name: 'Other', icon: 'Tag', color: '#64748B', is_quick: false }
   ];
 }
 
@@ -424,6 +427,19 @@ export async function getReports(month = new Date().toISOString().slice(0, 7)) {
   const categories = await getCategories();
   const budget = settings.monthly_budget !== undefined ? (parseFloat(settings.monthly_budget) || 0) : 0;
   return computeReportsFromTransactions(txs, month, budget, categories);
+}
+
+export async function getYearlyReports(year = new Date().getFullYear().toString()) {
+  try {
+    const res = await fetch(`${API_BASE}/reports/yearly?year=${encodeURIComponent(year)}`, {
+      headers: { ...getAuthHeaders() }
+    });
+    if (res.ok) return (await res.json()).data;
+  } catch (err) {}
+
+  const txs = getLocalTransactions();
+  const categories = await getCategories();
+  return computeYearlyReportFromTransactions(txs, year, categories);
 }
 
 export async function getSettings() {

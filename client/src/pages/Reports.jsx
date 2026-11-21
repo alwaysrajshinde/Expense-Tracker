@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, TrendingUp, CreditCard, PieChart, Layers } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Calendar, TrendingUp, CreditCard, PieChart, Layers, BarChart2 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
+import { getYearlyReports } from '../services/api';
 
 export default function Reports({
   reportsData,
@@ -9,7 +10,34 @@ export default function Reports({
   onSelectMonth,
   formatCurrency
 }) {
+  const [reportMode, setReportMode] = useState('monthly'); // 'monthly' | 'yearly'
   const [subTab, setSubTab] = useState('overview'); // 'overview' | 'category' | 'payment'
+  const [selectedYear, setSelectedYear] = useState(() => (selectedMonth ? selectedMonth.slice(0, 4) : new Date().getFullYear().toString()));
+  const [yearlyData, setYearlyData] = useState(null);
+  const [loadingYearly, setLoadingYearly] = useState(false);
+
+  useEffect(() => {
+    if (selectedMonth) {
+      setSelectedYear(selectedMonth.slice(0, 4));
+    }
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    if (reportMode === 'yearly') {
+      const loadYearly = async () => {
+        try {
+          setLoadingYearly(true);
+          const data = await getYearlyReports(selectedYear);
+          setYearlyData(data);
+        } catch (e) {
+          console.error('Error loading yearly reports:', e);
+        } finally {
+          setLoadingYearly(false);
+        }
+      };
+      loadYearly();
+    }
+  }, [reportMode, selectedYear]);
 
   if (!reportsData) {
     return (
@@ -70,77 +98,237 @@ export default function Reports({
 
   return (
     <div className="space-y-5 px-4 sm:px-6 lg:px-8 py-4 pb-24 lg:pb-8 max-w-7xl mx-auto">
-      {/* Top Header & Sub-Tabs */}
+      {/* Top Header & Mode Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-            Spending & Expense Analytics
+            Spending &amp; Expense Analytics
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Analysis, category shares, and monthly trends for {formatMonthName(selectedMonth)}
+            {reportMode === 'monthly'
+              ? `Detailed analysis, category shares, and trends for ${formatMonthName(selectedMonth)}`
+              : `Annual spending overview, monthly distribution, and annual categories for ${selectedYear}`}
           </p>
         </div>
 
-        {/* Segmented Sub-Tabs */}
-        <div className="flex bg-slate-100 dark:bg-white/10 p-1 rounded-2xl w-full sm:w-auto self-start">
-          <button
-            onClick={() => setSubTab('overview')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-              subTab === 'overview'
-                ? 'bg-[#6C47FF] text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-            }`}
-          >
-            Overview
-          </button>
-          <button
-            onClick={() => setSubTab('category')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-              subTab === 'category'
-                ? 'bg-[#6C47FF] text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-            }`}
-          >
-            Categories ({category_breakdown.length})
-          </button>
-          <button
-            onClick={() => setSubTab('payment')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-              subTab === 'payment'
-                ? 'bg-[#6C47FF] text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-            }`}
-          >
-            Payment Modes
-          </button>
+        {/* Monthly vs Yearly Switcher */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex bg-slate-100 dark:bg-white/10 p-1 rounded-2xl">
+            <button
+              onClick={() => setReportMode('monthly')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                reportMode === 'monthly'
+                  ? 'bg-[#6C47FF] text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              }`}
+            >
+              Monthly Report
+            </button>
+            <button
+              onClick={() => setReportMode('yearly')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                reportMode === 'yearly'
+                  ? 'bg-[#6C47FF] text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              }`}
+            >
+              Yearly Summary
+            </button>
+          </div>
+
+          {/* Segmented Sub-Tabs (Monthly only) */}
+          {reportMode === 'monthly' && (
+            <div className="flex bg-slate-100 dark:bg-white/10 p-1 rounded-2xl w-full sm:w-auto self-start">
+              <button
+                onClick={() => setSubTab('overview')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  subTab === 'overview'
+                    ? 'bg-[#6C47FF] text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setSubTab('category')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  subTab === 'category'
+                    ? 'bg-[#6C47FF] text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                Categories ({category_breakdown.length})
+              </button>
+              <button
+                onClick={() => setSubTab('payment')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  subTab === 'payment'
+                    ? 'bg-[#6C47FF] text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                Payment Modes
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Month Carousel Bar */}
-      <div className="flex items-center justify-between bg-white dark:bg-[#151226] p-2.5 sm:px-4 rounded-2xl border border-slate-100 dark:border-white/10 shadow-xs transition-colors">
-        <button
-          onClick={handlePrevMonth}
-          disabled={!hasPrev}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
-        >
-          <ChevronLeft size={15} />
-          <span className="hidden sm:inline">Previous Month</span>
-        </button>
+      {/* ========================================================
+          YEARLY REPORT VIEW
+         ======================================================== */}
+      {reportMode === 'yearly' && (
+        <div className="space-y-5 animate-fade-in">
+          {/* Year Selector Bar */}
+          <div className="flex items-center justify-between bg-white dark:bg-[#151226] p-3 rounded-2xl border border-slate-100 dark:border-white/10 shadow-xs">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Select Accounting Year:
+            </span>
+            <div className="flex items-center gap-2">
+              {(yearlyData?.available_years || [selectedYear]).map((y) => (
+                <button
+                  key={y}
+                  onClick={() => setSelectedYear(y)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    selectedYear === y
+                      ? 'bg-[#6C47FF] text-white shadow-sm'
+                      : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                  }`}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
+          </div>
 
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-purple-50 dark:bg-purple-900/30 rounded-full text-xs font-extrabold text-[#6C47FF] dark:text-[#A78BFA]">
-          <Calendar size={14} />
-          <span>{formatMonthName(selectedMonth)}</span>
+          {/* Annual KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-[#151226] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-2">
+              <span className="text-xs font-semibold text-slate-400">Total Spent in {selectedYear}</span>
+              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+                {formatCurrency(yearlyData?.total_spent || 0)}
+              </div>
+              <p className="text-[11px] text-slate-400">{yearlyData?.tx_count || 0} recorded transactions</p>
+            </div>
+
+            <div className="bg-white dark:bg-[#151226] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-2">
+              <span className="text-xs font-semibold text-slate-400">Monthly Average Spend</span>
+              <div className="text-2xl sm:text-3xl font-extrabold text-purple-600 dark:text-purple-400">
+                {formatCurrency(yearlyData?.monthly_average || 0)}
+              </div>
+              <p className="text-[11px] text-slate-400">Across 12 months</p>
+            </div>
+
+            <div className="bg-white dark:bg-[#151226] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-2">
+              <span className="text-xs font-semibold text-slate-400">Peak Spending Month</span>
+              <div className="text-2xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400">
+                {yearlyData?.highest_month?.label || 'None'}
+              </div>
+              <p className="text-[11px] text-slate-400">
+                {formatCurrency(yearlyData?.highest_month?.total || 0)}
+              </p>
+            </div>
+          </div>
+
+          {/* 12-Month Bar Chart */}
+          <div className="bg-white dark:bg-[#151226] rounded-3xl p-5 sm:p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <BarChart2 size={18} className="text-[#6C47FF]" />
+              <span>12-Month Annual Spend Distribution ({selectedYear})</span>
+            </h3>
+
+            <div className="grid grid-cols-12 gap-1.5 sm:gap-3 items-end h-48 pt-6">
+              {(yearlyData?.months_data || []).map((m) => (
+                <div key={m.label} className="flex flex-col items-center gap-1.5 h-full justify-end group">
+                  <div className="text-[10px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity truncate">
+                    {formatCurrency(m.total)}
+                  </div>
+                  <div className="w-full max-w-[28px] h-36 flex items-end">
+                    <div
+                      className="w-full rounded-t-lg bg-gradient-to-t from-[#5B27DC] to-[#7B42F6] dark:from-[#7C3AED] dark:to-[#A78BFA] transition-all duration-500 hover:brightness-110"
+                      style={{ height: `${Math.max(m.height_percent, 4)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                    {m.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Annual Category Breakdown */}
+          <div className="bg-white dark:bg-[#151226] rounded-3xl p-5 sm:p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Annual Category Distribution ({selectedYear})
+            </h3>
+
+            <div className="space-y-3">
+              {(yearlyData?.category_breakdown || []).map((cat, idx) => (
+                <div key={cat.category} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-slate-400 w-5">#{idx + 1}</span>
+                      <div
+                        className="w-8 h-8 rounded-xl flex items-center justify-center"
+                        style={{ backgroundColor: `${cat.color || '#6C47FF'}20` }}
+                      >
+                        <CategoryIcon name={cat.category} icon={cat.icon} color={cat.color} size={15} />
+                      </div>
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100">{cat.category}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-white block">
+                        {formatCurrency(cat.total)}
+                      </span>
+                      <span className="text-[11px] font-bold text-[#6C47FF] dark:text-[#A78BFA]">
+                        {cat.percentage}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-[#6C47FF] dark:bg-[#8B5CF6]"
+                      style={{ width: `${Math.min(cat.percentage, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+      )}
 
-        <button
-          onClick={handleNextMonth}
-          disabled={!hasNext}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
-        >
-          <span className="hidden sm:inline">Next Month</span>
-          <ChevronRight size={15} />
-        </button>
-      </div>
+      {/* ========================================================
+          MONTHLY REPORT VIEW (Existing refined sub-tabs)
+         ======================================================== */}
+      {reportMode === 'monthly' && (
+        <div className="space-y-5">
+          {/* Month Carousel Bar */}
+          <div className="flex items-center justify-between bg-white dark:bg-[#151226] p-2.5 sm:px-4 rounded-2xl border border-slate-100 dark:border-white/10 shadow-xs transition-colors">
+            <button
+              onClick={handlePrevMonth}
+              disabled={!hasPrev}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            >
+              <ChevronLeft size={15} />
+              <span className="hidden sm:inline">Previous Month</span>
+            </button>
+
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-purple-50 dark:bg-purple-900/30 rounded-full text-xs font-extrabold text-[#6C47FF] dark:text-[#A78BFA]">
+              <Calendar size={14} />
+              <span>{formatMonthName(selectedMonth)}</span>
+            </div>
+
+            <button
+              onClick={handleNextMonth}
+              disabled={!hasNext}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            >
+              <span className="hidden sm:inline">Next Month</span>
+              <ChevronRight size={15} />
+            </button>
+          </div>
 
       {/* 4 Summary Stat Cards on Desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -418,6 +606,8 @@ export default function Reports({
             ))}
           </div>
         </div>
+      )}
+      </div>
       )}
     </div>
   );

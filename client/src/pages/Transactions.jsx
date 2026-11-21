@@ -29,6 +29,13 @@ export default function Transactions({
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   useEffect(() => {
+    if (selectedMonth && selectedMonth !== monthFilter) {
+      setMonthFilter(selectedMonth);
+      setPage(1);
+    }
+  }, [selectedMonth]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
     }, 300);
@@ -174,8 +181,12 @@ export default function Transactions({
             <select
               value={monthFilter}
               onChange={(e) => {
-                setMonthFilter(e.target.value);
+                const val = e.target.value;
+                setMonthFilter(val);
                 setPage(1);
+                if (val !== 'all' && onSelectMonth) {
+                  onSelectMonth(val);
+                }
               }}
               className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
             >

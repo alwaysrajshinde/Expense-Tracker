@@ -16,6 +16,12 @@ export default function NotificationsModal({
   const budget = dashboardData?.budget || 0;
   const percentSpent = dashboardData?.percent_spent || 0;
 
+  let prefs = { notify80: true, notify100: true, notifySync: true };
+  try {
+    const saved = localStorage.getItem('expense_tracker_notification_prefs');
+    if (saved) prefs = { ...prefs, ...JSON.parse(saved) };
+  } catch (e) {}
+
   const dynamicNotifications = [];
 
   // Notification 1: Budget setting prompt if budget is 0
@@ -29,26 +35,48 @@ export default function NotificationsModal({
       icon: AlertTriangle
     });
   } else {
-    // Notification 2: Budget pace
-    dynamicNotifications.push({
-      id: 'budget-pace',
-      title: percentSpent > 90 ? 'Budget Alert' : 'Monthly Budget On Track',
-      description: `You have spent ${formatCurrency(totalSpent)} (${percentSpent}%) of your ${formatCurrency(budget)} monthly budget.`,
-      time: 'Today',
-      type: percentSpent > 90 ? 'warning' : 'success',
-      icon: percentSpent > 90 ? AlertTriangle : CheckCircle
-    });
+    // Notification 2: Budget threshold alerts based on user preferences
+    if (percentSpent >= 100 && prefs.notify100) {
+      dynamicNotifications.push({
+        id: 'budget-exceeded',
+        title: 'Monthly Budget Limit Exceeded',
+        description: `You have spent ${formatCurrency(totalSpent)} (${percentSpent}%), which is ${formatCurrency(totalSpent - budget)} over your target limit.`,
+        time: 'Critical Alert',
+        type: 'warning',
+        icon: AlertTriangle
+      });
+    } else if (percentSpent >= 80 && prefs.notify80) {
+      dynamicNotifications.push({
+        id: 'budget-warning',
+        title: 'Spending Approaching 80% Limit',
+        description: `You have spent ${formatCurrency(totalSpent)} (${percentSpent}%) of your ${formatCurrency(budget)} monthly budget.`,
+        time: 'Warning Alert',
+        type: 'warning',
+        icon: AlertTriangle
+      });
+    } else if (percentSpent < 80) {
+      dynamicNotifications.push({
+        id: 'budget-pace',
+        title: 'Monthly Budget On Track',
+        description: `You have spent ${formatCurrency(totalSpent)} (${percentSpent}%) of your ${formatCurrency(budget)} monthly budget. Spending pace is healthy.`,
+        time: 'Pace Status',
+        type: 'success',
+        icon: CheckCircle
+      });
+    }
   }
 
   // Notification 3: Cloud Vault Sync Status
-  dynamicNotifications.push({
-    id: 'vault-active',
-    title: 'Cloud Vault Synchronized',
-    description: 'Your expense records are encrypted and isolated in your private cloud vault with offline caching enabled.',
-    time: 'Active',
-    type: 'info',
-    icon: ShieldCheck
-  });
+  if (prefs.notifySync) {
+    dynamicNotifications.push({
+      id: 'vault-active',
+      title: 'Cloud Vault Synchronized',
+      description: 'Your expense records are encrypted and isolated in your private cloud vault with offline caching enabled.',
+      time: 'Active Vault',
+      type: 'info',
+      icon: ShieldCheck
+    });
+  }
 
   const handleMarkAllRead = () => {
     setCleared(true);

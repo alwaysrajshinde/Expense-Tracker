@@ -27,7 +27,9 @@ export default function AuthGate({ children }) {
     loginWithEmail, 
     registerWithEmail, 
     loginWithGoogle,
-    resetPassword 
+    resetPassword,
+    handleConfirmPasswordReset,
+    handleVerifyEmailCode
   } = useAuth();
 
   // Tab state: 'signin' | 'signup'
@@ -50,12 +52,38 @@ export default function AuthGate({ children }) {
   const [forgotEmail, setForgotEmail] = useState('');
   const [resetSuccessMsg, setResetSuccessMsg] = useState('');
 
+  // Branded Password Reset action code state
+  const [resetOobCode, setResetOobCode] = useState(null);
+  const [newPasswordVal, setNewPasswordVal] = useState('');
+  const [confirmNewPasswordVal, setConfirmNewPasswordVal] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
   // In-flight progress indicator
   const [onboardingStep, setOnboardingStep] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [legalModalType, setLegalModalType] = useState(null);
   const [showGoogleHelp, setShowGoogleHelp] = useState(false);
+
+  // Check URL for Firebase Action Codes (resetPassword / verifyEmail)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get('mode');
+      const oobCode = params.get('oobCode');
+
+      if (mode === 'resetPassword' && oobCode) {
+        setResetOobCode(oobCode);
+      } else if (mode === 'verifyEmail' && oobCode && handleVerifyEmailCode) {
+        handleVerifyEmailCode(oobCode).then(() => {
+          setResetSuccessMsg('Email verified successfully! You can now sign in.');
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }).catch(err => {
+          setErrorMsg(err.message || 'Email verification link has expired or is invalid.');
+        });
+      }
+    } catch (e) {}
+  }, [handleVerifyEmailCode]);
 
   // Reset view state when logged out
   useEffect(() => {
@@ -171,6 +199,35 @@ export default function AuthGate({ children }) {
     }
   };
 
+  // Submit New Password via Action Code
+  const handleSubmitNewPassword = async (e) => {
+    e.preventDefault();
+    if (!newPasswordVal || newPasswordVal.length < 8) {
+      setErrorMsg('Password must be at least 8 characters long');
+      return;
+    }
+    if (newPasswordVal !== confirmNewPasswordVal) {
+      setErrorMsg('Passwords do not match');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      setErrorMsg('');
+      if (handleConfirmPasswordReset) {
+        await handleConfirmPasswordReset(resetOobCode, newPasswordVal);
+      }
+      setResetSuccessMsg('Password updated successfully! Please sign in with your new password.');
+      setResetOobCode(null);
+      setNewPasswordVal('');
+      setConfirmNewPasswordVal('');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to update password. Reset link may have expired.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f8f9fe] via-[#ede9fe] to-[#e0e7ff] dark:from-[#0d0b18] dark:via-[#16132a] dark:to-[#1a1435] flex items-center justify-center p-4 sm:p-6 transition-colors">
       <div className="w-full max-w-md bg-white dark:bg-[#16132A] rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200/80 dark:border-white/10 relative overflow-hidden transition-all">
@@ -225,6 +282,73 @@ export default function AuthGate({ children }) {
               </p>
             </div>
           </div>
+        ) : resetOobCode ? (
+          /* ========================================================
+             BRANDED PASSWORD RESET VIEW (Action Code Handler)
+             ======================================================== */
+          <form noValidate onSubmit={handleSubmitNewPassword} className="space-y-4">
+            <div className="pb-2 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Choose New Account Password
+              </span>
+              <button
+                type="button"
+                onClick={() => { setResetOobCode(null); setErrorMsg(''); }}
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-white font-medium cursor-pointer"
+              >
+                Back to Sign In
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                New Password (minimum 8 characters)
+              </label>
+              <div className="relative">
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  required
+                  placeholder="Enter new password"
+                  value={newPasswordVal}
+                  onChange={(e) => setNewPasswordVal(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Confirm New Password
+              </label>
+              <div className="relative">
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  required
+                  placeholder="Re-enter new password"
+                  value={confirmNewPasswordVal}
+                  onChange={(e) => setConfirmNewPasswordVal(e.target.value)}
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3 bg-gradient-to-r from-[#6C47FF] to-[#8B5CF6] text-white rounded-xl text-xs font-bold shadow-md shadow-purple-600/25 hover:opacity-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {submitting ? <Loader2 size={16} className="animate-spin" /> : <span>Update Password &amp; Sign In</span>}
+            </button>
+          </form>
         ) : showForgotModal ? (
           /* ========================================================
              FORGOT PASSWORD MODAL
