@@ -53,25 +53,9 @@ export default function AndroidHome({
               <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
                 {t('monthlyBudget', 'Monthly Budget')}
               </span>
-              {budget > 0 ? (
-                <button
-                  type="button"
-                  onClick={onSetBudget}
-                  title="Click to edit monthly budget"
-                  className="group flex items-center gap-1.5 text-left text-white text-base font-bold tracking-tight truncate hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <span className="truncate">{formatCurrency(budget)}</span>
-                  <span className="text-[10px] text-white/80 group-hover:text-white bg-white/20 px-1.5 py-0.5 rounded font-normal">Edit</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onSetBudget}
-                  className="mt-0.5 text-xs font-bold text-amber-200 hover:text-white underline block cursor-pointer"
-                >
-                  {t('setMonthlyBudget', 'Set Monthly Budget')}
-                </button>
-              )}
+              <p className="text-white text-base font-bold tracking-tight truncate mt-0.5" title={formatCurrency(budget)}>
+                {budget > 0 ? formatCurrency(budget) : t('noBudgetSet', 'No budget set')}
+              </p>
             </div>
 
             <div>
@@ -146,7 +130,7 @@ export default function AndroidHome({
           </div>
           <div className="min-w-0">
             <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5 truncate">
-              Today
+              {t('today', 'Today')}
             </span>
             <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate block" title={formatCurrency(today_spent)}>
               {formatCurrency(today_spent)}
@@ -161,7 +145,7 @@ export default function AndroidHome({
           </div>
           <div className="min-w-0">
             <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5 truncate">
-              This Week
+              {t('thisWeek', 'This Week')}
             </span>
             <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate block" title={formatCurrency(week_spent)}>
               {formatCurrency(week_spent)}
@@ -176,7 +160,7 @@ export default function AndroidHome({
           </div>
           <div className="min-w-0">
             <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5 truncate">
-              This Month
+              {t('thisMonth', 'This Month')}
             </span>
             <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate block" title={formatCurrency(total_spent)}>
               {formatCurrency(total_spent)}

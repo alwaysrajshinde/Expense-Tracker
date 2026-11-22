@@ -6,6 +6,7 @@ import {
 import CategoryIcon from '../components/CategoryIcon';
 import CustomDropdown from '../components/CustomDropdown';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Home({
   dashboardData,
@@ -22,6 +23,7 @@ export default function Home({
   onSelectMonth
 }) {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   // Quick Add Expense Inline Form State (Must be top level before any early return)
   const [quickAmount, setQuickAmount] = useState('');
   const [quickCategory, setQuickCategory] = useState(categories[0]?.name || 'Food & Dining');
@@ -127,27 +129,16 @@ export default function Home({
             <div className="space-y-2.5">
               <div>
                 <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
-                  Monthly Budget
+                  {t('monthlyBudget', 'Monthly Budget')}
                 </span>
-                {budget > 0 ? (
-                  <p className="text-white text-base sm:text-lg font-bold tracking-tight">
-                    {formatCurrency(budget)}
-                  </p>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={onSetBudget}
-                    className="mt-1 px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
-                  >
-                    <span>Set Monthly Budget</span>
-                    <ArrowRight size={12} />
-                  </button>
-                )}
+                <p className="text-white text-base sm:text-lg font-bold tracking-tight">
+                  {budget > 0 ? formatCurrency(budget) : t('noBudgetSet', 'No budget set')}
+                </p>
               </div>
 
               <div>
                 <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
-                  Spent
+                  {t('spent', 'Spent')}
                 </span>
                 <p className="text-white text-3xl sm:text-4xl font-extrabold tracking-tight">
                   {formatCurrency(total_spent)}
@@ -160,12 +151,12 @@ export default function Home({
                     ? 'bg-emerald-100 text-emerald-950'
                     : 'bg-rose-100 text-rose-950'
                     }`}>
-                    {remaining_budget >= 0 ? 'Remaining: ' : 'Remaining: Over by '}
+                    {remaining_budget >= 0 ? `${t('remaining', 'Remaining')}: ` : `${t('remaining', 'Remaining')}: `}
                     {formatCurrency(Math.abs(remaining_budget))}
                   </span>
                 ) : (
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-200/90 text-purple-950 shadow-xs">
-                    No budget set
+                    {t('noBudgetSet', 'No budget set')}
                   </span>
                 )}
               </div>
@@ -215,7 +206,7 @@ export default function Home({
             </div>
             <div>
               <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">
-                Today
+                {t('today', 'Today')}
               </span>
               <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 {formatCurrency(today_spent)}
@@ -230,7 +221,7 @@ export default function Home({
             </div>
             <div>
               <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">
-                This Week
+                {t('thisWeek', 'This Week')}
               </span>
               <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 {formatCurrency(week_spent)}
@@ -245,7 +236,7 @@ export default function Home({
             </div>
             <div>
               <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">
-                This Month
+                {t('thisMonth', 'This Month')}
               </span>
               <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 {formatCurrency(total_spent)}
@@ -263,13 +254,13 @@ export default function Home({
         <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              Top Categories
+              {t('topCategories', 'Top Categories')}
             </h3>
             <button
               onClick={onViewAllCategories}
               className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 transition-colors"
             >
-              <span>View All</span>
+              <span>{t('viewAll', 'View All')}</span>
               <ArrowRight size={13} />
             </button>
           </div>

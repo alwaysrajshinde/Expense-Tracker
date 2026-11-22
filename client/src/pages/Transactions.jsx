@@ -31,6 +31,7 @@ export default function Transactions({
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     if (selectedMonth && selectedMonth !== monthFilter) {
@@ -46,9 +47,9 @@ export default function Transactions({
     return () => clearTimeout(timer);
   }, [search]);
 
-  const loadTransactions = async () => {
+  const loadTransactions = async (background = false) => {
     try {
-      setLoading(true);
+      if (!background) setLoading(true);
       const data = await getTransactions({
         month: monthFilter && monthFilter !== 'all' ? monthFilter : undefined,
         category: categoryFilter && categoryFilter !== 'all' ? categoryFilter : undefined,
@@ -63,7 +64,7 @@ export default function Transactions({
     } catch (err) {
       console.error('Error loading transactions:', err);
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   };
 
@@ -76,14 +77,58 @@ export default function Transactions({
     loadTransactions();
   }, [monthFilter, categoryFilter, paymentFilter, debouncedSearch, page]);
 
+  // Listen for local/offline updates from other components
+  useEffect(() => {
+    const handleLocalUpdate = () => {
+      loadTransactions(true);
+    };
+    window.addEventListener('expense_tracker_updated', handleLocalUpdate);
+    return () => window.removeEventListener('expense_tracker_updated', handleLocalUpdate);
+  }, [monthFilter, categoryFilter, paymentFilter, debouncedSearch, page]);
+
   const handleDelete = async (id) => {
+    if (deletingId) return; // Prevent duplicate clicks
+    const prevData = transactionsData;
+
+    // Optimistic UI update: Remove immediately from state without reloading page
+    if (transactionsData && transactionsData.transactions) {
+      const removedTx = transactionsData.transactions.find(t => String(t.id) === String(id));
+      const updatedTxs = transactionsData.transactions.filter(t => String(t.id) !== String(id));
+      const amountDiff = removedTx ? (parseFloat(removedTx.amount) || 0) : 0;
+
+      const updatedGrouped = (transactionsData.grouped || []).map(group => {
+        const filteredGroupTxs = group.transactions.filter(t => String(t.id) !== String(id));
+        const groupTotal = filteredGroupTxs.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+        return {
+          ...group,
+          total: groupTotal,
+          transactions: filteredGroupTxs
+        };
+      }).filter(group => group.transactions.length > 0);
+
+      setTransactionsData({
+        ...transactionsData,
+        transactions: updatedTxs,
+        grouped: updatedGrouped,
+        total_count: Math.max(0, (transactionsData.total_count || 1) - 1),
+        total_amount: Math.max(0, (transactionsData.total_amount || 0) - amountDiff)
+      });
+    }
+
+    setDeletingId(id);
+    setDeleteConfirmId(null);
+
     try {
       await onDeleteTransaction(id);
-      setDeleteConfirmId(null);
       showToast('Transaction deleted successfully', 'success');
-      loadTransactions();
+      // Background reconciliation: refresh in background without resetting loading state
+      await loadTransactions(true);
     } catch (err) {
+      // Rollback to previous data on failure
+      setTransactionsData(prevData);
       showToast(err.message || 'Failed to delete transaction', 'error');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -433,9 +478,10 @@ export default function Transactions({
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirmId)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-sm"
+                disabled={deletingId === deleteConfirmId}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
               >
-                Delete
+                {deletingId === deleteConfirmId ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>

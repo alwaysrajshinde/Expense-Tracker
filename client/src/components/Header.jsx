@@ -19,7 +19,7 @@ export default function Header({
   onResendVerification
 }) {
   const { theme, toggleTheme, isDark } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -46,7 +46,8 @@ export default function Header({
 
   const getTodayDateString = () => {
     const today = new Date();
-    return today.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    const locale = language === 'mr' ? 'mr-IN' : language === 'hi' ? 'hi-IN' : language === 'es' ? 'es-ES' : 'en-US';
+    return today.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const formatMonthName = (monthKey) => {
@@ -68,7 +69,7 @@ export default function Header({
       <div className="flex items-center justify-between">
         <div className="min-w-0 flex-1 mr-2">
           <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-1.5 transition-colors truncate">
-            <span className="truncate">{getGreeting()}, {userName.split(' ')[0]}</span> <span className="animate-pulse flex-shrink-0">👋</span>
+            <span className="truncate">{getGreeting()}, {userName.split(' ')[0]}</span>
           </h1>
           <p className="text-[11px] text-slate-500 dark:text-[#A78BFA] mt-0.5 flex items-center gap-1.5 truncate">
             <Calendar size={11} className="text-[#6C47FF] dark:text-[#C084FC] shrink-0" />

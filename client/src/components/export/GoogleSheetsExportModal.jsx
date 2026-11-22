@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import CustomDropdown from '../CustomDropdown';
 import {
   requestGoogleSheetsAccess,
   getCachedToken,
@@ -293,15 +294,13 @@ export default function GoogleSheetsExportModal({
               <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
                 Choose Month
               </label>
-              <select
+              <CustomDropdown
                 value={targetMonth}
-                onChange={(e) => setTargetMonth(e.target.value)}
-                className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white focus:outline-none focus:border-[#6C47FF]"
-              >
-                {availableMonths.map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+                onChange={(val) => setTargetMonth(val)}
+                options={availableMonths.map(m => ({ value: m, label: m }))}
+                ariaLabel="Choose Month for Export"
+                className="w-full"
+              />
             </div>
           )}
 

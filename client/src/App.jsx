@@ -15,6 +15,7 @@ import ReleaseNotesModal from './components/ReleaseNotesModal';
 import IntelligentImportModal from './components/import/IntelligentImportModal';
 import ImportHistoryModal from './components/import/ImportHistoryModal';
 import WelcomeGreetingOverlay from './components/WelcomeGreetingOverlay';
+import SyncProgressIndicator from './components/SyncProgressIndicator';
 import AuthGate from './components/AuthGate';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -73,15 +74,23 @@ function MainApp() {
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
 
-  // Notify user whenever a new version / push is deployed
+  // Notify user whenever a new version / push is deployed (ONCE per version release, never on every refresh)
   useEffect(() => {
     try {
+      const lastNotified = localStorage.getItem('expense_tracker_update_toast_version');
       const lastSeen = localStorage.getItem('expense_tracker_last_seen_version');
+
+      // Keep unread notification dot visible if user hasn't visited notifications
       if (lastSeen !== APP_VERSION) {
         setHasUnreadNotifs(true);
+      }
+
+      // Show update toast exactly ONCE when the app version increments, never on subsequent refreshes
+      if (lastNotified !== APP_VERSION) {
+        localStorage.setItem('expense_tracker_update_toast_version', APP_VERSION);
         const timer = setTimeout(() => {
-          showToast(`🚀 App updated to ${APP_VERSION}! Check notifications to see latest changes.`, 'info', 4500);
-        }, 4200);
+          showToast(`🚀 App updated to ${APP_VERSION}! Check notifications to see latest changes.`, 'info', 4000);
+        }, 3500);
         return () => clearTimeout(timer);
       }
     } catch (e) {}
@@ -107,8 +116,15 @@ function MainApp() {
     const handleSyncRefresh = () => {
       handleRefreshAll();
     };
+    const handleLocalUpdate = () => {
+      loadMonthData(selectedMonth);
+    };
     window.addEventListener('expense_tracker_synced', handleSyncRefresh);
-    return () => window.removeEventListener('expense_tracker_synced', handleSyncRefresh);
+    window.addEventListener('expense_tracker_updated', handleLocalUpdate);
+    return () => {
+      window.removeEventListener('expense_tracker_synced', handleSyncRefresh);
+      window.removeEventListener('expense_tracker_updated', handleLocalUpdate);
+    };
   }, [selectedMonth]);
 
   const [dismissedEmailBanner, setDismissedEmailBanner] = useState(() => {
@@ -322,12 +338,12 @@ function MainApp() {
   const handleDeleteTransaction = async (id) => {
     try {
       await api.deleteTransaction(id);
-      showToast('Expense deleted successfully', 'success');
+      // Silently refresh month data (dashboard & reports) in background without screen reload
+      loadMonthData(selectedMonth);
     } catch (err) {
       console.warn('Delete transaction error:', err);
-      showToast('Failed to delete expense', 'error');
+      throw err; // Allow caller (Transactions.jsx) to catch and rollback state
     }
-    handleRefreshAll();
   };
 
   return (
@@ -353,26 +369,8 @@ function MainApp() {
 
           {/* Main Desktop Work Area */}
           <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-            {/* Real-time Offline / Syncing Banner (Desktop) */}
-            {(!syncState.isOnline || syncState.status === 'syncing') && (
-              <div className={`px-6 py-2 text-xs font-semibold flex items-center justify-center gap-2 border-b transition-colors ${
-                syncState.status === 'syncing'
-                  ? 'bg-purple-500/15 border-purple-500/25 text-purple-700 dark:text-purple-300'
-                  : 'bg-amber-500/15 border-amber-500/25 text-amber-800 dark:text-amber-300'
-              }`}>
-                {syncState.status === 'syncing' ? (
-                  <>
-                    <RefreshCw size={13} className="animate-spin flex-shrink-0" />
-                    <span>Syncing offline changes with cloud...</span>
-                  </>
-                ) : (
-                  <>
-                    <WifiOff size={13} className="flex-shrink-0" />
-                    <span>You're offline · Changes are saved locally and will sync when reconnected</span>
-                  </>
-                )}
-              </div>
-            )}
+            {/* Real-time Offline / Syncing Progress Indicator (Desktop) */}
+            <SyncProgressIndicator syncState={syncState} isDesktop={true} />
 
             {/* Unverified Email Warning Banner (Desktop) */}
             {user && !user.emailVerified && !user.isGoogleUser && !dismissedEmailBanner && (
@@ -556,26 +554,8 @@ function MainApp() {
            Strictly following Modern Purple Expense Tracker UI.png
            ======================================================== */
         <div className="w-full max-w-lg mx-auto min-h-screen bg-[var(--bg-app)] flex flex-col relative transition-colors">
-          {/* Real-time Offline / Syncing Banner (Mobile) */}
-          {(!syncState.isOnline || syncState.status === 'syncing') && (
-            <div className={`px-4 py-2 text-xs font-semibold flex items-center justify-center gap-2 border-b transition-colors ${
-              syncState.status === 'syncing'
-                ? 'bg-purple-500/15 border-purple-500/25 text-purple-700 dark:text-purple-300'
-                : 'bg-amber-500/15 border-amber-500/25 text-amber-800 dark:text-amber-300'
-            }`}>
-              {syncState.status === 'syncing' ? (
-                <>
-                  <RefreshCw size={12} className="animate-spin flex-shrink-0" />
-                  <span>Syncing offline changes with cloud...</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff size={12} className="flex-shrink-0" />
-                  <span>You're offline · Changes saved locally</span>
-                </>
-              )}
-            </div>
-          )}
+          {/* Real-time Offline / Syncing Progress Indicator (Mobile) */}
+          <SyncProgressIndicator syncState={syncState} isDesktop={false} />
 
           {/* Unverified Email Warning Banner (Mobile) */}
           {user && !user.emailVerified && !user.isGoogleUser && !dismissedEmailBanner && (

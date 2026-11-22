@@ -4,6 +4,7 @@ import {
   Cloud, Settings, ChevronDown, Wallet, LogOut, CheckCircle2, User, Calendar
 } from 'lucide-react';
 import { APP_VERSION, APP_SHORT_DATE, APP_RELEASE_DATE, APP_RELEASE_TIME } from '../constants/version';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function WindowsSidebar({
   activeTab,
@@ -14,18 +15,19 @@ export default function WindowsSidebar({
   onLogout,
   onOpenReleaseNotes
 }) {
+  const { t } = useLanguage();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const menuItems = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'transactions', label: 'Transactions', icon: ReceiptText },
-    { id: 'add_expense', label: 'Add Expense', icon: Plus, isAction: true },
-    { id: 'reports', label: 'Reports', icon: BarChart2 },
-    { id: 'categories', label: 'Categories', icon: Tag },
-    { id: 'budget', label: 'Budget', icon: Target },
-    { id: 'import_export', label: 'Import / Export', icon: ArrowLeftRight },
-    { id: 'backup_restore', label: 'Backup & Restore', icon: Cloud },
-    { id: 'settings', label: 'More', icon: Settings }
+    { id: 'home', label: t('home', 'Home'), icon: Home },
+    { id: 'transactions', label: t('transactions', 'Transactions'), icon: ReceiptText },
+    { id: 'add_expense', label: t('addExpense', 'Add Expense'), icon: Plus, isAction: true },
+    { id: 'reports', label: t('reports', 'Reports'), icon: BarChart2 },
+    { id: 'categories', label: t('categoriesTab', 'Categories'), icon: Tag },
+    { id: 'budget', label: t('budgetTab', 'Budget'), icon: Target },
+    { id: 'import_export', label: t('importExportTab', 'Import / Export'), icon: ArrowLeftRight },
+    { id: 'backup_restore', label: t('backupRestoreTab', 'Backup & Restore'), icon: Cloud },
+    { id: 'settings', label: t('more', 'More'), icon: Settings }
   ];
 
   const handleClick = (item) => {

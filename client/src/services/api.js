@@ -5,7 +5,13 @@ import {
   computeReportsFromTransactions,
   computeYearlyReportFromTransactions
 } from './sheetsBackend';
-import { enqueuePendingMutation } from './offlineStorage';
+import { 
+  enqueuePendingMutation, 
+  getPendingMutations,
+  addOfflineTransaction,
+  updateOfflineTransaction,
+  deleteOfflineTransaction 
+} from './offlineStorage';
 
 const API_BASE = '/api';
 const LOCAL_STORAGE_TXS_KEY = 'expense_tracker_cached_transactions';
@@ -74,6 +80,19 @@ export function saveLocalTransactions(txs) {
 }
 
 export async function getDashboard(month = new Date().toISOString().slice(0, 7)) {
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const uid = getCurrentUserId();
+  const hasPending = uid ? (getPendingMutations(uid).length > 0) : false;
+
+  // Offline-first: If offline or pending offline mutations exist, compute from local store immediately for 0ms consistency
+  if (isOffline || hasPending) {
+    const txs = getLocalTransactions();
+    const settings = await getSettings();
+    const categories = await getCategories();
+    const budget = settings.monthly_budget !== undefined ? (parseFloat(settings.monthly_budget) || 0) : 0;
+    return computeDashboardFromTransactions(txs, month, budget, categories);
+  }
+
   // 1. Cloud Firestore Route (Primary Serverless Cloud Engine)
   if (isFirebaseConfigured) {
     try {
@@ -104,7 +123,62 @@ export async function getDashboard(month = new Date().toISOString().slice(0, 7))
   return computeDashboardFromTransactions(txs, month, budget, categories);
 }
 
+export function queryLocalTransactions(filters = {}) {
+  let txs = getLocalTransactions();
+  if (filters.month && filters.month !== 'all') {
+    txs = txs.filter(t => (t.month_key || t.date?.slice(0, 7)) === filters.month);
+  }
+  if (filters.category && filters.category !== 'all') {
+    txs = txs.filter(t => (t.category || '').toLowerCase() === filters.category.toLowerCase());
+  }
+  if (filters.payment_mode && filters.payment_mode !== 'all') {
+    txs = txs.filter(t => (t.payment_mode || '').toLowerCase() === filters.payment_mode.toLowerCase());
+  }
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    txs = txs.filter(t => 
+      (t.description || '').toLowerCase().includes(q) || 
+      (t.category || '').toLowerCase().includes(q)
+    );
+  }
+
+  // Sort by date descending
+  txs.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+  const page = parseInt(filters.page) || 1;
+  const limit = parseInt(filters.limit) || 40;
+  const total = txs.length;
+  const totalPages = Math.ceil(total / limit) || 1;
+  const paginated = txs.slice((page - 1) * limit, page * limit);
+
+  // Group by date
+  const groupedMap = {};
+  paginated.forEach(t => {
+    const d = t.date || 'Unknown';
+    if (!groupedMap[d]) groupedMap[d] = { date: d, total: 0, transactions: [] };
+    groupedMap[d].transactions.push(t);
+    groupedMap[d].total += (parseFloat(t.amount) || 0);
+  });
+
+  return {
+    transactions: paginated,
+    grouped: Object.values(groupedMap),
+    total_count: total,
+    total_amount: txs.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0),
+    pagination: { page, limit, total, total_pages: totalPages }
+  };
+}
+
 export async function getTransactions(filters = {}) {
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const uid = getCurrentUserId();
+  const hasPending = uid ? (getPendingMutations(uid).length > 0) : false;
+
+  // Offline-first: If offline or pending offline mutations exist, query local transactions directly
+  if (isOffline || hasPending) {
+    return queryLocalTransactions(filters);
+  }
+
   // 1. Cloud Firestore Route (Primary Serverless Cloud Engine)
   if (isFirebaseConfigured) {
     try {
@@ -160,49 +234,7 @@ export async function getTransactions(filters = {}) {
   } catch (err) {}
 
   // 3. Client-Side Query Engine
-  let txs = getLocalTransactions();
-  if (filters.month && filters.month !== 'all') {
-    txs = txs.filter(t => (t.month_key || t.date?.slice(0, 7)) === filters.month);
-  }
-  if (filters.category && filters.category !== 'all') {
-    txs = txs.filter(t => (t.category || '').toLowerCase() === filters.category.toLowerCase());
-  }
-  if (filters.payment_mode && filters.payment_mode !== 'all') {
-    txs = txs.filter(t => (t.payment_mode || '').toLowerCase() === filters.payment_mode.toLowerCase());
-  }
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    txs = txs.filter(t => 
-      (t.description || '').toLowerCase().includes(q) || 
-      (t.category || '').toLowerCase().includes(q)
-    );
-  }
-
-  // Sort by date descending
-  txs.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-
-  const page = parseInt(filters.page) || 1;
-  const limit = parseInt(filters.limit) || 40;
-  const total = txs.length;
-  const totalPages = Math.ceil(total / limit) || 1;
-  const paginated = txs.slice((page - 1) * limit, page * limit);
-
-  // Group by date
-  const grouped = {};
-  paginated.forEach(t => {
-    const d = t.date || 'Unknown';
-    if (!grouped[d]) grouped[d] = { date: d, total: 0, transactions: [] };
-    grouped[d].transactions.push(t);
-    grouped[d].total += (parseFloat(t.amount) || 0);
-  });
-
-  return {
-    transactions: paginated,
-    grouped: Object.values(grouped),
-    total_count: total,
-    total_amount: txs.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0),
-    pagination: { page, limit, total, total_pages: totalPages }
-  };
+  return queryLocalTransactions(filters);
 }
 
 export async function createTransaction(data) {
@@ -221,6 +253,12 @@ export async function createTransaction(data) {
   const local = getLocalTransactions();
   local.unshift(newTx);
   saveLocalTransactions(local);
+  addOfflineTransaction(getCurrentUserId(), newTx);
+
+  // Trigger instantaneous reactivity across all app listeners
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('expense_tracker_updated', { detail: { action: 'create', transaction: newTx } }));
+  }
 
   if (isOffline) {
     enqueuePendingMutation(getCurrentUserId(), {
@@ -289,6 +327,11 @@ export async function updateTransaction(id, data) {
     local[idx] = updatedTx;
     saveLocalTransactions(local);
   }
+  updateOfflineTransaction(getCurrentUserId(), id, updatedTx);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('expense_tracker_updated', { detail: { action: 'update', transaction: updatedTx } }));
+  }
 
   if (isOffline) {
     enqueuePendingMutation(getCurrentUserId(), {
@@ -349,6 +392,11 @@ export async function deleteTransaction(id) {
   const monthKey = targetTx ? (targetTx.month_key || targetTx.date?.slice(0, 7)) : null;
   const filtered = local.filter(t => String(t.id) !== String(id));
   saveLocalTransactions(filtered);
+  deleteOfflineTransaction(getCurrentUserId(), id);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('expense_tracker_updated', { detail: { action: 'delete', id } }));
+  }
 
   if (isOffline) {
     enqueuePendingMutation(getCurrentUserId(), {
@@ -570,6 +618,19 @@ export async function deleteCategory(id) {
 }
 
 export async function getReports(month = new Date().toISOString().slice(0, 7)) {
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const uid = getCurrentUserId();
+  const hasPending = uid ? (getPendingMutations(uid).length > 0) : false;
+
+  // Offline-first: compute immediately from local transactions if offline or has pending mutations
+  if (isOffline || hasPending) {
+    const txs = getLocalTransactions();
+    const settings = await getSettings();
+    const categories = await getCategories();
+    const budget = settings.monthly_budget !== undefined ? (parseFloat(settings.monthly_budget) || 0) : 0;
+    return computeReportsFromTransactions(txs, month, budget, categories);
+  }
+
   // 1. Cloud Firestore Route (Primary Serverless Cloud Engine)
   if (isFirebaseConfigured) {
     try {

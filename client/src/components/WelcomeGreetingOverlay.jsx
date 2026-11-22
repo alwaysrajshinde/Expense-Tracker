@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 const POSITIVE_QUOTES = [
   'Consistency builds financial freedom. Keep going!',
@@ -9,21 +10,30 @@ const POSITIVE_QUOTES = [
 ];
 
 export default function WelcomeGreetingOverlay({ userName = 'Raj', onDismiss }) {
+  const { t } = useLanguage();
   const [visible, setVisible] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
 
-  // Time-based greeting
+  // Time-based greeting in active language
   const hour = new Date().getHours();
-  let timeGreeting = 'Evening';
-  if (hour < 12) timeGreeting = 'Morning';
-  else if (hour < 17) timeGreeting = 'Afternoon';
+  let greetingKey = 'goodEvening';
+  let defaultGreeting = 'Good Evening';
+  if (hour < 12) {
+    greetingKey = 'goodMorning';
+    defaultGreeting = 'Good Morning';
+  } else if (hour < 17) {
+    greetingKey = 'goodAfternoon';
+    defaultGreeting = 'Good Afternoon';
+  }
+
+  const timeGreeting = t(greetingKey, defaultGreeting);
 
   // Format clean first name
   const cleanName = (userName || 'Friend').trim().split(' ')[0].split('@')[0];
   const capitalizedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
 
-  // Pick positive quote
-  const quote = POSITIVE_QUOTES[0]; // Exactly matching user's design
+  // Pick positive quote in active language
+  const quote = t('positiveQuote', POSITIVE_QUOTES[0]);
 
   useEffect(() => {
     // Smooth entrance
@@ -88,14 +98,12 @@ export default function WelcomeGreetingOverlay({ userName = 'Raj', onDismiss }) 
           <div className="h-[1.5px] w-24 sm:w-28 bg-gradient-to-l from-transparent via-[#C084FC]/70 to-[#E879F9] shadow-[0_0_8px_#C084FC]" />
         </div>
 
-        {/* Main Headline: Good Evening, Raj 👋 */}
-        <h2 className="text-[32px] sm:text-[36px] font-serif tracking-tight text-white mb-2.5 drop-shadow-[0_2px_15px_rgba(0,0,0,0.8)]">
-          <span className="font-normal">Good </span>
+        {/* Main Headline: Localized Greeting + Name */}
+        <h2 className="text-[28px] sm:text-[34px] font-serif tracking-tight text-white mb-2.5 drop-shadow-[0_2px_15px_rgba(0,0,0,0.8)]">
           <span className="italic font-serif bg-gradient-to-r from-[#A78BFA] via-[#C084FC] to-[#F472B6] bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(168,85,247,0.7)]">
             {timeGreeting}
           </span>
-          <span className="font-normal">, {capitalizedName} </span>
-          <span className="inline-block animate-bounce text-2xl sm:text-3xl ml-0.5">👋</span>
+          <span className="font-normal">, {capitalizedName}</span>
         </h2>
 
         {/* Positive Motivation Message */}
@@ -138,7 +146,7 @@ export default function WelcomeGreetingOverlay({ userName = 'Raj', onDismiss }) 
 
         {/* Subtle tap-to-dismiss hint */}
         <span className="text-[10px] uppercase tracking-widest text-slate-400/50 mt-3 font-semibold">
-          Tap anywhere to continue
+          {t('tapToContinue', 'Tap anywhere to continue')}
         </span>
       </div>
     </div>

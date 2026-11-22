@@ -110,7 +110,7 @@ export default function CustomDropdown({
       {isOpen && (
         <div
           role="listbox"
-          className={`absolute z-50 mt-1.5 w-full min-w-[190px] max-w-[280px] bg-white dark:bg-[#16132A] border border-slate-200/90 dark:border-white/10 rounded-2xl shadow-2xl backdrop-blur-md overflow-hidden animate-slide-up ${menuClassName}`}
+          className={`absolute z-[70] mt-1.5 left-0 right-0 sm:right-auto w-full min-w-full sm:min-w-[190px] max-w-[calc(100vw-2rem)] sm:max-w-[280px] bg-white dark:bg-[#16132A] border border-slate-200/90 dark:border-white/10 rounded-2xl shadow-2xl backdrop-blur-md overflow-hidden animate-dropdown ${menuClassName}`}
         >
           {/* Optional Search Bar */}
           {searchable && normalizedOptions.length > 7 && (

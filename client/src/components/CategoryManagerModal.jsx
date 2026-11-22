@@ -8,6 +8,7 @@ import {
   Receipt, Users, Briefcase, Coffee, Smartphone, Shield, Zap
 } from 'lucide-react';
 import CategoryIcon from './CategoryIcon';
+import CustomDropdown from './CustomDropdown';
 import * as api from '../services/api';
 import { SUGGESTED_OPTIONAL_CATEGORIES } from '../services/firestoreService';
 
@@ -860,25 +861,28 @@ export default function CategoryManagerModal({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <select
-                      value={reassignTarget}
-                      onChange={(e) => setReassignTarget(e.target.value)}
-                      className="flex-1 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#18132F] text-slate-900 dark:text-white focus:outline-none focus:border-[#6C47FF]"
-                    >
-                      {activeCategories
-                        .filter(c => c.id !== removingCategory.id)
-                        .map(c => (
-                          <option key={c.id || c.name} value={c.name}>
-                            Reassign to: {c.name}
-                          </option>
-                        ))}
-                    </select>
+                    <div className="flex-1 min-w-0">
+                      <CustomDropdown
+                        value={reassignTarget}
+                        onChange={(val) => setReassignTarget(val)}
+                        options={activeCategories
+                          .filter(c => c.id !== removingCategory.id)
+                          .map(c => ({
+                            value: c.name,
+                            label: `Reassign to: ${c.name}`,
+                            color: c.color
+                          }))}
+                        placeholder="Choose category..."
+                        ariaLabel="Reassign target category"
+                        searchable={true}
+                      />
+                    </div>
 
                     <button
                       type="button"
                       onClick={handleConfirmReassign}
                       disabled={actionLoading || !reassignTarget}
-                      className="px-3.5 py-2 rounded-xl bg-[#6C47FF] hover:bg-[#5835E5] text-white text-xs font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 flex-shrink-0"
+                      className="px-3.5 py-2.5 rounded-xl bg-[#6C47FF] hover:bg-[#5835E5] text-white text-xs font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 flex-shrink-0"
                     >
                       {actionLoading && <RefreshCw size={12} className="animate-spin" />}
                       <span>Reassign &amp; Delete</span>

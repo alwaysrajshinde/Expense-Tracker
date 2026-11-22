@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, ChevronDown, RefreshCw, Bell, Sun, Moon, CheckCircle2, LogOut, User } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function WindowsHeader({
   userName = "User",
@@ -19,15 +20,16 @@ export default function WindowsHeader({
   onResendVerification
 }) {
   const { theme, toggleTheme, isDark } = useTheme();
+  const { t } = useLanguage();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return t('goodMorning', 'Good Morning');
+    if (hour < 17) return t('goodAfternoon', 'Good Afternoon');
+    return t('goodEvening', 'Good Evening');
   };
 
   const formatMonthName = (monthKey) => {
@@ -60,7 +62,7 @@ export default function WindowsHeader({
       {/* Greeting Title */}
       <div>
         <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white flex items-center gap-2 tracking-tight">
-          {getGreeting()}, {userName.split(' ')[0]} <span className="animate-pulse">👋</span>
+          {getGreeting()}, {userName.split(' ')[0]}
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
           Here's your expense summary
