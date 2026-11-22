@@ -15,6 +15,8 @@ import { useToast } from '../context/ToastContext';
 import { exportTransactionsToExcel, exportDataToJson } from '../services/exportService';
 import syncService from '../services/syncService';
 import { APP_VERSION, APP_RELEASE_DATE, APP_INKED_VERSION, APP_SHORT_DATE } from '../constants/version';
+import GoogleSheetsExportModal from '../components/export/GoogleSheetsExportModal';
+import { getLocalTransactions, getTransactions } from '../services/api';
 
 export default function Settings({
   settings = {},
@@ -34,6 +36,7 @@ export default function Settings({
   onRefreshAll,
   formatCurrency,
   selectedMonth,
+  availableMonths = [],
   onLogout,
   onOpenTour,
   onOpenReleaseNotes,
@@ -45,6 +48,24 @@ export default function Settings({
   const { theme, setTheme, toggleTheme, isDark, availableThemes } = useTheme();
   const { showToast } = useToast();
   const { user, logout, resendVerificationEmail, resetPassword } = useAuth();
+
+  // Google Sheets Export Modal State
+  const [isGoogleSheetsModalOpen, setIsGoogleSheetsModalOpen] = useState(false);
+  const [exportTransactionsList, setExportTransactionsList] = useState([]);
+
+  const handleOpenGoogleSheets = async () => {
+    let txs = getLocalTransactions();
+    if (user?.uid) {
+      try {
+        const remote = await getTransactions({ limit: 10000 });
+        if (remote?.transactions?.length > 0) {
+          txs = remote.transactions;
+        }
+      } catch (e) {}
+    }
+    setExportTransactionsList(txs);
+    setIsGoogleSheetsModalOpen(true);
+  };
 
   // Active Sub-Modal: null | 'profile' | 'budget' | 'categories' | 'theme' | 'export' | 'security' | 'help'
   const [activeModal, setActiveModal] = useState(() => {
@@ -739,14 +760,30 @@ export default function Settings({
                     Export Financial Records
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleOpenGoogleSheets}
+                      className="p-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-emerald-500 flex items-center gap-3 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition-all cursor-pointer group text-left"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                        <FileSpreadsheet size={18} />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                          Google Sheets
+                        </div>
+                        <div className="text-[10px] text-slate-400">Direct cloud sync</div>
+                      </div>
+                    </button>
+
                     <button
                       type="button"
                       onClick={handleExcelExport}
                       className="p-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-[#6C47FF] flex items-center gap-3 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all cursor-pointer group text-left"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                        <FileSpreadsheet size={18} />
+                      <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-[#6C47FF] flex items-center justify-center flex-shrink-0">
+                        <Download size={18} />
                       </div>
                       <div>
                         <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
@@ -1298,6 +1335,30 @@ export default function Settings({
                 </div>
                 <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
               </button>
+
+              <button
+                type="button"
+                onClick={handleOpenGoogleSheets}
+                className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 shadow-xs border border-emerald-500/20">
+                    <FileSpreadsheet size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                      <span>Export to Google Sheets</span>
+                      <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                        Live Sync
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      Sync directly to your Google Drive spreadsheet
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+              </button>
             </div>
           </div>
 
@@ -1643,6 +1704,26 @@ export default function Settings({
             <div className="space-y-3 pt-1">
               <button
                 type="button"
+                onClick={() => { setActiveModal(null); handleOpenGoogleSheets(); }}
+                className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-emerald-500 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center">
+                    <FileSpreadsheet size={18} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center gap-1.5">
+                      <span>Google Sheets</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600">Direct Sync</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">Export &amp; sync directly to Google Drive</div>
+                  </div>
+                </div>
+                <ExternalLink size={16} className="text-slate-400 group-hover:text-emerald-600" />
+              </button>
+
+              <button
+                type="button"
                 onClick={handleExcelExport}
                 className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-[#6C47FF] flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all cursor-pointer group"
               >
@@ -1906,6 +1987,16 @@ export default function Settings({
         isOpen={Boolean(legalModalType)}
         initialTab={legalModalType || 'privacy'}
         onClose={() => setLegalModalType(null)}
+      />
+
+      {/* Google Sheets Live Export Modal */}
+      <GoogleSheetsExportModal
+        isOpen={isGoogleSheetsModalOpen}
+        onClose={() => setIsGoogleSheetsModalOpen(false)}
+        transactions={exportTransactionsList}
+        selectedMonth={selectedMonth}
+        availableMonths={availableMonths}
+        formatCurrency={formatCurrency}
       />
     </div>
   );

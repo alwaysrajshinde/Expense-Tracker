@@ -439,6 +439,8 @@ function MainApp() {
                   categories={categories}
                   initialSection={settingsSection}
                   isDesktopScreen={true}
+                  selectedMonth={selectedMonth}
+                  availableMonths={availableMonths}
                   onLogout={logout}
                   onOpenTour={() => setIsOnboardingTourOpen(true)}
                   onOpenReleaseNotes={openReleaseNotesModal}
@@ -634,6 +636,8 @@ function MainApp() {
                   categories={categories}
                   initialSection={settingsSection}
                   isDesktopScreen={false}
+                  selectedMonth={selectedMonth}
+                  availableMonths={availableMonths}
                   onLogout={logout}
                   onOpenTour={() => setIsOnboardingTourOpen(true)}
                   onOpenReleaseNotes={openReleaseNotesModal}
