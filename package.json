@@ -1,9 +1,11 @@
 {
   "name": "expense-tracker",
-  "version": "2.4.0",
+  "version": "2.4.2",
   "description": "Personal Expense Tracker with modern UI and Excel reference migration",
   "main": "server/index.js",
   "scripts": {
+    "stamp": "node scripts/stamp-version.js",
+    "prebuild": "node scripts/stamp-version.js",
     "start": "node server/index.js",
     "build": "cd client && npm run build",
     "dev:server": "node server/index.js",

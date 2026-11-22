@@ -14,6 +14,7 @@ import OnboardingTourModal from './components/OnboardingTourModal';
 import ReleaseNotesModal from './components/ReleaseNotesModal';
 import IntelligentImportModal from './components/import/IntelligentImportModal';
 import ImportHistoryModal from './components/import/ImportHistoryModal';
+import WelcomeGreetingOverlay from './components/WelcomeGreetingOverlay';
 import AuthGate from './components/AuthGate';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -49,22 +50,42 @@ function MainApp() {
   const [dashboardData, setDashboardData] = useState(null);
   const [reportsData, setReportsData] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(true);
   const [hasUnreadNotifs, setHasUnreadNotifs] = useState(() => {
     try {
       const uId = localStorage.getItem('expense_tracker_current_user_id') || 'guest';
       const readNotifs = localStorage.getItem(`expense_tracker_read_notifs_${uId}`);
       const lastSeen = localStorage.getItem('expense_tracker_last_seen_version');
-      if (readNotifs && lastSeen === APP_VERSION) {
-        const parsed = JSON.parse(readNotifs);
-        if (Array.isArray(parsed) && parsed.length >= 2) return false;
+      if (lastSeen !== APP_VERSION) {
+        return true; // Brand new version update notification exists!
       }
-      return false;
+      if (readNotifs) {
+        const parsed = JSON.parse(readNotifs);
+        if (Array.isArray(parsed) && parsed.includes(`app-update-${APP_VERSION}`)) {
+          return false;
+        }
+      }
+      return true;
     } catch (e) {
-      return false;
+      return true;
     }
   });
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
+
+  // Notify user whenever a new version / push is deployed
+  useEffect(() => {
+    try {
+      const lastSeen = localStorage.getItem('expense_tracker_last_seen_version');
+      if (lastSeen !== APP_VERSION) {
+        setHasUnreadNotifs(true);
+        const timer = setTimeout(() => {
+          showToast(`🚀 App updated to ${APP_VERSION}! Check notifications to see latest changes.`, 'info', 4500);
+        }, 4200);
+        return () => clearTimeout(timer);
+      }
+    } catch (e) {}
+  }, []);
 
 
 
@@ -823,6 +844,13 @@ function MainApp() {
           showToast('Import batch reverted successfully!', 'info');
         }}
       />
+      {/* User's Custom Welcome Back Motivational Overlay */}
+      {showWelcomeOverlay && (
+        <WelcomeGreetingOverlay
+          userName={user?.name || user?.email || settings?.user_name || 'Raj'}
+          onDismiss={() => setShowWelcomeOverlay(false)}
+        />
+      )}
     </div>
   );
 }

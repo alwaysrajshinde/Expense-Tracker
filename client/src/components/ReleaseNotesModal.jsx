@@ -7,10 +7,28 @@ export default function ReleaseNotesModal({ isOpen, onClose }) {
 
   const highlights = [
     {
+      icon: Sparkles,
+      title: 'Welcome Back Motivational Overlay',
+      description: 'Luxury launch greeting with glowing lotus emblem, dynamic time-adaptive greeting, and financial motivation quotes designed to build consistent money habits.',
+      tag: 'New Design'
+    },
+    {
       icon: Smartphone,
-      title: 'Mobile-First UX & Viewport Optimization',
-      description: 'Zero horizontal page overflow on any screen (320px–430px), elevated FAB clearance with 112px bottom padding, WCAG 44px+ touch targets, and responsive currency sizing.',
+      title: 'Single-Page Mobile Add Expense (No Scroll)',
+      description: 'Streamlined form layout fitting 100% on a single screen without scrolling. Quick amount chips and tactile category selector for rapid 1-tap logging.',
       tag: 'Mobile Experience'
+    },
+    {
+      icon: Palette,
+      title: 'Custom Fintech Dropdowns',
+      description: 'Replaced unstyled browser-native select popups with elegant dark glassmorphic dropdown cards, smooth transitions, and chevron indicators.',
+      tag: 'UI/UX Polish'
+    },
+    {
+      icon: LayoutDashboard,
+      title: 'Unified Single-Row Reports & 360° Closed Donut',
+      description: 'Consolidated dual navigation rows into one clean 4-segment tab bar. Category donut chart now renders a guaranteed complete 360° circle with a 6-month spending trend.',
+      tag: 'Analytics'
     },
     {
       icon: Clock,
@@ -21,7 +39,7 @@ export default function ReleaseNotesModal({ isOpen, onClose }) {
     {
       icon: FileSpreadsheet,
       title: 'Google Sheets Direct Cloud Sync (Upcoming)',
-      description: 'Previewing direct 1-click cloud sync to Google Sheets and Drive. Fully integrated architecture ready for live sync rollout.',
+      description: 'Previewing direct 1-click cloud sync to Google Sheets and Drive. Dedicated preview section in Settings.',
       tag: 'Upcoming Feature'
     },
     {
@@ -41,24 +59,6 @@ export default function ReleaseNotesModal({ isOpen, onClose }) {
       title: '15 Standard Categories & Smart Removal Guard',
       description: 'Clean default taxonomy for new users, suggested 1-click additions, and protective deletion guards offering transaction reassign or archive choices.',
       tag: 'Category Management'
-    },
-    {
-      icon: LayoutDashboard,
-      title: 'Windows Desktop Executive Dashboard',
-      description: 'Spacious 2-column fintech command center designed specifically for Windows desktop screens with live cloud sync monitoring and budget presets.',
-      tag: 'Desktop Experience'
-    },
-    {
-      icon: Palette,
-      title: '6 Refined Themes & Violet Fintech UI',
-      description: 'Support for 6 distinct themes (Dark, Light, Midnight, Ocean, Emerald, Rose) with high contrast cards and smooth transitions.',
-      tag: 'UI/UX Redesign'
-    },
-    {
-      icon: ShieldCheck,
-      title: 'Multi-User Isolation & Historical Safety',
-      description: 'Complete user data isolation protecting all historical financial records, custom categories, and budgets with zero data loss.',
-      tag: 'Data Sovereignty'
     }
   ];
 

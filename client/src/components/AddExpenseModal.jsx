@@ -129,9 +129,9 @@ export default function AddExpenseModal({
         <div className="w-12 h-1.5 bg-slate-200 dark:bg-white/15 rounded-full mx-auto mt-2.5 sm:hidden" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-white/10">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 dark:border-white/10">
           <div className="flex items-center gap-2">
-            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
               {editingTransaction
                 ? (isRefund ? t('editExpense', 'Edit Income') : t('editExpense', 'Edit Expense'))
                 : (isRefund ? t('addIncome', 'Add Income / Refund') : t('addExpense', 'Add Expense'))}
@@ -146,48 +146,48 @@ export default function AddExpenseModal({
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+            className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
 
-        {/* Form Body */}
-        <form noValidate onSubmit={(e) => handleSubmit(e, false)} className="flex-1 overflow-y-auto px-5 py-3 space-y-3.5">
+        {/* Form Body - Ultra Compact Grid fitting completely inside 640px viewport */}
+        <form noValidate onSubmit={(e) => handleSubmit(e, false)} className="flex-1 overflow-y-auto px-4 py-2.5 space-y-2.5">
           {error && (
-            <div className="p-2.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-xs font-semibold">
+            <div className="p-2 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-xs font-semibold">
               {error}
             </div>
           )}
 
           {/* Type Toggle: Expense vs Income / Refund */}
-          <div className="grid grid-cols-2 gap-1.5 bg-slate-100 dark:bg-white/10 p-1 rounded-2xl">
+          <div className="grid grid-cols-2 gap-1 bg-slate-100 dark:bg-white/10 p-0.5 rounded-xl">
             <button
               type="button"
               onClick={() => setIsRefund(false)}
-              className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${!isRefund
+              className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${!isRefund
                 ? 'bg-[#6C47FF] dark:bg-[#7C3AED] text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
-              <Receipt size={14} />
+              <Receipt size={13} />
               <span>{t('expense', 'Expense')}</span>
             </button>
             <button
               type="button"
               onClick={() => setIsRefund(true)}
-              className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${isRefund
+              className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${isRefund
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
-              <RotateCcw size={14} />
+              <RotateCcw size={13} />
               <span>{t('incomeRefund', 'Income / Refund')}</span>
             </button>
           </div>
 
           {/* Amount Hero Section with Quick Increment Chips */}
-          <div className="rounded-2xl p-3 bg-purple-50/60 dark:bg-white/5 border border-purple-100 dark:border-white/10 space-y-2">
+          <div className="rounded-xl p-2.5 bg-purple-50/60 dark:bg-white/5 border border-purple-100 dark:border-white/10 space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                 {t('amount', 'Amount')} *
@@ -204,7 +204,7 @@ export default function AddExpenseModal({
             </div>
 
             <div className="relative flex items-center">
-              <span className="absolute left-3 text-xl font-black text-[#6C47FF] dark:text-[#C084FC]">
+              <span className="absolute left-3 text-lg font-black text-[#6C47FF] dark:text-[#C084FC]">
                 {currency}
               </span>
               <input
@@ -217,20 +217,20 @@ export default function AddExpenseModal({
                 placeholder="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#1D1936] border border-slate-200 dark:border-white/15 rounded-xl text-xl font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF] transition-all shadow-xs"
+                className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-[#1D1936] border border-slate-200 dark:border-white/15 rounded-xl text-lg font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6C47FF] transition-all shadow-xs"
               />
             </div>
 
-            {/* Quick Amount Increment Pills (Utilizing the space effectively) */}
+            {/* Quick Amount Increment Pills */}
             <div className="flex items-center gap-1.5 pt-0.5">
               <span className="text-[10px] font-bold text-slate-400 shrink-0">Quick:</span>
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full">
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar w-full">
                 {[100, 500, 1000, 2000].map((quickVal) => (
                   <button
                     key={quickVal}
                     type="button"
                     onClick={() => handleQuickAddAmount(quickVal)}
-                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white dark:bg-white/10 border border-slate-200/80 dark:border-white/10 hover:border-purple-400 text-slate-700 dark:text-slate-200 transition-colors shadow-xs cursor-pointer active:scale-95 whitespace-nowrap"
+                    className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white dark:bg-white/10 border border-slate-200/80 dark:border-white/10 hover:border-purple-400 text-slate-700 dark:text-slate-200 transition-colors shadow-xs cursor-pointer active:scale-95 whitespace-nowrap"
                   >
                     +{currency}{quickVal}
                   </button>
@@ -239,8 +239,8 @@ export default function AddExpenseModal({
             </div>
           </div>
 
-          {/* Category Selection: Tactile 4-Col Grid of Category Chips (Zero Dropdown Mess) */}
-          <div className="space-y-1.5">
+          {/* Category Selection: Tactile 4-Col Grid of Category Chips */}
+          <div className="space-y-1">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
                 {t('category', 'Category')} * <span className="text-[#6C47FF] dark:text-[#C084FC]">({category})</span>
@@ -248,15 +248,15 @@ export default function AddExpenseModal({
               <button
                 type="button"
                 onClick={() => setShowAllCategories(!showAllCategories)}
-                className="text-[11px] font-bold text-[#6C47FF] dark:text-[#C084FC] hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[10px] font-bold text-[#6C47FF] dark:text-[#C084FC] hover:underline flex items-center gap-0.5 cursor-pointer"
               >
                 <span>{showAllCategories ? 'Less' : t('moreCategories', 'All Categories')}</span>
-                {showAllCategories ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                {showAllCategories ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               </button>
             </div>
 
             {/* Tactile Category Grid */}
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-4 gap-1">
               {quickCategories.slice(0, 8).map((cat) => {
                 const isSelected = category === cat.name;
                 return (
@@ -264,18 +264,18 @@ export default function AddExpenseModal({
                     key={cat.name}
                     type="button"
                     onClick={() => setCategory(cat.name)}
-                    className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all cursor-pointer active:scale-95 ${isSelected
+                    className={`flex flex-col items-center justify-center p-1.5 rounded-xl border text-center transition-all cursor-pointer active:scale-95 ${isSelected
                       ? 'border-[#6C47FF] bg-purple-50 dark:bg-purple-900/50 shadow-sm ring-1 ring-[#6C47FF]'
                       : 'border-slate-200/80 dark:border-white/10 bg-slate-50/60 dark:bg-white/5 hover:border-slate-300 text-slate-700 dark:text-slate-300'
                       }`}
                   >
                     <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center mb-1"
+                      className="w-6 h-6 rounded-lg flex items-center justify-center mb-0.5"
                       style={{ backgroundColor: `${cat.color || '#6C47FF'}20` }}
                     >
-                      <CategoryIcon name={cat.name} icon={cat.icon} color={cat.color || '#6C47FF'} size={15} />
+                      <CategoryIcon name={cat.name} icon={cat.icon} color={cat.color || '#6C47FF'} size={13} />
                     </div>
-                    <span className="text-[10px] font-bold truncate max-w-full">
+                    <span className="text-[9px] font-bold truncate max-w-full">
                       {cat.name}
                     </span>
                   </button>
@@ -338,7 +338,7 @@ export default function AddExpenseModal({
                     key={mode.id}
                     type="button"
                     onClick={() => setPaymentMode(mode.id)}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-xl border text-xs font-bold transition-all cursor-pointer ${isSelected
+                    className={`flex items-center justify-center gap-1.5 py-1.5 px-1 rounded-xl border text-xs font-bold transition-all cursor-pointer ${isSelected
                       ? 'bg-[#6C47FF] dark:bg-[#7C3AED] border-[#6C47FF] text-white shadow-xs'
                       : 'bg-slate-50/60 dark:bg-white/5 border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-slate-300'
                       }`}
@@ -352,9 +352,9 @@ export default function AddExpenseModal({
           </div>
 
           {/* Date & Description Side-by-Side */}
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-2">
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-0.5">
                 <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
                   {t('date', 'Date')} *
                 </label>
@@ -381,34 +381,34 @@ export default function AddExpenseModal({
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
+                className="w-full px-2.5 py-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
                 {t('description', 'Description')}
               </label>
               <input
                 type="text"
-                placeholder={t('notesPlaceholder', 'e.g. Lunch with colleagues')}
+                placeholder={t('notesPlaceholder', 'e.g. Lunch with team')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
+                className="w-full px-3 py-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
               />
             </div>
           </div>
 
           {/* Action Buttons: Instant 1-click submit directly on screen without scrolling */}
-          <div className="pt-2 flex items-center gap-2 pb-1">
+          <div className="pt-1.5 flex items-center gap-2 pb-0.5">
             {!editingTransaction && (
               <button
                 type="button"
                 disabled={saving}
                 onClick={(e) => handleSubmit(e, true)}
-                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 border border-slate-200 dark:border-white/10 cursor-pointer active:scale-98"
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 border border-slate-200 dark:border-white/10 cursor-pointer active:scale-98"
               >
-                <Plus size={15} strokeWidth={2.5} />
+                <Plus size={14} strokeWidth={2.5} />
                 <span>{t('addAnother', 'Add Another')}</span>
               </button>
             )}
@@ -416,11 +416,11 @@ export default function AddExpenseModal({
             <button
               type="submit"
               disabled={saving}
-              className={`w-full py-3 bg-gradient-to-r from-[#5B27DC] to-[#7B42F6] hover:from-[#4E1FC5] hover:to-[#6E32E9] text-white rounded-2xl font-bold text-xs shadow-lg shadow-purple-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 ${
+              className={`w-full py-2.5 bg-gradient-to-r from-[#5B27DC] to-[#7B42F6] hover:from-[#4E1FC5] hover:to-[#6E32E9] text-white rounded-xl font-bold text-xs shadow-lg shadow-purple-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 ${
                 editingTransaction ? 'w-full' : 'flex-1'
               }`}
             >
-              <Check size={16} strokeWidth={2.5} />
+              <Check size={15} strokeWidth={2.5} />
               <span>
                 {saving
                   ? 'Saving...'

@@ -1,9 +1,11 @@
 {
   "name": "client",
   "private": true,
-  "version": "2.4.0",
+  "version": "2.4.2",
   "type": "module",
   "scripts": {
+    "prebuild": "node ../scripts/stamp-version.js",
+    "predev": "node ../scripts/stamp-version.js",
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",

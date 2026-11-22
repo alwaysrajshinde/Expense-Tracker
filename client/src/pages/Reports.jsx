@@ -13,8 +13,7 @@ export default function Reports({
   formatCurrency
 }) {
   const { t } = useLanguage();
-  const [reportMode, setReportMode] = useState('monthly'); // 'monthly' | 'yearly'
-  const [subTab, setSubTab] = useState('overview'); // 'overview' | 'category' | 'payment'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'category' | 'payment' | 'yearly'
   const [selectedYear, setSelectedYear] = useState(() => (selectedMonth ? selectedMonth.slice(0, 4) : new Date().getFullYear().toString()));
   const [yearlyData, setYearlyData] = useState(null);
   const [loadingYearly, setLoadingYearly] = useState(false);
@@ -26,7 +25,7 @@ export default function Reports({
   }, [selectedMonth]);
 
   useEffect(() => {
-    if (reportMode === 'yearly') {
+    if (activeTab === 'yearly') {
       const loadYearly = async () => {
         try {
           setLoadingYearly(true);
@@ -40,7 +39,7 @@ export default function Reports({
       };
       loadYearly();
     }
-  }, [reportMode, selectedYear]);
+  }, [activeTab, selectedYear]);
 
   if (!reportsData) {
     return (
@@ -142,86 +141,68 @@ export default function Reports({
 
   return (
     <div className="space-y-5 px-4 sm:px-6 lg:px-8 py-4 pb-28 lg:pb-8 max-w-7xl mx-auto">
-      {/* Top Header & Mode Toggle */}
+      {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
             Spending &amp; Expense Analytics
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {reportMode === 'monthly'
-              ? `Detailed analysis, category shares, and trends for ${formatMonthName(selectedMonth)}`
-              : `Annual spending overview, monthly distribution, and annual categories for ${selectedYear}`}
+            {activeTab === 'yearly'
+              ? `Annual spending overview, monthly distribution, and annual categories for ${selectedYear}`
+              : `Detailed analysis, category shares, and trends for ${formatMonthName(selectedMonth)}`}
           </p>
-        </div>
-
-        {/* Monthly vs Yearly Switcher */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <div className="inline-flex bg-slate-100 dark:bg-white/10 p-1 rounded-2xl">
-            <button
-              onClick={() => setReportMode('monthly')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                reportMode === 'monthly'
-                  ? 'bg-[#6C47FF] text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-              }`}
-            >
-              Monthly Report
-            </button>
-            <button
-              onClick={() => setReportMode('yearly')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                reportMode === 'yearly'
-                  ? 'bg-[#6C47FF] text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-              }`}
-            >
-              Yearly Summary
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* Segmented Sub-Tabs Bar (Monthly only) - Symmetrical full-width grid with zero wasted whitespace */}
-      {reportMode === 'monthly' && (
-        <div className="w-full bg-slate-100 dark:bg-white/10 p-1 rounded-2xl grid grid-cols-3">
-          <button
-            onClick={() => setSubTab('overview')}
-            className={`py-2 rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${
-              subTab === 'overview'
-                ? 'bg-[#6C47FF] text-white shadow-sm font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-            }`}
-          >
-            {t('overview', 'Overview')}
-          </button>
-          <button
-            onClick={() => setSubTab('category')}
-            className={`py-2 rounded-xl text-xs font-semibold text-center truncate px-1 transition-all cursor-pointer ${
-              subTab === 'category'
-                ? 'bg-[#6C47FF] text-white shadow-sm font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-            }`}
-          >
-            {t('categories', 'Categories')} ({category_breakdown.length})
-          </button>
-          <button
-            onClick={() => setSubTab('payment')}
-            className={`py-2 rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${
-              subTab === 'payment'
-                ? 'bg-[#6C47FF] text-white shadow-sm font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-            }`}
-          >
-            {t('paymentModes', 'Payment Modes')}
-          </button>
-        </div>
-      )}
+      {/* Unified Single Navigation Bar: Overview | Categories | Payment Modes | Yearly */}
+      <div className="w-full bg-slate-100 dark:bg-white/10 p-1 rounded-2xl grid grid-cols-4 gap-1">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`py-2 rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${
+            activeTab === 'overview'
+              ? 'bg-[#6C47FF] text-white shadow-sm font-bold'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+          }`}
+        >
+          {t('overview', 'Overview')}
+        </button>
+        <button
+          onClick={() => setActiveTab('category')}
+          className={`py-2 rounded-xl text-xs font-semibold text-center truncate px-1 transition-all cursor-pointer ${
+            activeTab === 'category'
+              ? 'bg-[#6C47FF] text-white shadow-sm font-bold'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+          }`}
+        >
+          {t('categories', 'Categories')} ({category_breakdown.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('payment')}
+          className={`py-2 rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${
+            activeTab === 'payment'
+              ? 'bg-[#6C47FF] text-white shadow-sm font-bold'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+          }`}
+        >
+          {t('paymentModes', 'Payment Modes')}
+        </button>
+        <button
+          onClick={() => setActiveTab('yearly')}
+          className={`py-2 rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${
+            activeTab === 'yearly'
+              ? 'bg-[#6C47FF] text-white shadow-sm font-bold'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+          }`}
+        >
+          {t('yearly', 'Yearly')}
+        </button>
+      </div>
 
       {/* ========================================================
           YEARLY REPORT VIEW
          ======================================================== */}
-      {reportMode === 'yearly' && (
+      {activeTab === 'yearly' && (
         <div className="space-y-5 animate-fade-in">
           {/* Year Selector Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white dark:bg-[#151226] p-3 rounded-2xl border border-slate-100 dark:border-white/10 shadow-xs">
@@ -346,7 +327,7 @@ export default function Reports({
       {/* ========================================================
           MONTHLY REPORT VIEW (Existing refined sub-tabs)
          ======================================================== */}
-      {reportMode === 'monthly' && (
+      {activeTab !== 'yearly' && (
         <div className="space-y-5">
           {/* Month Carousel & Direct Month Picker */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-[#151226] p-3 sm:px-4 rounded-2xl border border-slate-100 dark:border-white/10 shadow-xs transition-colors">
@@ -451,7 +432,7 @@ export default function Reports({
       </div>
 
       {/* SUB-TAB 1: OVERVIEW (Desktop: Side-by-Side Grid) */}
-      {subTab === 'overview' && (
+      {activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
           {/* Spending by Category (Donut + Legend) */}
           <div className="bg-white dark:bg-[#151226] rounded-3xl p-5 sm:p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-5 transition-colors">
@@ -654,7 +635,7 @@ export default function Reports({
       )}
 
       {/* SUB-TAB 2: FULL CATEGORY BREAKDOWN WITH VISUAL RANKING CHART */}
-      {subTab === 'category' && (
+      {activeTab === 'category' && (
         <div className="space-y-5 animate-fade-in">
           {/* Visual Top Categories Bar Chart */}
           <div className="bg-white dark:bg-[#151226] rounded-3xl p-5 sm:p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4">
@@ -776,7 +757,7 @@ export default function Reports({
       )}
 
       {/* SUB-TAB 3: PAYMENT BREAKDOWN WITH VISUAL SHARE GRAPH */}
-      {subTab === 'payment' && (
+      {activeTab === 'payment' && (
         <div className="space-y-5 animate-fade-in">
           {/* Visual Payment Methods Distribution Bar */}
           <div className="bg-white dark:bg-[#151226] rounded-3xl p-5 sm:p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4">

@@ -1,0 +1,36 @@
+# Defect Tracker & Remediation Log — Personal Expense Tracker
+
+**Author:** Senior QA Automation Engineer & Test Analyst  
+**Application:** Personal Expense Tracker  
+**Document Version:** 2.4.0-PROD  
+**Date:** November 2026  
+
+---
+
+## 1. Defect Classification & Severity Standards
+- **Critical (P0):** Application crash, broken core revenue/balance calculation, complete data loss, security bypass, or broken auth guard.
+- **High (P1):** Major functional defect, broken primary charts, UI overflowing off-screen, or missing continuous historical data.
+- **Medium (P2):** Sub-optimal UI layout, unstyled native select popups, toast stacking, or redundant navigation rows.
+- **Low (P3):** Minor cosmetic alignment, spacing discrepancies, or non-blocking animation delays.
+
+---
+
+## 2. Master Defect Tracker & Remediation Register
+
+| Defect ID | Severity | Module | Summary / Description | Root Cause | Fix Implementation | Automated Verification | Status |
+|---|---|---|---|---|---|---|---|
+| **DEF-001** | High | Reports & Analytics | Category donut chart renders only partial/half circle (~55% arc) | Categories with small percentage spends were excluded without normalizing the SVG circumference | Appended dynamic 'Others' slice for residual percentages and normalized all slices to 100% | `17_reports_deep_audit.spec.js` (Assert circumference completeness >= 99%) | **RESOLVED & VERIFIED** |
+| **DEF-002** | High | Reports & Analytics | Monthly spending trend chart shows only 1 single bar (Nov) instead of 6 months | Frontend / Backend query only grouped transactions for current month | Refactored loop to continuously generate all 6 months ending at selected month (Jun to Nov) with baseline indicators | `17_reports_deep_audit.spec.js` (Assert 6 continuous month labels) | **RESOLVED & VERIFIED** |
+| **DEF-003** | Medium | Reports & Analytics | Redundant stacked navigation rows creating extra vertical space on Reports | Dual switchers (`Monthly Report \| Yearly Summary` stacked over `Overview \| Categories \| Payment Modes`) | Merged modes into a single clean 4-segment tab bar: `[Overview] [Categories] [Payment Modes] [Yearly]` | `17_reports_deep_audit.spec.js` (Verify single row, 0 stacked rows) | **RESOLVED & VERIFIED** |
+| **DEF-004** | Medium | Reports & Analytics | Future month navigation button enabled on current calendar month | Boundary check was missing on next month button | Bound `disabled` state with `opacity-40` and `cursor-not-allowed` when `currentIdx === 0` | `17_reports_deep_audit.spec.js` (Assert Next Month `isDisabled === true`) | **RESOLVED & VERIFIED** |
+| **DEF-005** | Medium | Transactions & History | Unstyled white browser-native `<select>` dropdowns with harsh blue highlights | Native HTML `<select>` controls used instead of styled components | Built `CustomDropdown.jsx` featuring dark glassmorphic styling, chevrons, and touch-friendly cards | `18_offline_security_audit.spec.js` (Assert 0 raw select tags) | **RESOLVED & VERIFIED** |
+| **DEF-006** | Medium | UI & Feedback | Multiple feedback toasts stacking vertically over modals | `ToastContext.jsx` appended toasts to array without limiting count | Enforced strictly 1 active toast via `setToasts([{ id, msg, type }])` in centered pill format | `18_offline_security_audit.spec.js` (Assert single pill toast count <= 1) | **RESOLVED & VERIFIED** |
+| **DEF-007** | Medium | UI & Navigation | Standalone notification bell cluttering header bar | Header component rendered redundant bell icon | Removed standalone bell; moved notifications cleanly inside Profile dropdown with unread dot | `all_fixes_audit.spec.js` (Verify notifications inside profile) | **RESOLVED & VERIFIED** |
+| **DEF-008** | High | Expense Management | User forced to scroll inside Add Expense modal on mobile screens | Form elements exceeded standard 640px viewport height | Compacted grid spacing, quick chips, and action buttons to fit 100% on a single screen without scrolling | `16_mobile_viewports_audit.spec.js` (Assert submit button bounding box <= 640px) | **RESOLVED & VERIFIED** |
+| **DEF-009** | High | Localization | Language selection not translating whole application | `Settings.jsx` called `setLanguage` while `LanguageContext` exported `changeLanguage` | Exported alias `setLanguage` in `LanguageContext.jsx` and connected full dictionary | `all_fixes_audit.spec.js` (Verify Hindi, Marathi, Spanish) | **RESOLVED & VERIFIED** |
+| **DEF-010** | High | Onboarding & Polish | Missing Welcome Back Motivation greeting on app launch | Feature was requested with user custom visual luxury design | Implemented `WelcomeGreetingOverlay.jsx` with lotus emblem, time greeting, and financial quote | `welcome_overlay_test.spec.js` (10.7s pass in Playwright) | **RESOLVED & VERIFIED** |
+
+---
+
+## 3. Verification Sign-Off
+All 10 logged defects have been remediated in the codebase and verified through Playwright automated test scripts. Zero open P0 or P1 defects remain.
