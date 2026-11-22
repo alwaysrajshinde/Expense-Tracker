@@ -11,7 +11,7 @@
   --accent-purple: #6c47ff;
 }
 
-html.dark {
+html.dark, html.theme-dark {
   --bg-app: #0d0b18;
   --bg-surface: #16132a;
   --bg-surface-subtle: #1c1833;
@@ -29,13 +29,31 @@ html.theme-midnight {
   --accent-purple: #6366f1;
 }
 
+html.theme-ocean {
+  --bg-app: #081325;
+  --bg-surface: #0f1e36;
+  --bg-surface-subtle: #142948;
+  --border-color: rgba(56, 189, 248, 0.15);
+  --text-primary: #f0f9ff;
+  --accent-purple: #0284c7;
+}
+
 html.theme-emerald {
-  --bg-app: #051a14;
-  --bg-surface: #0b281f;
-  --bg-surface-subtle: #0f3529;
+  --bg-app: #041611;
+  --bg-surface: #09251c;
+  --bg-surface-subtle: #0e3427;
   --border-color: rgba(16, 185, 129, 0.15);
   --text-primary: #f0fdf4;
   --accent-purple: #10b981;
+}
+
+html.theme-rose {
+  --bg-app: #160a12;
+  --bg-surface: #24121e;
+  --bg-surface-subtle: #331a2b;
+  --border-color: rgba(244, 63, 94, 0.18);
+  --text-primary: #fff1f2;
+  --accent-purple: #f43f5e;
 }
 
 /* Safe Area Insets for Mobile PWA */
@@ -55,9 +73,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-html.dark body {
-  background-color: #0d0b18;
-  color: #f8fafc;
+html.dark body, 
+html.theme-dark body, 
+html.theme-midnight body, 
+html.theme-ocean body, 
+html.theme-emerald body, 
+html.theme-rose body {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
 }
 
 /* Custom subtle scrollbar */

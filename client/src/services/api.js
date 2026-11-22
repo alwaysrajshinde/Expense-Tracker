@@ -5,6 +5,7 @@ import {
   computeReportsFromTransactions,
   computeYearlyReportFromTransactions
 } from './sheetsBackend';
+import { enqueuePendingMutation } from './offlineStorage';
 
 const API_BASE = '/api';
 const LOCAL_STORAGE_TXS_KEY = 'expense_tracker_cached_transactions';
@@ -206,33 +207,47 @@ export async function getTransactions(filters = {}) {
 
 export async function createTransaction(data) {
   let createdTx = null;
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
-  // 1. Cloud Firestore Route
-  if (isFirebaseConfigured) {
-    try {
-      const fsTx = await firestoreService.addTransaction(getCurrentUserId(), data);
-      if (fsTx) createdTx = fsTx;
-    } catch (e) {
-      console.warn('Firestore addTransaction fallback:', e);
-    }
-  }
-
-  const txId = (createdTx && createdTx.id) || data.id || ('TX-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
-  const newTx = createdTx || {
+  const txId = data.id || ('TX-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
+  const newTx = {
     ...data,
     id: txId,
     month_key: data.month_key || (data.date ? data.date.slice(0, 7) : new Date().toISOString().slice(0, 7)),
     updated_at: new Date().toISOString()
   };
 
-  // Always update local storage cache to keep client state synchronized
+  // Always update local storage cache immediately so UI reflects change with 0 latency
   const local = getLocalTransactions();
   local.unshift(newTx);
   saveLocalTransactions(local);
 
-  if (createdTx) return createdTx;
+  if (isOffline) {
+    enqueuePendingMutation(getCurrentUserId(), {
+      action: 'create',
+      targetId: newTx.id,
+      payload: newTx
+    });
+    return newTx;
+  }
 
-  // Forward to local API server if running
+  // 1. Cloud Firestore Route
+  if (isFirebaseConfigured) {
+    try {
+      const fsTx = await firestoreService.addTransaction(getCurrentUserId(), newTx);
+      if (fsTx) return fsTx;
+    } catch (e) {
+      console.warn('Firestore addTransaction fallback:', e);
+      enqueuePendingMutation(getCurrentUserId(), {
+        action: 'create',
+        targetId: newTx.id,
+        payload: newTx
+      });
+      return newTx;
+    }
+  }
+
+  // 2. Forward to local API server if running
   try {
     const res = await fetch(`${API_BASE}/transactions`, {
       method: 'POST',
@@ -246,12 +261,20 @@ export async function createTransaction(data) {
       const json = await res.json();
       return json.data;
     }
-  } catch (err) {}
+  } catch (err) {
+    enqueuePendingMutation(getCurrentUserId(), {
+      action: 'create',
+      targetId: newTx.id,
+      payload: newTx
+    });
+  }
 
   return newTx;
 }
 
 export async function updateTransaction(id, data) {
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
   const updatedTx = {
     ...data,
     id: id,
@@ -259,12 +282,21 @@ export async function updateTransaction(id, data) {
     updated_at: new Date().toISOString()
   };
 
-  // Always update local cache
+  // Always update local cache immediately
   const local = getLocalTransactions();
   const idx = local.findIndex(t => String(t.id) === String(id));
   if (idx !== -1) {
     local[idx] = updatedTx;
     saveLocalTransactions(local);
+  }
+
+  if (isOffline) {
+    enqueuePendingMutation(getCurrentUserId(), {
+      action: 'update',
+      targetId: id,
+      payload: updatedTx
+    });
+    return updatedTx;
   }
 
   // 1. Cloud Firestore Route
@@ -273,10 +305,17 @@ export async function updateTransaction(id, data) {
       const fsTx = await firestoreService.updateTransaction(getCurrentUserId(), id, data);
       if (fsTx) return fsTx;
     } catch (e) {
-      console.warn('Firestore updateTransaction fallback:', e);
+      console.warn('Firestore updateTransaction fallback, enqueuing mutation:', e);
+      enqueuePendingMutation(getCurrentUserId(), {
+        action: 'update',
+        targetId: id,
+        payload: updatedTx
+      });
+      return updatedTx;
     }
   }
 
+  // 2. Local API Route
   try {
     const res = await fetch(`${API_BASE}/transactions/${id}`, {
       method: 'PUT',
@@ -290,16 +329,35 @@ export async function updateTransaction(id, data) {
       const json = await res.json();
       return json.data;
     }
-  } catch (err) {}
+  } catch (err) {
+    enqueuePendingMutation(getCurrentUserId(), {
+      action: 'update',
+      targetId: id,
+      payload: updatedTx
+    });
+  }
 
   return updatedTx;
 }
 
 export async function deleteTransaction(id) {
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
   // Always update local cache immediately to prevent stale sums
   const local = getLocalTransactions();
+  const targetTx = local.find(t => String(t.id) === String(id));
+  const monthKey = targetTx ? (targetTx.month_key || targetTx.date?.slice(0, 7)) : null;
   const filtered = local.filter(t => String(t.id) !== String(id));
   saveLocalTransactions(filtered);
+
+  if (isOffline) {
+    enqueuePendingMutation(getCurrentUserId(), {
+      action: 'delete',
+      targetId: id,
+      monthKey
+    });
+    return { success: true };
+  }
 
   // 1. Cloud Firestore Route
   if (isFirebaseConfigured) {
@@ -307,17 +365,30 @@ export async function deleteTransaction(id) {
       await firestoreService.deleteTransaction(getCurrentUserId(), id);
       return { success: true };
     } catch (e) {
-      console.warn('Firestore deleteTransaction fallback:', e);
+      console.warn('Firestore deleteTransaction fallback, enqueuing mutation:', e);
+      enqueuePendingMutation(getCurrentUserId(), {
+        action: 'delete',
+        targetId: id,
+        monthKey
+      });
+      return { success: true };
     }
   }
 
+  // 2. Local API Route
   try {
     const res = await fetch(`${API_BASE}/transactions/${id}`, {
       method: 'DELETE',
       headers: { ...getAuthHeaders() }
     });
     if (res.ok) return await res.json();
-  } catch (err) {}
+  } catch (err) {
+    enqueuePendingMutation(getCurrentUserId(), {
+      action: 'delete',
+      targetId: id,
+      monthKey
+    });
+  }
 
   return { success: true };
 }
@@ -499,6 +570,17 @@ export async function deleteCategory(id) {
 }
 
 export async function getReports(month = new Date().toISOString().slice(0, 7)) {
+  // 1. Cloud Firestore Route (Primary Serverless Cloud Engine)
+  if (isFirebaseConfigured) {
+    try {
+      const fsReports = await firestoreService.getReports(getCurrentUserId(), month);
+      if (fsReports) return fsReports;
+    } catch (e) {
+      console.warn('Firestore getReports fallback:', e);
+    }
+  }
+
+  // 2. Local Node/SQLite API Route
   try {
     const url = month ? `${API_BASE}/reports?month=${encodeURIComponent(month)}` : `${API_BASE}/reports`;
     const res = await fetch(url, {
@@ -507,6 +589,7 @@ export async function getReports(month = new Date().toISOString().slice(0, 7)) {
     if (res.ok) return (await res.json()).data;
   } catch (err) {}
 
+  // 3. Client-Side Fallback Engine
   const txs = getLocalTransactions();
   const settings = await getSettings();
   const categories = await getCategories();
@@ -515,6 +598,17 @@ export async function getReports(month = new Date().toISOString().slice(0, 7)) {
 }
 
 export async function getYearlyReports(year = new Date().getFullYear().toString()) {
+  // 1. Cloud Firestore Route (Primary Serverless Cloud Engine)
+  if (isFirebaseConfigured) {
+    try {
+      const fsYearly = await firestoreService.getYearlyReports(getCurrentUserId(), year);
+      if (fsYearly) return fsYearly;
+    } catch (e) {
+      console.warn('Firestore getYearlyReports fallback:', e);
+    }
+  }
+
+  // 2. Local Node/SQLite API Route
   try {
     const res = await fetch(`${API_BASE}/reports/yearly?year=${encodeURIComponent(year)}`, {
       headers: { ...getAuthHeaders() }
@@ -522,6 +616,7 @@ export async function getYearlyReports(year = new Date().getFullYear().toString(
     if (res.ok) return (await res.json()).data;
   } catch (err) {}
 
+  // 3. Client-Side Fallback Engine
   const txs = getLocalTransactions();
   const categories = await getCategories();
   return computeYearlyReportFromTransactions(txs, year, categories);

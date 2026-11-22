@@ -274,7 +274,7 @@ export async function executeImport(userId, approvedTransactions = [], metadata 
         };
 
         batch.set(docRef, docData);
-        createdTransactions.push(docData);
+        createdTransactions.push({ ...docData, id: txId });
       });
 
       await batch.commit();
@@ -307,6 +307,20 @@ export async function executeImport(userId, approvedTransactions = [], metadata 
         await deleteDoc(doc(db, 'users', userId, 'months', mk));
       } catch (e) {}
     }
+
+    // 5. Synchronize newly imported transactions into local storage ledger immediately
+    try {
+      const currentLocal = api.getLocalTransactions();
+      const merged = [...createdTransactions, ...currentLocal];
+      const uniqueMap = new Map();
+      merged.forEach(t => {
+        const idKey = String(t.id);
+        if (!uniqueMap.has(idKey)) uniqueMap.set(idKey, t);
+      });
+      api.saveLocalTransactions(Array.from(uniqueMap.values()));
+    } catch (cacheSyncErr) {
+      console.warn('Could not sync imported transactions to local storage cache:', cacheSyncErr);
+    }
   } else {
     // Local Node/SQLite fallback
     for (const t of approvedTransactions) {
@@ -324,13 +338,16 @@ export async function executeImport(userId, approvedTransactions = [], metadata 
     }
   }
 
+  const sortedMonths = Array.from(affectedMonths).sort().reverse();
+
   return {
     success: true,
     batchId,
     importedCount: approvedTransactions.length,
     totalExpense: Math.round(totalExpense),
     totalIncome: Math.round(totalIncome),
-    affectedMonths: Array.from(affectedMonths),
+    affectedMonths: sortedMonths,
+    latestMonth: sortedMonths[0] || new Date().toISOString().slice(0, 7),
     transactionIds: createdTxIds
   };
 }

@@ -18,8 +18,9 @@ import AuthGate from './components/AuthGate';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { ToastProvider, useToast } from './context/ToastContext';
-import { ShieldCheck, X } from 'lucide-react';
+import { ShieldCheck, X, WifiOff, RefreshCw } from 'lucide-react';
 import * as api from './services/api';
+import syncService from './services/syncService';
 
 function MainApp() {
   const { theme, toggleTheme, isDark } = useTheme();
@@ -40,7 +41,7 @@ function MainApp() {
   }, []);
 
   const [activeTab, setActiveTab] = useState('home');
-  const [settingsSection, setSettingsSection] = useState('budget');
+  const [settingsSection, setSettingsSection] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [availableMonths, setAvailableMonths] = useState([new Date().toISOString().slice(0, 7)]);
   const [dashboardData, setDashboardData] = useState(null);
@@ -49,6 +50,29 @@ function MainApp() {
   const [hasUnreadNotifs, setHasUnreadNotifs] = useState(true);
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
+
+  // Live Sync & Network State
+  const [syncState, setSyncState] = useState(() => {
+    return syncService.getState ? syncService.getState() : { status: 'synced', isOnline: true };
+  });
+
+  useEffect(() => {
+    if (syncService.subscribe) {
+      const unsub = syncService.subscribe((state) => {
+        setSyncState(state);
+      });
+      return () => unsub();
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleSyncRefresh = () => {
+      handleRefreshAll();
+    };
+    window.addEventListener('expense_tracker_synced', handleSyncRefresh);
+    return () => window.removeEventListener('expense_tracker_synced', handleSyncRefresh);
+  }, [selectedMonth]);
+
   const [dismissedEmailBanner, setDismissedEmailBanner] = useState(() => {
     return typeof window !== 'undefined' && sessionStorage.getItem('et_dismiss_verify_banner') === 'true';
   });
@@ -287,6 +311,27 @@ function MainApp() {
 
           {/* Main Desktop Work Area */}
           <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+            {/* Real-time Offline / Syncing Banner (Desktop) */}
+            {(!syncState.isOnline || syncState.status === 'syncing') && (
+              <div className={`px-6 py-2 text-xs font-semibold flex items-center justify-center gap-2 border-b transition-colors ${
+                syncState.status === 'syncing'
+                  ? 'bg-purple-500/15 border-purple-500/25 text-purple-700 dark:text-purple-300'
+                  : 'bg-amber-500/15 border-amber-500/25 text-amber-800 dark:text-amber-300'
+              }`}>
+                {syncState.status === 'syncing' ? (
+                  <>
+                    <RefreshCw size={13} className="animate-spin flex-shrink-0" />
+                    <span>Syncing offline changes with cloud...</span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff size={13} className="flex-shrink-0" />
+                    <span>You're offline · Changes are saved locally and will sync when reconnected</span>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Unverified Email Warning Banner (Desktop) */}
             {user && !user.emailVerified && !user.isGoogleUser && !dismissedEmailBanner && (
               <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-4 transition-colors">
@@ -467,6 +512,27 @@ function MainApp() {
            Strictly following Modern Purple Expense Tracker UI.png
            ======================================================== */
         <div className="w-full max-w-lg mx-auto min-h-screen bg-[var(--bg-app)] flex flex-col relative transition-colors">
+          {/* Real-time Offline / Syncing Banner (Mobile) */}
+          {(!syncState.isOnline || syncState.status === 'syncing') && (
+            <div className={`px-4 py-2 text-xs font-semibold flex items-center justify-center gap-2 border-b transition-colors ${
+              syncState.status === 'syncing'
+                ? 'bg-purple-500/15 border-purple-500/25 text-purple-700 dark:text-purple-300'
+                : 'bg-amber-500/15 border-amber-500/25 text-amber-800 dark:text-amber-300'
+            }`}>
+              {syncState.status === 'syncing' ? (
+                <>
+                  <RefreshCw size={12} className="animate-spin flex-shrink-0" />
+                  <span>Syncing offline changes with cloud...</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff size={12} className="flex-shrink-0" />
+                  <span>You're offline · Changes saved locally</span>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Unverified Email Warning Banner (Mobile) */}
           {user && !user.emailVerified && !user.isGoogleUser && !dismissedEmailBanner && (
             <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2 transition-colors">
@@ -638,7 +704,13 @@ function MainApp() {
           {/* Android Mobile Bottom Navigation Bar with Center FAB */}
           <Navbar
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={(tab) => {
+              if (tab === 'settings') {
+                // Clear any deep-linked initial section so general More page opens without forcing budget modal
+                setSettingsSection(null);
+              }
+              setActiveTab(tab);
+            }}
             onOpenAddExpense={() => openAddModal(null)}
           />
         </div>
@@ -699,9 +771,18 @@ function MainApp() {
         onClose={() => setIsImportModalOpen(false)}
         userCategories={categories}
         formatCurrency={formatCurrency}
-        onImportComplete={() => {
+        onImportComplete={(result) => {
+          if (result && result.affectedMonths && result.affectedMonths.length > 0) {
+            setAvailableMonths(prev => {
+              const combined = Array.from(new Set([...prev, ...result.affectedMonths]));
+              return combined.sort().reverse();
+            });
+            if (result.latestMonth) {
+              setSelectedMonth(result.latestMonth);
+            }
+          }
           handleRefreshAll();
-          showToast('Transactions imported successfully!', 'success');
+          showToast(`Imported ${result?.importedCount || 'transactions'} successfully!`, 'success');
         }}
       />
 

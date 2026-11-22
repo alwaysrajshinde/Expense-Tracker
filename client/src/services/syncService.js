@@ -47,10 +47,13 @@ class SyncService {
   }
 
   getState() {
+    const uid = this.getActiveUserId();
+    const pendingCount = uid ? this.getPendingCount(uid) : 0;
     return {
       isOnline: this.isOnline,
       isSyncing: this.isSyncing,
-      status: this.status,
+      status: this.isSyncing ? 'syncing' : (!this.isOnline ? 'offline' : (pendingCount > 0 ? 'pending' : (this.status || 'synced'))),
+      pendingCount,
       lastSyncedAt: this.lastSyncedAt
     };
   }
@@ -126,9 +129,8 @@ class SyncService {
 
     for (const mutation of queue) {
       try {
+        const { action, targetId, payload } = mutation;
         if (isFirebaseConfigured && db) {
-          const { action, targetId, payload } = mutation;
-
           if (action === 'create') {
             const docRef = doc(db, 'users', userId, 'transactions', String(targetId));
             await setDoc(docRef, {
@@ -171,6 +173,27 @@ class SyncService {
           } else if (action === 'delete_category') {
             await firestoreService.deleteCategory(userId, targetId);
           }
+        } else {
+          // REST API fallback for local SQLite / non-Firebase environment
+          const headers = { 'Content-Type': 'application/json' };
+          try {
+            const s = localStorage.getItem('expense_tracker_auth_session');
+            if (s) {
+              const session = JSON.parse(s);
+              if (session.email) headers['x-user-email'] = session.email;
+              if (session.name) headers['x-user-name'] = session.name;
+              if (session.sub) headers['x-google-sub'] = session.sub;
+              if (session.id_token) headers['authorization'] = `Bearer ${session.id_token}`;
+            }
+          } catch (e) {}
+
+          if (action === 'create') {
+            await fetch('/api/transactions', { method: 'POST', headers, body: JSON.stringify(payload) });
+          } else if (action === 'update') {
+            await fetch(`/api/transactions/${targetId}`, { method: 'PUT', headers, body: JSON.stringify(payload) });
+          } else if (action === 'delete') {
+            await fetch(`/api/transactions/${targetId}`, { method: 'DELETE', headers });
+          }
         }
 
         // Dequeue upon confirmed synchronization
@@ -193,6 +216,9 @@ class SyncService {
     if (remaining.length === 0) {
       this.status = 'synced';
       this.lastSyncedAt = new Date().toISOString();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('expense_tracker_synced'));
+      }
     } else if (failCount > 0) {
       this.status = 'failed';
     } else {

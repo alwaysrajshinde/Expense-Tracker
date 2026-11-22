@@ -16,7 +16,8 @@ import { db, isFirebaseConfigured } from '../firebase/config';
 import rajHistoricalData from '../data/rajHistoricalData.json';
 import { 
   computeDashboardFromTransactions, 
-  computeReportsFromTransactions 
+  computeReportsFromTransactions,
+  computeYearlyReportFromTransactions
 } from './sheetsBackend';
 
 // Standard Default 15 Categories for New Users (Clean, comprehensive, non-overlapping)
@@ -274,6 +275,67 @@ export async function getDashboardData(userId, monthKey = getLocalMonthKey()) {
     return computed;
   } catch (err) {
     console.error('Error in getDashboardData:', err);
+    return null;
+  }
+}
+
+/**
+ * Get monthly reports data from Firestore with category and payment breakdowns
+ */
+export async function getReports(userId, monthKey = getLocalMonthKey()) {
+  if (!isFirebaseConfigured || !db) return null;
+
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    const isRaj = userDoc.exists() && userDoc.data().email === 'raaajshinde@gmail.com';
+    const profile = userDoc.exists() ? userDoc.data() : { monthly_budget: 0, currency: '₹' };
+    const budget = profile.monthly_budget !== undefined ? (parseFloat(profile.monthly_budget) || 0) : (isRaj ? 12000 : 0);
+
+    // Query transactions for the selected month
+    const txCol = collection(db, 'users', userId, 'transactions');
+    const q = query(txCol, where('month_key', '==', monthKey));
+    const snap = await getDocs(q);
+
+    let transactions = [];
+    snap.forEach(d => transactions.push(d.data()));
+
+    // Historical fallback for Raj Shinde if Firestore collection is fresh
+    if (transactions.length === 0 && isRaj && rajHistoricalData && rajHistoricalData.transactions) {
+      transactions = rajHistoricalData.transactions.filter(t => t.month_key === monthKey);
+    }
+
+    const categories = await getCategories(userId);
+    return computeReportsFromTransactions(transactions, monthKey, budget, categories);
+  } catch (err) {
+    console.error('Error in firestoreService.getReports:', err);
+    return null;
+  }
+}
+
+/**
+ * Get annual / yearly reports data from Firestore
+ */
+export async function getYearlyReports(userId, selectedYear = new Date().getFullYear().toString()) {
+  if (!isFirebaseConfigured || !db) return null;
+
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    const isRaj = userDoc.exists() && userDoc.data().email === 'raaajshinde@gmail.com';
+
+    const txCol = collection(db, 'users', userId, 'transactions');
+    const snap = await getDocs(txCol);
+
+    let transactions = [];
+    snap.forEach(d => transactions.push(d.data()));
+
+    if (transactions.length === 0 && isRaj && rajHistoricalData && rajHistoricalData.transactions) {
+      transactions = rajHistoricalData.transactions;
+    }
+
+    const categories = await getCategories(userId);
+    return computeYearlyReportFromTransactions(transactions, String(selectedYear), categories);
+  } catch (err) {
+    console.error('Error in firestoreService.getYearlyReports:', err);
     return null;
   }
 }

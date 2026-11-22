@@ -4,7 +4,7 @@ import {
   Plus, Trash2, RefreshCw, FileSpreadsheet, ShieldCheck, Sun, Moon, Sparkles,
   ExternalLink, LogOut, Bell, Info, Shield, HelpCircle, Palette, Key, CheckCircle2,
   History, ChevronRight, Sliders, Target, FileText, ArrowLeftRight, X, ArrowRight,
-  Wifi, WifiOff, Laptop, CheckSquare, Edit2, Calendar
+  Wifi, WifiOff, Laptop, CheckSquare, Edit2, Calendar, Droplets, Heart
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
 import LegalModal from '../components/LegalModal';
@@ -166,6 +166,8 @@ export default function Settings({
       }
       await onUpdateBudget(selectedMonth, numBudget);
       await onUpdateSettings({ monthly_budget: String(numBudget) });
+      const budgetKey = 'et_budget_configured_' + (user?.uid || user?.email || 'guest');
+      localStorage.setItem(budgetKey, 'true');
       setStatusMsg({ type: 'success', text: `Monthly target budget updated to ${formatCurrency(numBudget)}` });
       showToast(`Monthly budget set to ${formatCurrency(numBudget)}`, 'success');
       setActiveModal(null);
@@ -307,6 +309,16 @@ export default function Settings({
           <button onClick={() => setStatusMsg(null)} className="opacity-70 hover:opacity-100 text-base cursor-pointer">
             ×
           </button>
+        </div>
+      )}
+
+      {/* Offline Status Notice */}
+      {!syncState.isOnline && (
+        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2.5 shadow-xs">
+          <WifiOff size={16} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
+          <div className="flex-1">
+            <span className="font-bold">You're offline.</span> Your expenses are saved on this device and will sync automatically when you're connected again.
+          </div>
         </div>
       )}
 
@@ -825,58 +837,55 @@ export default function Settings({
                     <span>Theme Appearance</span>
                   </label>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Dark Violet Tile */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTheme('dark');
-                        showToast('Switched to Dark Violet Theme', 'info');
-                      }}
-                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden ${theme === 'dark'
-                        ? 'border-[#6C47FF] bg-purple-900/20 shadow-md ring-2 ring-[#6C47FF]/30'
-                        : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
-                        }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 rounded-xl bg-[#281D4C] text-[#C084FC] flex items-center justify-center">
-                          <Moon size={16} />
-                        </div>
-                        {theme === 'dark' && (
-                          <span className="w-5 h-5 rounded-full bg-[#6C47FF] text-white flex items-center justify-center text-[10px] font-bold">
-                            ✓
-                          </span>
-                        )}
-                      </div>
-                      <div className="font-bold text-sm text-slate-900 dark:text-white">Dark Violet</div>
-                      <div className="text-[11px] text-slate-400">Windows Fintech palette</div>
-                    </button>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                    {availableThemes.map((t) => {
+                      const isSelected = theme === t.id;
+                      const Icon = t.id === 'light' ? Sun
+                        : t.id === 'dark' ? Moon
+                        : t.id === 'midnight' ? Shield
+                        : t.id === 'ocean' ? Droplets
+                        : t.id === 'emerald' ? Sparkles
+                        : t.id === 'rose' ? Heart
+                        : Laptop;
 
-                    {/* Light Modern Tile */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTheme('light');
-                        showToast('Switched to Light Theme', 'info');
-                      }}
-                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden ${theme === 'light'
-                        ? 'border-[#6C47FF] bg-purple-50/50 shadow-md ring-2 ring-[#6C47FF]/30'
-                        : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
-                        }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
-                          <Sun size={16} />
-                        </div>
-                        {theme === 'light' && (
-                          <span className="w-5 h-5 rounded-full bg-[#6C47FF] text-white flex items-center justify-center text-[10px] font-bold">
-                            ✓
-                          </span>
-                        )}
-                      </div>
-                      <div className="font-bold text-sm text-slate-900 dark:text-white">Light Mode</div>
-                      <div className="text-[11px] text-slate-400">Crisp white aesthetic</div>
-                    </button>
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setTheme(t.id);
+                            showToast(`Switched to ${t.name} Theme`, 'info');
+                          }}
+                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden ${isSelected
+                            ? 'border-[#6C47FF] bg-purple-500/10 dark:bg-purple-900/30 shadow-md ring-2 ring-[#6C47FF]/30'
+                            : 'border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div 
+                              className="w-7 h-7 rounded-xl flex items-center justify-center text-white font-bold"
+                              style={{ backgroundColor: t.accent }}
+                            >
+                              <Icon size={14} />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              {t.badge && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400">
+                                  {t.badge}
+                                </span>
+                              )}
+                              {isSelected && (
+                                <span className="w-4 h-4 rounded-full bg-[#6C47FF] text-white flex items-center justify-center text-[10px] font-bold">
+                                  ✓
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="font-bold text-xs text-slate-900 dark:text-white truncate">{t.name}</div>
+                          <div className="text-[10px] text-slate-400 truncate">{t.description}</div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1101,15 +1110,37 @@ export default function Settings({
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                   {user?.email || 'raj@example.com'}
                 </p>
-                <div>
+                <div className="flex flex-wrap items-center gap-1.5 mt-1">
                   {isEmailVerified ? (
-                    <span className="inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                       <Check size={11} strokeWidth={3} />
                       <span>Verified</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                       <span>Unverified · Tap to check</span>
+                    </span>
+                  )}
+
+                  {/* Mobile Live Sync Status Pill */}
+                  {syncState.status === 'syncing' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                      <RefreshCw size={10} className="animate-spin" />
+                      <span>Syncing</span>
+                    </span>
+                  ) : !syncState.isOnline ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                      <WifiOff size={10} />
+                      <span>Offline</span>
+                    </span>
+                  ) : syncState.pendingCount > 0 ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">
+                      <span>{syncState.pendingCount} pending</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Synced</span>
                     </span>
                   )}
                 </div>
@@ -1457,22 +1488,36 @@ export default function Settings({
                 ))}
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex items-center justify-between pt-4">
                 <button
                   type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
+                  onClick={() => {
+                    const budgetKey = 'et_budget_configured_' + (user?.uid || user?.email || 'guest');
+                    localStorage.setItem(budgetKey, 'true');
+                    setActiveModal(null);
+                    showToast('Budget setup skipped. You can configure it anytime in Settings.', 'info');
+                  }}
+                  className="text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 >
-                  Cancel
+                  Skip for now
                 </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-6 py-2 rounded-xl bg-[#6C47FF] hover:bg-[#5835E5] text-white text-xs font-bold transition-all shadow-md shadow-purple-600/30 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-                >
-                  {saving && <RefreshCw size={13} className="animate-spin" />}
-                  <span>Save Budget</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-6 py-2 rounded-xl bg-[#6C47FF] hover:bg-[#5835E5] text-white text-xs font-bold transition-all shadow-md shadow-purple-600/30 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {saving && <RefreshCw size={13} className="animate-spin" />}
+                    <span>Save Budget</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -1516,36 +1561,48 @@ export default function Settings({
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => { setTheme('light'); showToast('Switched to Light Theme', 'info'); }}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer space-y-2 ${theme === 'light'
-                  ? 'border-[#6C47FF] bg-purple-50/50 dark:bg-purple-900/20 shadow-md ring-2 ring-[#6C47FF]/20'
-                  : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
-                  }`}
-              >
-                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
-                  <Sun size={18} />
-                </div>
-                <div className="font-bold text-sm text-slate-900 dark:text-white">Light Mode</div>
-                <div className="text-[11px] text-slate-400">Crisp white aesthetic</div>
-              </button>
+            <div className="grid grid-cols-2 gap-2.5 pt-2 max-h-[60vh] overflow-y-auto pr-1">
+              {availableThemes.map((t) => {
+                const isSelected = theme === t.id;
+                const Icon = t.id === 'light' ? Sun
+                  : t.id === 'dark' ? Moon
+                  : t.id === 'midnight' ? Shield
+                  : t.id === 'ocean' ? Droplets
+                  : t.id === 'emerald' ? Sparkles
+                  : t.id === 'rose' ? Heart
+                  : Laptop;
 
-              <button
-                type="button"
-                onClick={() => { setTheme('dark'); showToast('Switched to Dark Theme', 'info'); }}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer space-y-2 ${theme === 'dark'
-                  ? 'border-[#6C47FF] bg-purple-50/50 dark:bg-purple-900/20 shadow-md ring-2 ring-[#6C47FF]/20'
-                  : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
-                  }`}
-              >
-                <div className="w-8 h-8 rounded-xl bg-[#281D4C] text-[#C084FC] flex items-center justify-center">
-                  <Moon size={18} />
-                </div>
-                <div className="font-bold text-sm text-slate-900 dark:text-white">Dark Violet</div>
-                <div className="text-[11px] text-slate-400">Deep violet fintech palette</div>
-              </button>
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => {
+                      setTheme(t.id);
+                      showToast(`Switched to ${t.name} Theme`, 'info');
+                    }}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer space-y-1.5 relative ${isSelected
+                      ? 'border-[#6C47FF] bg-purple-500/10 dark:bg-purple-900/30 shadow-md ring-2 ring-[#6C47FF]/20'
+                      : 'border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div 
+                        className="w-7 h-7 rounded-xl flex items-center justify-center text-white"
+                        style={{ backgroundColor: t.accent }}
+                      >
+                        <Icon size={14} />
+                      </div>
+                      {isSelected && (
+                        <span className="w-4 h-4 rounded-full bg-[#6C47FF] text-white flex items-center justify-center text-[10px] font-bold">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-bold text-xs text-slate-900 dark:text-white truncate">{t.name}</div>
+                    <div className="text-[10px] text-slate-400 line-clamp-1">{t.description}</div>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="pt-3">
