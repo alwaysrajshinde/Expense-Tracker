@@ -106,7 +106,7 @@ export default function Transactions({
   };
 
   return (
-    <div className="space-y-5 px-4 sm:px-6 lg:px-8 py-4 pb-24 lg:pb-8 max-w-7xl mx-auto">
+    <div className="space-y-5 px-4 sm:px-6 lg:px-8 py-4 pb-28 lg:pb-8 max-w-7xl mx-auto">
       {/* Header & Quick Action Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -330,20 +330,22 @@ export default function Transactions({
                           {isRefund ? `+${formatCurrency(Math.abs(tx.amount))}` : formatCurrency(tx.amount)}
                         </span>
 
-                        <div className="flex items-center opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity gap-0.5 sm:gap-1">
+                        <div className="flex items-center opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity gap-1 sm:gap-1">
                           <button
                             onClick={() => onEditTransaction(tx)}
                             title="Edit"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-[#6C47FF] hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors cursor-pointer"
+                            aria-label={`Edit ${tx.description || tx.category}`}
+                            className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl text-slate-400 hover:text-[#6C47FF] hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors cursor-pointer"
                           >
-                            <Edit2 size={13} />
+                            <Edit2 size={15} />
                           </button>
                           <button
                             onClick={() => setDeleteConfirmId(tx.id)}
                             title="Delete"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                            aria-label={`Delete ${tx.description || tx.category}`}
+                            className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={15} />
                           </button>
                         </div>
                       </div>

@@ -24,7 +24,7 @@ export default function Navbar({ activeTab, onTabChange, onOpenAddExpense }) {
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`flex flex-col items-center justify-center flex-1 py-1 transition-all group ${
+                className={`flex flex-col items-center justify-center flex-1 py-1 transition-all group min-h-[46px] ${
                   isActive
                     ? 'text-[#6C47FF] dark:text-[#A78BFA]'
                     : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
@@ -35,7 +35,7 @@ export default function Navbar({ activeTab, onTabChange, onOpenAddExpense }) {
                 }`}>
                   <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                 </div>
-                <span className={`text-[11px] mt-0.5 tracking-tight transition-all ${
+                <span className={`text-[10px] sm:text-[11px] mt-0.5 tracking-tight transition-all truncate max-w-full px-0.5 ${
                   isActive ? 'font-bold text-[#6C47FF] dark:text-[#A78BFA]' : 'font-medium text-slate-500 dark:text-slate-400'
                 }`}>
                   {tab.label}
@@ -46,12 +46,12 @@ export default function Navbar({ activeTab, onTabChange, onOpenAddExpense }) {
         </div>
 
         {/* Center Elevated Floating Add Button (FAB) */}
-        <div className="flex-shrink-0 px-2 -mt-5">
+        <div className="flex-shrink-0 px-1 sm:px-2 -mt-5">
           <button
             type="button"
             onClick={onOpenAddExpense}
             aria-label="Quick Add Expense"
-            className="w-13 h-13 rounded-full bg-gradient-to-tr from-[#5824dc] via-[#6C47FF] to-[#8B5CF6] text-white flex items-center justify-center shadow-lg shadow-purple-600/40 ring-4 ring-white dark:ring-[#16132A] active:scale-90 hover:scale-105 transition-all cursor-pointer"
+            className="w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-gradient-to-tr from-[#5824dc] via-[#6C47FF] to-[#8B5CF6] text-white flex items-center justify-center shadow-lg shadow-purple-600/40 ring-4 ring-white dark:ring-[#16132A] active:scale-90 hover:scale-105 transition-all cursor-pointer"
           >
             <Plus size={24} strokeWidth={2.5} />
           </button>
@@ -66,7 +66,7 @@ export default function Navbar({ activeTab, onTabChange, onOpenAddExpense }) {
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`flex flex-col items-center justify-center flex-1 py-1 transition-all group ${
+                className={`flex flex-col items-center justify-center flex-1 py-1 transition-all group min-h-[46px] ${
                   isActive
                     ? 'text-[#6C47FF] dark:text-[#A78BFA]'
                     : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
@@ -77,7 +77,7 @@ export default function Navbar({ activeTab, onTabChange, onOpenAddExpense }) {
                 }`}>
                   <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                 </div>
-                <span className={`text-[11px] mt-0.5 tracking-tight transition-all ${
+                <span className={`text-[10px] sm:text-[11px] mt-0.5 tracking-tight transition-all truncate max-w-full px-0.5 ${
                   isActive ? 'font-bold text-[#6C47FF] dark:text-[#A78BFA]' : 'font-medium text-slate-500 dark:text-slate-400'
                 }`}>
                   {tab.label}

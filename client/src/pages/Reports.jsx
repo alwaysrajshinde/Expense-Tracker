@@ -97,7 +97,7 @@ export default function Reports({
   });
 
   return (
-    <div className="space-y-5 px-4 sm:px-6 lg:px-8 py-4 pb-24 lg:pb-8 max-w-7xl mx-auto">
+    <div className="space-y-5 px-4 sm:px-6 lg:px-8 py-4 pb-28 lg:pb-8 max-w-7xl mx-auto">
       {/* Top Header & Mode Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -138,10 +138,10 @@ export default function Reports({
 
           {/* Segmented Sub-Tabs (Monthly only) */}
           {reportMode === 'monthly' && (
-            <div className="flex bg-slate-100 dark:bg-white/10 p-1 rounded-2xl w-full sm:w-auto self-start">
+            <div className="flex bg-slate-100 dark:bg-white/10 p-1 rounded-2xl w-full sm:w-auto self-start overflow-x-auto no-scrollbar">
               <button
                 onClick={() => setSubTab('overview')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   subTab === 'overview'
                     ? 'bg-[#6C47FF] text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
@@ -151,7 +151,7 @@ export default function Reports({
               </button>
               <button
                 onClick={() => setSubTab('category')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   subTab === 'category'
                     ? 'bg-[#6C47FF] text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
@@ -161,7 +161,7 @@ export default function Reports({
               </button>
               <button
                 onClick={() => setSubTab('payment')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   subTab === 'payment'
                     ? 'bg-[#6C47FF] text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'

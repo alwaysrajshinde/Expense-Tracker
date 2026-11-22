@@ -37,19 +37,19 @@ export default function AndroidHome({
   const strokeDashoffset = circumference - (Math.min(percentSpentVal, 100) / 100) * circumference;
 
   return (
-    <div className="space-y-4 px-4 pb-20 pt-1">
+    <div className="space-y-4 px-4 pb-28 pt-1">
       {/* ========================================================
           1. Hero Purple Card (Matching Modern Purple Expense Tracker UI.png)
          ======================================================== */}
       <div className="purple-hero-gradient rounded-3xl p-5 text-white shadow-xl shadow-purple-900/15 relative flex flex-col justify-between min-h-[175px]">
         <div className="flex items-center justify-between z-10">
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0 flex-1 mr-2">
             <div>
               <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
                 Monthly Budget
               </span>
               {budget > 0 ? (
-                <p className="text-white text-base font-bold tracking-tight">
+                <p className="text-white text-base font-bold tracking-tight truncate">
                   {formatCurrency(budget)}
                 </p>
               ) : (
@@ -67,14 +67,14 @@ export default function AndroidHome({
               <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
                 Spent
               </span>
-              <p className="text-white text-3xl font-black tracking-tight">
+              <p className="text-white text-2xl sm:text-3xl font-black tracking-tight truncate max-w-[170px] sm:max-w-none" title={formatCurrency(total_spent)}>
                 {formatCurrency(total_spent)}
               </p>
             </div>
 
             <div className="pt-0.5">
               {budget > 0 ? (
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-xs ${remaining_budget >= 0
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-xs truncate max-w-full ${remaining_budget >= 0
                   ? 'bg-emerald-100 text-emerald-950'
                   : 'bg-rose-100 text-rose-950'
                   }`}>
@@ -91,7 +91,7 @@ export default function AndroidHome({
 
           {/* Circular Progress Gauge */}
           <div className="relative flex items-center justify-center flex-shrink-0 mr-1">
-            <svg className="w-24 h-24 transform -rotate-90">
+            <svg viewBox="0 0 96 96" className="w-20 h-20 sm:w-24 sm:h-24 transform -rotate-90">
               <circle
                 cx="48"
                 cy="48"
@@ -116,7 +116,7 @@ export default function AndroidHome({
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-white text-sm font-extrabold tracking-tight">
+              <span className="text-white text-xs sm:text-sm font-extrabold tracking-tight">
                 {percentSpentVal}%
               </span>
             </div>
@@ -127,47 +127,47 @@ export default function AndroidHome({
       {/* ========================================================
           2. Quick Stat Cards (3 Cards in a Row)
          ======================================================== */}
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
         {/* Today */}
-        <div className="bg-white dark:bg-[#16132A] rounded-2xl p-3.5 border border-slate-100 dark:border-white/10 shadow-xs flex flex-col justify-between transition-colors">
-          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center mb-2">
-            <Calendar size={15} />
+        <div className="bg-white dark:bg-[#16132A] rounded-2xl p-2.5 sm:p-3.5 border border-slate-100 dark:border-white/10 shadow-xs flex flex-col justify-between transition-colors min-w-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center mb-1.5 sm:mb-2">
+            <Calendar size={14} />
           </div>
-          <div>
-            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">
+          <div className="min-w-0">
+            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5 truncate">
               Today
             </span>
-            <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate block" title={formatCurrency(today_spent)}>
               {formatCurrency(today_spent)}
             </span>
           </div>
         </div>
 
         {/* This Week */}
-        <div className="bg-white dark:bg-[#16132A] rounded-2xl p-3.5 border border-slate-100 dark:border-white/10 shadow-xs flex flex-col justify-between transition-colors">
-          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center mb-2">
-            <BarChart2 size={15} />
+        <div className="bg-white dark:bg-[#16132A] rounded-2xl p-2.5 sm:p-3.5 border border-slate-100 dark:border-white/10 shadow-xs flex flex-col justify-between transition-colors min-w-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center mb-1.5 sm:mb-2">
+            <BarChart2 size={14} />
           </div>
-          <div>
-            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">
+          <div className="min-w-0">
+            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5 truncate">
               This Week
             </span>
-            <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate block" title={formatCurrency(week_spent)}>
               {formatCurrency(week_spent)}
             </span>
           </div>
         </div>
 
         {/* This Month */}
-        <div className="bg-white dark:bg-[#16132A] rounded-2xl p-3.5 border border-slate-100 dark:border-white/10 shadow-xs flex flex-col justify-between transition-colors">
-          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center mb-2">
-            <Calendar size={15} />
+        <div className="bg-white dark:bg-[#16132A] rounded-2xl p-2.5 sm:p-3.5 border border-slate-100 dark:border-white/10 shadow-xs flex flex-col justify-between transition-colors min-w-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center mb-1.5 sm:mb-2">
+            <Calendar size={14} />
           </div>
-          <div>
-            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">
+          <div className="min-w-0">
+            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5 truncate">
               This Month
             </span>
-            <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate block" title={formatCurrency(total_spent)}>
               {formatCurrency(total_spent)}
             </span>
           </div>

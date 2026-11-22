@@ -584,7 +584,7 @@ function MainApp() {
           />
 
           {/* Android Mobile Main Tabs */}
-          <main className="flex-1 pb-20">
+          <main className="flex-1 pb-28">
             {activeTab === 'home' && (
               <AndroidHome
                 dashboardData={dashboardData}

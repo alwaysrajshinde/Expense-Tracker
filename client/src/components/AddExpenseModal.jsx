@@ -371,13 +371,13 @@ export default function AddExpenseModal({
           </div>
 
           {/* Action Buttons: Save & Add Another + Save Expense */}
-          <div className="pt-2 flex items-center gap-3">
+          <div className="pt-2 flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 pb-2">
             {!editingTransaction && (
               <button
                 type="button"
                 disabled={saving}
                 onClick={(e) => handleSubmit(e, true)}
-                className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 rounded-2xl font-bold text-xs active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 border border-slate-200 dark:border-white/10 cursor-pointer"
+                className="w-full sm:flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 rounded-2xl font-bold text-xs active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 border border-slate-200 dark:border-white/10 cursor-pointer"
               >
                 <Plus size={16} strokeWidth={2.5} />
                 <span>Save &amp; Add Another</span>
@@ -387,8 +387,8 @@ export default function AddExpenseModal({
             <button
               type="submit"
               disabled={saving}
-              className={`py-3.5 bg-gradient-to-r from-[#5B27DC] to-[#7B42F6] hover:from-[#4E1FC5] hover:to-[#6E32E9] text-white rounded-2xl font-bold text-sm shadow-lg shadow-purple-500/25 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                editingTransaction ? 'w-full' : 'flex-1'
+              className={`w-full py-3.5 bg-gradient-to-r from-[#5B27DC] to-[#7B42F6] hover:from-[#4E1FC5] hover:to-[#6E32E9] text-white rounded-2xl font-bold text-sm shadow-lg shadow-purple-500/25 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                editingTransaction ? 'w-full' : 'sm:flex-1'
               }`}
             >
               <Check size={18} strokeWidth={2.5} />

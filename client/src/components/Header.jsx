@@ -46,16 +46,16 @@ export default function Header({
   return (
     <header className="px-5 pt-4 pb-2 relative">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-1.5 transition-colors">
-            {getGreeting()}, {userName.split(' ')[0]} <span className="animate-pulse">👋</span>
+        <div className="min-w-0 flex-1 mr-2">
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-1.5 transition-colors truncate">
+            <span className="truncate">{getGreeting()}, {userName.split(' ')[0]}</span> <span className="animate-pulse flex-shrink-0">👋</span>
           </h1>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
             Personal Expense Tracker
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* Theme Switcher Toggle */}
           <button
             onClick={toggleTheme}
