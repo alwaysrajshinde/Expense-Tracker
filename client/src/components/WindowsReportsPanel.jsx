@@ -45,11 +45,15 @@ export default function WindowsReportsPanel({
   const radius = center - strokeWidth / 2;
   const circumference = 2 * Math.PI * radius;
 
+  const totalRawPct = chart_data.reduce((sum, item) => sum + (parseFloat(item.percentage) || 0), 0);
+  const normalizedScale = totalRawPct > 0 ? (100 / totalRawPct) : 1;
+
   let cumulativeAngle = 0;
   const donutSlices = chart_data.map((item) => {
-    const strokeDasharray = `${(item.percentage / 100) * circumference} ${circumference}`;
+    const normalizedPct = (parseFloat(item.percentage) || 0) * normalizedScale;
+    const strokeDasharray = `${(normalizedPct / 100) * circumference} ${circumference}`;
     const strokeDashoffset = -((cumulativeAngle / 100) * circumference);
-    cumulativeAngle += item.percentage;
+    cumulativeAngle += normalizedPct;
     return {
       ...item,
       strokeDasharray,

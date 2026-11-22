@@ -25,23 +25,29 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState(null);
 
   // Monitor Firebase Auth state or restore saved session
-  // Auto-reload user profile when window gains focus or tab becomes visible to detect email verification without manual page refresh
+  // Reload user profile to detect email verification without manual page refresh
   const checkVerificationStatus = useCallback(async () => {
     if (isFirebaseConfigured && auth && auth.currentUser) {
       try {
         await auth.currentUser.reload();
-        if (auth.currentUser.emailVerified) {
-          setUser(prev => {
-            if (!prev || prev.emailVerified) return prev;
-            const updated = { ...prev, emailVerified: true };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-            return updated;
-          });
+        const verified = Boolean(auth.currentUser.emailVerified);
+        setUser(prev => {
+          if (!prev) return prev;
+          const updated = { ...prev, emailVerified: verified };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          return updated;
+        });
+        if (verified) {
+          return { verified: true, message: 'Email verified successfully! Your account is active.' };
+        } else {
+          return { verified: false, message: 'Email not verified yet. Please check your inbox and tap the link.' };
         }
       } catch (e) {
-        console.warn('Silent email verification check:', e.message);
+        console.warn('Email verification reload check:', e.message);
+        return { verified: false, message: e.message || 'Error checking verification status' };
       }
     }
+    return { verified: false, message: 'Authentication service not connected' };
   }, []);
 
   useEffect(() => {
@@ -51,14 +57,13 @@ export function AuthProvider({ children }) {
       unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         try {
           if (firebaseUser) {
-            const isRaj = firebaseUser.email?.toLowerCase() === 'raaajshinde@gmail.com';
             const isGoogle = firebaseUser.providerData?.some(p => p.providerId === 'google.com');
-            const isVerified = Boolean(firebaseUser.emailVerified || isGoogle || isRaj);
+            const isVerified = Boolean(firebaseUser.emailVerified || isGoogle);
             const sessionData = {
               id: firebaseUser.uid,
               uid: firebaseUser.uid,
               email: firebaseUser.email,
-              name: firebaseUser.displayName || (isRaj ? 'Raj Shinde' : firebaseUser.email.split('@')[0]),
+              name: firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'User'),
               picture: firebaseUser.photoURL || '',
               emailVerified: isVerified,
               isGoogleUser: Boolean(isGoogle),

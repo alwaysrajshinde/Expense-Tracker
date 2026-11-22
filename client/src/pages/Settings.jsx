@@ -4,14 +4,16 @@ import {
   Plus, Trash2, RefreshCw, FileSpreadsheet, ShieldCheck, Sun, Moon, Sparkles,
   ExternalLink, LogOut, Bell, Info, Shield, HelpCircle, Palette, Key, CheckCircle2,
   History, ChevronRight, Sliders, Target, FileText, ArrowLeftRight, X, ArrowRight,
-  Wifi, WifiOff, Laptop, CheckSquare, Edit2, Calendar, Droplets, Heart
+  Wifi, WifiOff, Laptop, CheckSquare, Edit2, Calendar, Droplets, Heart, Globe
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
+import CustomDropdown from '../components/CustomDropdown';
 import LegalModal from '../components/LegalModal';
 import CategoryManagerModal from '../components/CategoryManagerModal';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useLanguage, SUPPORTED_LANGUAGES } from '../context/LanguageContext';
 import { exportTransactionsToExcel, exportDataToJson } from '../services/exportService';
 import syncService from '../services/syncService';
 import { APP_VERSION, APP_RELEASE_DATE, APP_INKED_VERSION, APP_SHORT_DATE } from '../constants/version';
@@ -47,7 +49,28 @@ export default function Settings({
 }) {
   const { theme, setTheme, toggleTheme, isDark, availableThemes } = useTheme();
   const { showToast } = useToast();
-  const { user, logout, resendVerificationEmail, resetPassword } = useAuth();
+  const { user, logout, resendVerificationEmail, resetPassword, checkVerificationStatus } = useAuth();
+  const { language, setLanguage, availableLanguages = SUPPORTED_LANGUAGES, t } = useLanguage();
+
+  const [checkingVerification, setCheckingVerification] = useState(false);
+
+  const handleCheckVerification = async () => {
+    try {
+      setCheckingVerification(true);
+      if (checkVerificationStatus) {
+        const res = await checkVerificationStatus();
+        if (res?.verified) {
+          showToast(res.message || 'Email verified successfully!', 'success');
+        } else {
+          showToast(res?.message || 'Email is not yet verified. Please click the link in your inbox.', 'warning');
+        }
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to check verification status', 'error');
+    } finally {
+      setCheckingVerification(false);
+    }
+  };
 
   // Google Sheets Export Modal State
   const [isGoogleSheetsModalOpen, setIsGoogleSheetsModalOpen] = useState(false);
@@ -465,13 +488,24 @@ export default function Settings({
                       <span>Verified</span>
                     </span>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={handleResendEmail}
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 cursor-pointer"
-                    >
-                      <span>Unverified · Resend Email</span>
-                    </button>
+                    <div className="inline-flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handleCheckVerification}
+                        disabled={checkingVerification}
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 active:scale-95 transition-all cursor-pointer"
+                      >
+                        {checkingVerification ? <RefreshCw size={10} className="animate-spin" /> : <ShieldCheck size={10} />}
+                        <span>Unverified · Check Status</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResendEmail}
+                        className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                      >
+                        Resend
+                      </button>
+                    </div>
                   )}
 
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 dark:bg-purple-950/40 text-[#6C47FF] dark:text-[#C084FC] border border-purple-200 dark:border-purple-800/40">
@@ -492,16 +526,18 @@ export default function Settings({
                 <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
                   Preferred Currency
                 </label>
-                <select
+                <CustomDropdown
                   value={currencyVal}
-                  onChange={(e) => setCurrencyVal(e.target.value)}
-                  className="px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white focus:outline-none focus:border-[#6C47FF]"
-                >
-                  <option value="₹">₹ Indian Rupee (INR)</option>
-                  <option value="$">$ US Dollar (USD)</option>
-                  <option value="€">€ Euro (EUR)</option>
-                  <option value="£">£ British Pound (GBP)</option>
-                </select>
+                  onChange={(val) => setCurrencyVal(val)}
+                  options={[
+                    { value: '₹', label: '₹ Indian Rupee (INR)' },
+                    { value: '$', label: '$ US Dollar (USD)' },
+                    { value: '€', label: '€ Euro (EUR)' },
+                    { value: '£', label: '£ British Pound (GBP)' }
+                  ]}
+                  ariaLabel="Preferred Currency"
+                  buttonClassName="px-3 py-2 text-xs font-bold"
+                />
               </div>
 
               <div className="pt-4">
@@ -892,7 +928,6 @@ export default function Settings({
                           type="button"
                           onClick={() => {
                             setTheme(t.id);
-                            showToast(`Switched to ${t.name} Theme`, 'info');
                           }}
                           className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden ${isSelected
                             ? 'border-[#6C47FF] bg-purple-500/10 dark:bg-purple-900/30 shadow-md ring-2 ring-[#6C47FF]/30'
@@ -927,7 +962,49 @@ export default function Settings({
                   </div>
                 </div>
 
-                {/* Sub-Section B: Proactive Spending Alerts */}
+                {/* Sub-Section B: Language & Region Selection */}
+                <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-white/5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                    <Globe size={14} className="text-[#6C47FF] dark:text-[#C084FC]" />
+                    <span>Language &amp; Region</span>
+                  </label>
+
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                    {availableLanguages.map((lang) => {
+                      const isSelected = language === lang.code;
+                      return (
+                        <button
+                          key={lang.code}
+                          type="button"
+                          onClick={() => {
+                            setLanguage(lang.code);
+                            showToast(`Language switched to ${lang.label}`, 'success');
+                          }}
+                          className={`p-3 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                            isSelected
+                              ? 'border-[#6C47FF] bg-purple-500/10 dark:bg-purple-900/30 ring-1 ring-[#6C47FF]'
+                              : 'border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 hover:bg-slate-50 dark:hover:bg-white/[0.02]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-xl">{lang.flag}</span>
+                            <div>
+                              <div className="text-xs font-bold text-slate-900 dark:text-white">{lang.nativeName}</div>
+                              <div className="text-[10px] text-slate-400">{lang.label}</div>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <span className="w-4 h-4 rounded-full bg-[#6C47FF] text-white flex items-center justify-center text-[10px] font-bold">
+                              ✓
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Sub-Section C: Proactive Spending Alerts */}
                 <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-white/5">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
                     <Bell size={14} className="text-[#6C47FF] dark:text-[#C084FC]" />
@@ -1104,95 +1181,128 @@ export default function Settings({
            ========================================================================= */
         <div className="space-y-6">
 
-          {/* 1. Mobile Screen Header */}
-          <div className="flex items-center justify-between pt-1">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                More
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-[#A78BFA]/80 mt-0.5">
-                Settings, data management and support
-              </p>
-            </div>
-
-            {/* Circular Notification Bell with unread dot */}
-            <button
-              type="button"
-              onClick={onOpenNotifications}
-              aria-label="Notifications"
-              className="relative w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-[#1C1635] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 transition-all shadow-xs cursor-pointer"
-            >
-              <Bell size={18} />
-              {hasUnreadNotifs && (
-                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#A855F7] ring-2 ring-white dark:ring-[#1C1635]" />
-              )}
-            </button>
+          {/* 1. Mobile Screen Header (Clean, clutter-free) */}
+          <div className="pt-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              {t('more', 'More')}
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-[#A78BFA]/80 mt-0.5">
+              Settings, data management and preferences
+            </p>
           </div>
 
-          {/* 2. User Profile Card */}
-          <div
-            onClick={() => setActiveModal('profile')}
-            role="button"
-            tabIndex={0}
-            className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-sm flex items-center justify-between cursor-pointer hover:border-purple-500/30 transition-all active:scale-[0.99] group"
-          >
-            <div className="flex items-center gap-3.5">
-              <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-[#6C47FF] to-[#A855F7] text-white font-extrabold text-xl flex items-center justify-center shadow-md shadow-purple-600/30 flex-shrink-0">
-                {userInitial}
-              </div>
-
-              <div className="space-y-0.5">
-                <h2 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
-                  {userNameVal || 'Raj Kumar'}
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                  {user?.email || 'raj@example.com'}
-                </p>
-                <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                  {isEmailVerified ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                      <Check size={11} strokeWidth={3} />
-                      <span>Verified</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                      <span>Unverified · Tap to check</span>
-                    </span>
-                  )}
-
-                  {/* Mobile Live Sync Status Pill */}
-                  {syncState.status === 'syncing' ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
-                      <RefreshCw size={10} className="animate-spin" />
-                      <span>Syncing</span>
-                    </span>
-                  ) : !syncState.isOnline ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                      <WifiOff size={10} />
-                      <span>Offline</span>
-                    </span>
-                  ) : syncState.pendingCount > 0 ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">
-                      <span>{syncState.pendingCount} pending</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>Synced</span>
-                    </span>
-                  )}
-                </div>
-              </div>
+          {/* 2. User Profile Section (Issue 13: Cleanly integrates Profile & Notifications) */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider px-1">
+              <User size={14} />
+              <span>{t('profile', 'Profile')}</span>
             </div>
 
-            <ChevronRight size={19} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+            <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
+              <div
+                onClick={() => setActiveModal('profile')}
+                role="button"
+                tabIndex={0}
+                className="p-4 sm:p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-all active:scale-[0.99] group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-[#6C47FF] to-[#A855F7] text-white font-extrabold text-xl flex items-center justify-center shadow-md shadow-purple-600/30 flex-shrink-0">
+                    {userInitial}
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <h2 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
+                      {userNameVal || 'Raj Kumar'}
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                      {user?.email || 'raj@example.com'}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      {isEmailVerified ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                          <Check size={11} strokeWidth={3} />
+                          <span>{t('verified', 'Verified')}</span>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCheckVerification();
+                          }}
+                          disabled={checkingVerification}
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 active:scale-95 transition-all cursor-pointer"
+                        >
+                          {checkingVerification ? <RefreshCw size={10} className="animate-spin" /> : <ShieldCheck size={10} />}
+                          <span>{t('unverified', 'Unverified')} · {t('tapToCheck', 'Tap to check')}</span>
+                        </button>
+                      )}
+
+                      {/* Mobile Live Sync Status Pill */}
+                      {syncState.status === 'syncing' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                          <RefreshCw size={10} className="animate-spin" />
+                          <span>Syncing</span>
+                        </span>
+                      ) : !syncState.isOnline ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                          <WifiOff size={10} />
+                          <span>Offline</span>
+                        </span>
+                      ) : syncState.pendingCount > 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">
+                          <span>{syncState.pendingCount} pending</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>Synced</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <ChevronRight size={19} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+
+              {/* Notifications Row Cleanly inside Profile & Account section */}
+              <button
+                type="button"
+                onClick={onOpenNotifications}
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="relative w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                    <Bell size={18} />
+                    {hasUnreadNotifs && (
+                      <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#A855F7] ring-2 ring-white dark:ring-[#281D4C]" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2">
+                      <span>{t('notifications', 'Notifications & Alerts')}</span>
+                      {hasUnreadNotifs && (
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/20">
+                          Unread
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      Budget warnings, version updates and vault notices
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
           </div>
 
           {/* 3. Group 1: Manage Finances */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider px-1">
               <Sliders size={14} />
-              <span>Manage Finances</span>
+              <span>{t('manageFinances', 'Manage Finances')}</span>
             </div>
 
             <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
@@ -1207,7 +1317,7 @@ export default function Settings({
                   </div>
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
-                      Monthly Budget
+                      {t('monthlyBudget', 'Monthly Budget')}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
                       Set or update your monthly budget ({formatCurrency(parseFloat(budgetVal) || 0)})
@@ -1228,7 +1338,7 @@ export default function Settings({
                   </div>
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
-                      Categories
+                      {t('categories', 'Categories')}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
                       Manage expense categories ({categories.length} active)
@@ -1244,14 +1354,14 @@ export default function Settings({
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider px-1">
               <Palette size={14} />
-              <span>Personalization</span>
+              <span>{t('personalization', 'Personalization')}</span>
             </div>
 
-            <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs overflow-hidden">
+            <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
               <button
                 type="button"
                 onClick={() => setActiveModal('theme')}
-                className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-3.5">
                   <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
@@ -1259,10 +1369,31 @@ export default function Settings({
                   </div>
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
-                      Appearance &amp; Theme
+                      {t('appearanceTheme', 'Appearance & Theme')}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 capitalize">
                       Choose a theme ({theme})
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveModal('language')}
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                    <Globe size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
+                      {t('language', 'Language')}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      {availableLanguages.find(l => l.code === language)?.nativeName || 'English'} ({availableLanguages.find(l => l.code === language)?.label || 'English'})
                     </div>
                   </div>
                 </div>
@@ -1276,7 +1407,7 @@ export default function Settings({
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider">
                 <ArrowLeftRight size={14} />
-                <span>Data Management</span>
+                <span>{t('dataManagement', 'Data Management')}</span>
               </div>
 
               {onOpenImportHistory && (
@@ -1327,7 +1458,7 @@ export default function Settings({
                   </div>
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
-                      Export Transactions
+                      {t('exportTransactions', 'Export Transactions')}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
                       Download your expense data (Excel / CSV)
@@ -1337,31 +1468,39 @@ export default function Settings({
                 <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
               </button>
 
+            </div>
+          </div>
+
+          {/* 5. Group: Upcoming Features (Issue 14: Dedicated upcoming preview section) */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider px-1">
+              <Sparkles size={14} />
+              <span>Upcoming Features</span>
+            </div>
+
+            <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
               <button
                 type="button"
                 onClick={handleOpenGoogleSheets}
-                className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-3.5">
                   <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20">
                     <FileSpreadsheet size={18} />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-1.5">
-                      <span>Export to Google Sheets</span>
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">
-                        Coming Soon
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2">
+                      <span>{t('exportGoogleSheets', 'Export to Google Sheets')}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">
+                        {t('upcoming', 'Upcoming')}
                       </span>
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
-                      Sync directly to your Google Drive spreadsheet (Upcoming feature)
+                      Direct cloud export &amp; sync to your personal Google Drive spreadsheet
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400">Upcoming</span>
-                  <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
-                </div>
+                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
           </div>
@@ -1370,7 +1509,7 @@ export default function Settings({
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider px-1">
               <Shield size={14} />
-              <span>Account &amp; Support</span>
+              <span>{t('accountSupport', 'Account & Support')}</span>
             </div>
 
             <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
@@ -1385,7 +1524,7 @@ export default function Settings({
                   </div>
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
-                      Security
+                      {t('security', 'Security')}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
                       Password, email and account security
@@ -1406,7 +1545,7 @@ export default function Settings({
                   </div>
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
-                      Help &amp; Support
+                      {t('helpSupport', 'Help & Support')}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
                       Get help, FAQs and contact support
@@ -1427,7 +1566,7 @@ export default function Settings({
                   </div>
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
-                      Privacy Policy
+                      {t('privacyPolicy', 'Privacy Policy')}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
                       How we handle your data
@@ -1468,17 +1607,17 @@ export default function Settings({
               className="w-full py-4 px-6 rounded-3xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-[0.99]"
             >
               <LogOut size={16} />
-              <span>Log Out of Expense Tracker</span>
+              <span>{t('logOut', 'Log Out of Expense Tracker')}</span>
             </button>
           </div>
 
-          {/* Mobile Footer with Inked Version & Release Date */}
-          <div className="pt-2 pb-6 text-center space-y-1">
-            <div className="text-[11px] font-mono text-slate-500 dark:text-[#A78BFA]/80 flex items-center justify-center gap-1.5">
-              <Calendar size={11} className="text-[#6C47FF] dark:text-[#C084FC]" />
+          {/* Mobile Footer with Inked Version & Release Date (pb-32 ensures no overlapping by bottom navigation) */}
+          <div className="pt-4 pb-32 text-center space-y-1.5 px-4">
+            <div className="text-[11px] font-mono text-slate-500 dark:text-[#A78BFA]/80 flex items-center justify-center gap-1.5 flex-wrap">
+              <Calendar size={11} className="text-[#6C47FF] dark:text-[#C084FC] shrink-0" />
               <span>Personal Expense Tracker · {APP_INKED_VERSION}</span>
             </div>
-            <div className="text-[10px] text-slate-400/60 dark:text-slate-500">
+            <div className="text-[10px] text-slate-400/80 dark:text-slate-500 leading-normal">
               Encrypted Offline-First Vault · Google Cloud &amp; Firebase
             </div>
           </div>
@@ -1643,7 +1782,6 @@ export default function Settings({
                     type="button"
                     onClick={() => {
                       setTheme(t.id);
-                      showToast(`Switched to ${t.name} Theme`, 'info');
                     }}
                     className={`p-3 rounded-2xl border text-left transition-all cursor-pointer space-y-1.5 relative ${isSelected
                       ? 'border-[#6C47FF] bg-purple-500/10 dark:bg-purple-900/30 shadow-md ring-2 ring-[#6C47FF]/20'
@@ -1831,14 +1969,25 @@ export default function Settings({
               )}
 
               {!isEmailVerified && !user?.isGoogleUser && (
-                <button
-                  type="button"
-                  onClick={handleResendEmail}
-                  className="w-full py-2.5 px-4 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-xs font-bold hover:bg-amber-500/20 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <CheckCircle2 size={14} />
-                  <span>Resend Email Verification Link</span>
-                </button>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={handleCheckVerification}
+                    disabled={checkingVerification}
+                    className="w-full py-2.5 px-4 rounded-xl bg-purple-500/10 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/20 text-xs font-bold hover:bg-purple-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                  >
+                    {checkingVerification ? <RefreshCw size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                    <span>Check Verification Status</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResendEmail}
+                    className="w-full py-2.5 px-4 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-xs font-bold hover:bg-amber-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                  >
+                    <CheckCircle2 size={14} />
+                    <span>Resend Email Verification Link</span>
+                  </button>
+                </div>
               )}
 
               <div className="pt-2">
@@ -1952,16 +2101,18 @@ export default function Settings({
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
                   Currency Symbol
                 </label>
-                <select
+                <CustomDropdown
                   value={currencyVal}
-                  onChange={(e) => setCurrencyVal(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#6C47FF]"
-                >
-                  <option value="₹">₹ Indian Rupee (INR)</option>
-                  <option value="$">$ US Dollar (USD)</option>
-                  <option value="€">€ Euro (EUR)</option>
-                  <option value="£">£ British Pound (GBP)</option>
-                </select>
+                  onChange={(val) => setCurrencyVal(val)}
+                  options={[
+                    { value: '₹', label: '₹ Indian Rupee (INR)' },
+                    { value: '$', label: '$ US Dollar (USD)' },
+                    { value: '€', label: '€ Euro (EUR)' },
+                    { value: '£', label: '£ British Pound (GBP)' }
+                  ]}
+                  ariaLabel="Currency Symbol"
+                  className="w-full"
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
@@ -1982,6 +2133,76 @@ export default function Settings({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          SUB-MODAL 8: LANGUAGE SELECTION DIALOG
+         ======================================================== */}
+      {activeModal === 'language' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
+                  <Globe size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Choose Language</h3>
+                  <p className="text-xs text-slate-400">Select your preferred app language</p>
+                </div>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              {availableLanguages.map((lang) => {
+                const isSelected = language === lang.code;
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => {
+                      setLanguage(lang.code);
+                      showToast(`Language switched to ${lang.label}`, 'success');
+                      setActiveModal(null);
+                    }}
+                    className={`w-full p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                      isSelected
+                        ? 'border-[#6C47FF] bg-purple-500/10 dark:bg-purple-900/30 ring-2 ring-[#6C47FF]/20'
+                        : 'border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 hover:bg-slate-50 dark:hover:bg-white/[0.02]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{lang.flag}</span>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white">{lang.nativeName}</div>
+                        <div className="text-[11px] text-slate-400">{lang.label}</div>
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <span className="w-5 h-5 rounded-full bg-[#6C47FF] text-white flex items-center justify-center text-xs font-bold">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

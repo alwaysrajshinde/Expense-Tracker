@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { X, Bell, TrendingUp, AlertTriangle, CheckCircle, Info, ShieldCheck, CheckCheck, Sparkles, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Bell, AlertTriangle, CheckCircle, ShieldCheck, CheckCheck, Sparkles, ArrowRight, Check } from 'lucide-react';
 import { APP_VERSION, APP_SHORT_DATE, APP_RELEASE_TIME, APP_CHANGELOG_SUMMARY } from '../constants/version';
+import { getCurrentUserId } from '../services/api';
+
+const STORAGE_READ_NOTIFS_KEY = 'expense_tracker_read_notifs';
 
 export default function NotificationsModal({ 
   isOpen, 
@@ -10,7 +13,31 @@ export default function NotificationsModal({
   onClearUnread,
   onOpenReleaseNotes
 }) {
-  const [cleared, setCleared] = useState(false);
+  const userId = getCurrentUserId();
+  const storageKey = `${STORAGE_READ_NOTIFS_KEY}_${userId}`;
+
+  // Persistently stored read notification IDs
+  const [readIds, setReadIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Re-sync read state whenever modal opens or user changes
+  useEffect(() => {
+    if (isOpen) {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setReadIds(parsed);
+        }
+      } catch (e) {}
+    }
+  }, [isOpen, storageKey]);
 
   if (!isOpen) return null;
 
@@ -95,9 +122,26 @@ export default function NotificationsModal({
     });
   }
 
-  const handleMarkAllRead = () => {
-    setCleared(true);
+  // Calculate unread count
+  const unreadNotifications = dynamicNotifications.filter(n => !readIds.includes(n.id));
+  const hasUnread = unreadNotifications.length > 0;
+
+  const handleMarkAsRead = (id) => {
+    const updated = Array.from(new Set([...readIds, id]));
+    setReadIds(updated);
     try {
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+    } catch (e) {}
+    if (updated.length >= dynamicNotifications.length && onClearUnread) {
+      onClearUnread();
+    }
+  };
+
+  const handleMarkAllRead = () => {
+    const allIds = dynamicNotifications.map(n => n.id);
+    setReadIds(allIds);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(allIds));
       localStorage.setItem('expense_tracker_last_seen_version', APP_VERSION);
     } catch (e) {}
     if (onClearUnread) onClearUnread();
@@ -107,47 +151,63 @@ export default function NotificationsModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
       <div className="fixed inset-0" onClick={onClose} />
       <div className="relative w-full max-w-sm bg-white dark:bg-[#1A172B] rounded-3xl shadow-2xl p-5 z-10 space-y-4 border border-slate-100 dark:border-white/10 animate-scale-in">
+        
+        {/* Header */}
         <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
           <div className="flex items-center gap-2">
             <Bell size={18} className="text-[#6C47FF] dark:text-[#8B5CF6]" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">Notifications</h3>
+            {hasUnread && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#6C47FF] text-white">
+                {unreadNotifications.length}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
-            {!cleared && (
+            {hasUnread && (
               <button
+                type="button"
                 onClick={handleMarkAllRead}
                 className="text-[11px] font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <CheckCheck size={13} />
-                <span>Mark read</span>
+                <span>Mark all read</span>
               </button>
             )}
             <button
+              type="button"
               onClick={onClose}
-              className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors"
+              className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
             >
               <X size={15} />
             </button>
           </div>
         </div>
 
+        {/* Notifications List */}
         <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-          {cleared ? (
+          {dynamicNotifications.length === 0 ? (
             <div className="py-8 text-center space-y-1.5">
               <CheckCircle size={28} className="mx-auto text-emerald-500" />
               <p className="text-xs font-bold text-slate-700 dark:text-slate-200">All caught up!</p>
-              <p className="text-[11px] text-slate-400">No unread notifications</p>
+              <p className="text-[11px] text-slate-400">No active notifications</p>
             </div>
           ) : (
             dynamicNotifications.map((n) => {
               const Icon = n.icon;
+              const isRead = readIds.includes(n.id);
+
               return (
                 <div
                   key={n.id}
-                  className="p-3.5 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/60 dark:bg-white/5 space-y-1"
+                  className={`p-3.5 rounded-2xl border transition-all space-y-1.5 ${
+                    isRead 
+                      ? 'border-slate-100 dark:border-white/5 bg-slate-50/40 dark:bg-white/[0.02] opacity-70' 
+                      : 'border-purple-200/60 dark:border-purple-800/40 bg-purple-50/20 dark:bg-purple-950/20 shadow-xs'
+                  }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <Icon
                         size={15}
                         className={
@@ -160,15 +220,38 @@ export default function NotificationsModal({
                             : 'text-[#6C47FF] dark:text-[#8B5CF6]'
                         }
                       />
-                      <span className="text-xs font-bold text-slate-800 dark:text-white">{n.title}</span>
+                      <span className={`text-xs font-bold ${isRead ? 'text-slate-700 dark:text-slate-300' : 'text-slate-900 dark:text-white'}`}>
+                        {n.title}
+                      </span>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-medium">{n.time}</span>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-400 font-medium">{n.time}</span>
+                      {!isRead ? (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkAsRead(n.id)}
+                          title="Mark as read"
+                          aria-label={`Mark ${n.title} as read`}
+                          className="w-5 h-5 rounded-full bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/50 dark:hover:bg-purple-900 text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center transition-colors cursor-pointer"
+                        >
+                          <Check size={11} strokeWidth={2.5} />
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-0.5">
+                          <Check size={10} />
+                          <span>Read</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed pl-5">
+
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed pl-6">
                     {n.description}
                   </p>
+
                   {n.actionText && n.onAction && (
-                    <div className="pl-5 pt-1">
+                    <div className="pl-6 pt-0.5">
                       <button
                         type="button"
                         onClick={n.onAction}

@@ -15,7 +15,7 @@ export default function WindowsHeader({
   onRefresh,
   activeTab = 'home',
   authProvider = 'password',
-  emailVerified = true,
+  emailVerified = false,
   onResendVerification
 }) {
   const { theme, toggleTheme, isDark } = useTheme();
@@ -69,44 +69,6 @@ export default function WindowsHeader({
 
       {/* Action Controls Toolbar */}
       <div className="flex items-center gap-2.5 flex-wrap">
-        {/* Month Selector Pill - Render ONLY on relevant financial tabs */}
-        {['home', 'transactions', 'reports'].includes(activeTab) && (
-          <div className="relative">
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-[#16132A] border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-800 dark:text-slate-100 shadow-xs hover:border-purple-300 dark:hover:border-purple-500 transition-colors cursor-pointer"
-            >
-              <Calendar size={15} className="text-[#6C47FF] dark:text-[#A78BFA]" />
-              <span>{formatMonthName(selectedMonth)}</span>
-              <ChevronDown size={14} className={`text-slate-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {dropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-30" onClick={() => setDropdownOpen(false)} />
-                <div className="absolute right-0 mt-1.5 w-44 bg-white dark:bg-[#1A172B] rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 py-1.5 z-40 max-h-64 overflow-y-auto">
-                  {availableMonths.map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => {
-                        onSelectMonth(m);
-                        setDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-xs font-medium flex items-center justify-between hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors ${
-                        selectedMonth === m
-                          ? 'bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-bold'
-                          : 'text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      <span>{formatMonthName(m)}</span>
-                      {selectedMonth === m && <CheckCircle2 size={13} className="text-purple-600 dark:text-purple-400" />}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
 
         {/* Refresh Data Button */}
         <button
@@ -128,24 +90,16 @@ export default function WindowsHeader({
           {isDark ? <Sun size={17} /> : <Moon size={17} />}
         </button>
 
-        {/* Notification Bell */}
-        <button
-          onClick={onOpenNotifications}
-          className="w-10 h-10 rounded-full bg-white dark:bg-[#16132A] border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-700 dark:text-slate-200 shadow-xs hover:bg-slate-50 dark:hover:bg-white/5 relative transition-colors cursor-pointer"
-        >
-          <Bell size={17} />
-          {hasUnreadNotifications && (
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-purple-600 dark:bg-purple-400 rounded-full ring-2 ring-white dark:ring-[#16132A]" />
-          )}
-        </button>
-
-        {/* User Avatar with Profile Dropdown Menu */}
+        {/* User Avatar with Profile Dropdown Menu (includes Notifications) */}
         <div className="relative">
           <button
             onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-            className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#381285] to-[#763cf8] text-white font-bold text-xs flex items-center justify-center shadow-xs hover:opacity-90 transition-opacity cursor-pointer ring-2 ring-purple-500/20"
+            className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#381285] to-[#763cf8] text-white font-bold text-xs flex items-center justify-center shadow-xs hover:opacity-90 transition-opacity cursor-pointer ring-2 ring-purple-500/20 relative"
           >
             {initials}
+            {hasUnreadNotifications && (
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-purple-500 rounded-full ring-2 ring-white dark:ring-[#16132A]" />
+            )}
           </button>
 
           {profileDropdownOpen && (

@@ -4,6 +4,7 @@ import {
   RotateCcw, Tag, FileText, Check, ChevronDown
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
+import CustomDropdown from '../components/CustomDropdown';
 import { useToast } from '../context/ToastContext';
 
 export default function Home({
@@ -69,11 +70,15 @@ export default function Home({
   const donutRadius = center - strokeWidth / 2;
   const donutCircumference = 2 * Math.PI * donutRadius;
 
+  const totalRawPct = chart_data.reduce((sum, item) => sum + (parseFloat(item.percentage) || 0), 0);
+  const normalizedScale = totalRawPct > 0 ? (100 / totalRawPct) : 1;
+
   let cumulativeAngle = 0;
   const donutSlices = chart_data.map((item) => {
-    const strokeDasharray = `${(item.percentage / 100) * donutCircumference} ${donutCircumference}`;
+    const normalizedPct = (parseFloat(item.percentage) || 0) * normalizedScale;
+    const strokeDasharray = `${(normalizedPct / 100) * donutCircumference} ${donutCircumference}`;
     const strokeDashoffset = -((cumulativeAngle / 100) * donutCircumference);
-    cumulativeAngle += item.percentage;
+    cumulativeAngle += normalizedPct;
     return {
       ...item,
       strokeDasharray,
@@ -560,22 +565,19 @@ export default function Home({
 
             {/* Category & Date Pickers in one row */}
             <div className="grid grid-cols-2 gap-2.5">
-              {/* Category Dropdown */}
-              <div className="relative">
-                <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                <select
-                  value={quickCategory}
-                  onChange={(e) => setQuickCategory(e.target.value)}
-                  className="w-full pl-8 pr-6 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#6C47FF] truncate appearance-none"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id || c.name} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              </div>
+              {/* Custom Category Dropdown */}
+              <CustomDropdown
+                value={quickCategory}
+                onChange={(val) => setQuickCategory(val)}
+                options={categories.map((c) => ({
+                  value: c.name,
+                  label: c.name,
+                  color: c.color
+                }))}
+                searchable={true}
+                placeholder="Category"
+                className="w-full"
+              />
 
               {/* Date Input */}
               <div className="relative">

@@ -28,6 +28,10 @@ test.describe('Area A: Universal User Authentication & Session Management', () =
 
   test('A2: Invalid email format is rejected with validation message', async ({ page }) => {
     await page.goto('/');
+    const signinBtn = page.locator('button:has-text("Sign In")').first();
+    if (await signinBtn.isVisible()) {
+      await signinBtn.click();
+    }
     const emailInput = page.locator('input[type="email"]').first();
     await emailInput.fill('invalid-email-format');
 

@@ -133,26 +133,33 @@ export function computeReportsFromTransactions(transactions = [], selectedMonth 
   });
 
   let totalSpent = 0;
+  let totalIncome = 0;
   const categoryMap = {};
   const paymentMap = {};
 
   monthTransactions.forEach(t => {
-    // Exclude internal transfers and pure income from spending calculations
-    if (t.is_transfer || t.type === 'transfer' || t.type === 'income') {
+    let amt = parseFloat(t.amount) || 0;
+    const isCredit = Boolean(t.is_refund || t.type === 'income' || amt < 0 || (t.category && t.category.toLowerCase() === 'income'));
+
+    if (isCredit) {
+      totalIncome += Math.abs(amt);
+    } else {
+      totalSpent += amt;
+    }
+
+    // Exclude internal transfers from category spending calculations
+    if (t.is_transfer || t.type === 'transfer') {
       return;
     }
-    let amt = parseFloat(t.amount) || 0;
-    if (t.is_refund && amt > 0) amt = -amt;
-    totalSpent += amt;
 
     const cat = t.category || 'Other';
     if (!categoryMap[cat]) categoryMap[cat] = { total: 0, count: 0 };
-    categoryMap[cat].total += amt;
+    categoryMap[cat].total += Math.abs(amt);
     categoryMap[cat].count += 1;
 
     const pm = t.payment_mode || 'UPI';
     if (!paymentMap[pm]) paymentMap[pm] = { total: 0, count: 0 };
-    paymentMap[pm].total += amt;
+    paymentMap[pm].total += Math.abs(amt);
     paymentMap[pm].count += 1;
   });
 
@@ -171,13 +178,49 @@ export function computeReportsFromTransactions(transactions = [], selectedMonth 
     };
   }).sort((a, b) => b.total - a.total);
 
-  // Donut slices (Filter positive categories for clean chart rendering)
-  const chartData = categoryBreakdown.filter(c => c.total > 0).slice(0, 6).map(c => ({
-    name: c.category,
-    amount: c.total,
-    percentage: c.percentage,
-    color: c.color
-  }));
+  // Donut slices: Group top categories + "Other" so slices always complete 100% of the circle
+  const positiveCats = categoryBreakdown.filter(c => c.total > 0);
+  let chartData = [];
+  if (positiveCats.length <= 6) {
+    const catsTotal = positiveCats.reduce((sum, c) => sum + c.total, 0);
+    const otherTotal = Math.max(0, totalSpent - catsTotal);
+    chartData = positiveCats.map(c => ({
+      name: c.category,
+      amount: c.total,
+      percentage: c.percentage,
+      color: c.color
+    }));
+    if (otherTotal > 0 && totalSpent > 0) {
+      const otherPct = Math.round((otherTotal / totalSpent) * 1000) / 10;
+      chartData.push({
+        name: 'Other Categories',
+        amount: Math.round(otherTotal),
+        percentage: Math.max(0, otherPct),
+        color: '#8B5CF6'
+      });
+    }
+  } else {
+    const top5 = positiveCats.slice(0, 5);
+    const top5Total = top5.reduce((sum, c) => sum + c.total, 0);
+    const otherTotal = Math.max(0, totalSpent - top5Total);
+    const otherPct = totalSpent > 0 ? Math.round((otherTotal / totalSpent) * 1000) / 10 : 0;
+
+    chartData = top5.map(c => ({
+      name: c.category,
+      amount: c.total,
+      percentage: c.percentage,
+      color: c.color
+    }));
+
+    if (otherTotal > 0) {
+      chartData.push({
+        name: 'Other Categories',
+        amount: Math.round(otherTotal),
+        percentage: Math.max(0, otherPct),
+        color: '#8B5CF6'
+      });
+    }
+  }
 
   // Payment breakdown
   const paymentBreakdown = Object.keys(paymentMap).map(pm => {
@@ -191,7 +234,7 @@ export function computeReportsFromTransactions(transactions = [], selectedMonth 
     };
   }).sort((a, b) => b.total - a.total);
 
-  // Monthly trend for all months
+  // Monthly trend for last 6 months
   const monthlyTotals = {};
   transactions.forEach(t => {
     const mk = t.month_key || (t.date ? t.date.slice(0, 7) : '');
@@ -205,27 +248,39 @@ export function computeReportsFromTransactions(transactions = [], selectedMonth 
     '07': 'Jul', '08': 'Aug', '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
   };
 
-  const monthlyTrend = Object.keys(monthlyTotals).sort().map(mk => {
-    const parts = mk.split('-');
-    const mStr = monthNames[parts[1]] || parts[1];
-    return {
+  // Generate continuous Last 6 Months ending at selectedMonth
+  const last6Months = [];
+  const parts = (selectedMonth || '2026-11').split('-');
+  const selYear = parseInt(parts[0], 10) || 2026;
+  const selMonth = parseInt(parts[1], 10) || 11;
+
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(selYear, selMonth - 1 - i, 1);
+    const yStr = String(d.getFullYear());
+    const mNum = String(d.getMonth() + 1).padStart(2, '0');
+    const mk = `${yStr}-${mNum}`;
+    const mStr = monthNames[mNum] || mNum;
+    last6Months.push({
       month_key: mk,
-      month_label: `${mStr} '${parts[0].slice(2)}`,
-      total: Math.round(monthlyTotals[mk]),
+      label: mStr,
+      month_label: `${mStr} '${yStr.slice(2)}`,
+      total: Math.round(monthlyTotals[mk] || 0),
       is_current: mk === selectedMonth
-    };
-  });
+    });
+  }
 
   return {
     month: selectedMonth,
     total_spent: Math.round(totalSpent),
+    total_income: Math.round(totalIncome),
+    net_balance: Math.round(totalIncome - totalSpent),
     tx_count: monthTransactions.length,
     budget: budget,
     remaining_budget: Math.round(budget - totalSpent),
     category_breakdown: categoryBreakdown,
     chart_data: chartData,
     payment_breakdown: paymentBreakdown,
-    monthly_trend: monthlyTrend
+    monthly_trend: last6Months
   };
 }
 

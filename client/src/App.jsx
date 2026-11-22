@@ -18,6 +18,7 @@ import AuthGate from './components/AuthGate';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { ToastProvider, useToast } from './context/ToastContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { ShieldCheck, X, WifiOff, RefreshCw } from 'lucide-react';
 import * as api from './services/api';
 import syncService from './services/syncService';
@@ -48,23 +49,24 @@ function MainApp() {
   const [dashboardData, setDashboardData] = useState(null);
   const [reportsData, setReportsData] = useState(null);
   const [categories, setCategories] = useState([]);
-  const [hasUnreadNotifs, setHasUnreadNotifs] = useState(true);
+  const [hasUnreadNotifs, setHasUnreadNotifs] = useState(() => {
+    try {
+      const uId = localStorage.getItem('expense_tracker_current_user_id') || 'guest';
+      const readNotifs = localStorage.getItem(`expense_tracker_read_notifs_${uId}`);
+      const lastSeen = localStorage.getItem('expense_tracker_last_seen_version');
+      if (readNotifs && lastSeen === APP_VERSION) {
+        const parsed = JSON.parse(readNotifs);
+        if (Array.isArray(parsed) && parsed.length >= 2) return false;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  });
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
 
-  // Inform user of new application updates and changelog
-  useEffect(() => {
-    try {
-      const lastSeen = localStorage.getItem('expense_tracker_last_seen_version');
-      if (lastSeen !== APP_VERSION) {
-        setHasUnreadNotifs(true);
-        const timer = setTimeout(() => {
-          showToast(`✨ App Updated to ${APP_VERSION}: ${APP_CHANGELOG_SUMMARY}`, 'info', 7000);
-        }, 1500);
-        return () => clearTimeout(timer);
-      }
-    } catch (e) {}
-  }, []);
+
 
   // Live Sync & Network State
   const [syncState, setSyncState] = useState(() => {
@@ -154,6 +156,7 @@ function MainApp() {
 
   const openNotificationsModal = () => {
     setIsNotificationsOpen(true);
+    setHasUnreadNotifs(false);
     try {
       localStorage.setItem('expense_tracker_last_seen_version', APP_VERSION);
     } catch (e) {}
@@ -398,7 +401,7 @@ function MainApp() {
                 onRefresh={handleRefreshAll}
                 activeTab={activeTab}
                 authProvider={user?.providerId || 'password'}
-                emailVerified={user?.emailVerified ?? true}
+                emailVerified={Boolean(user?.emailVerified || user?.isGoogleUser)}
                 onResendVerification={handleResendVerification}
               />
             </div>
@@ -597,7 +600,7 @@ function MainApp() {
             hasUnreadNotifications={hasUnreadNotifs}
             activeTab={activeTab}
             authProvider={user?.providerId || 'password'}
-            emailVerified={user?.emailVerified ?? true}
+            emailVerified={Boolean(user?.emailVerified || user?.isGoogleUser)}
             onResendVerification={handleResendVerification}
           />
 
@@ -828,11 +831,13 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AuthGate>
-          <ToastProvider>
-            <MainApp />
-          </ToastProvider>
-        </AuthGate>
+        <LanguageProvider>
+          <AuthGate>
+            <ToastProvider>
+              <MainApp />
+            </ToastProvider>
+          </AuthGate>
+        </LanguageProvider>
       </AuthProvider>
     </ThemeProvider>
   );

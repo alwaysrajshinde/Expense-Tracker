@@ -1,15 +1,18 @@
 import React from 'react';
 import { Home, ReceiptText, Plus, BarChart2, MoreHorizontal } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Navbar({ activeTab, onTabChange, onOpenAddExpense }) {
+  const { t } = useLanguage();
+
   const leftTabs = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'transactions', label: 'Transactions', icon: ReceiptText }
+    { id: 'home', label: t('home', 'Home'), icon: Home },
+    { id: 'transactions', label: t('transactions', 'Transactions'), icon: ReceiptText }
   ];
 
   const rightTabs = [
-    { id: 'reports', label: 'Reports', icon: BarChart2 },
-    { id: 'settings', label: 'More', icon: MoreHorizontal }
+    { id: 'reports', label: t('reports', 'Reports'), icon: BarChart2 },
+    { id: 'settings', label: t('more', 'More'), icon: MoreHorizontal }
   ];
 
   return (

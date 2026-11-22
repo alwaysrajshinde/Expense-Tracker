@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   Search, Filter, Calendar, Edit2, Trash2, ArrowDownLeft, ArrowUpRight,
-  ChevronLeft, ChevronRight, X, AlertCircle, FileSpreadsheet, Download, Upload
+  ChevronLeft, ChevronRight, ChevronDown, X, AlertCircle, FileSpreadsheet, Download, Upload
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
+import CustomDropdown from '../components/CustomDropdown';
 import { getTransactions, getCurrentUserEmail } from '../services/api';
 import { exportTransactionsToExcel, exportDataToJson } from '../services/exportService';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Transactions({
   selectedMonth,
@@ -19,6 +21,7 @@ export default function Transactions({
   onOpenImport
 }) {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [transactionsData, setTransactionsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -111,10 +114,10 @@ export default function Transactions({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-            Expense Records & History
+            {t('expenseRecords', 'Expense Records & History')}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {transactionsData?.total_count || 0} entries found · Total Net Spend: <strong className="text-slate-900 dark:text-white">{formatCurrency(transactionsData?.total_amount || 0)}</strong>
+            {transactionsData?.total_count || 0} {t('entriesFound', 'entries found')} · {t('totalNetSpend', 'Total Net Spend')}: <strong className="text-slate-900 dark:text-white">{formatCurrency(transactionsData?.total_amount || 0)}</strong>
           </p>
         </div>
 
@@ -127,7 +130,7 @@ export default function Transactions({
               className="flex items-center gap-1.5 px-3.5 py-2 bg-[#6C47FF] hover:bg-[#5835E5] text-white rounded-xl text-xs font-bold shadow-sm shadow-purple-600/20 transition-all cursor-pointer"
             >
               <Upload size={14} />
-              <span>Import</span>
+              <span>{t('import', 'Import')}</span>
             </button>
           )}
           <a
@@ -142,7 +145,7 @@ export default function Transactions({
             className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-[#151226] border border-slate-200 dark:border-white/10 hover:border-purple-300 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-xs transition-colors"
           >
             <FileSpreadsheet size={15} className="text-emerald-600" />
-            <span className="hidden sm:inline">Export Excel</span>
+            <span className="hidden sm:inline">{t('exportExcel', 'Export Excel')}</span>
           </a>
           <a
             href={`/api/export/json?user_email=${encodeURIComponent(getCurrentUserEmail())}`}
@@ -156,7 +159,7 @@ export default function Transactions({
             className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-[#151226] border border-slate-200 dark:border-white/10 hover:border-purple-300 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-xs transition-colors"
           >
             <Download size={15} className="text-[#6C47FF] dark:text-[#8B5CF6]" />
-            <span className="hidden sm:inline">JSON Backup</span>
+            <span className="hidden sm:inline">{t('jsonBackup', 'JSON Backup')}</span>
           </a>
         </div>
       </div>
@@ -169,7 +172,7 @@ export default function Transactions({
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search by description, category, date, or amount..."
+              placeholder={t('searchPlaceholder', 'Search by description, category, date, or amount...')}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -180,72 +183,75 @@ export default function Transactions({
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 <X size={14} />
               </button>
             )}
           </div>
 
-          {/* Month Dropdown */}
+          {/* Custom Month Dropdown */}
           <div className="md:col-span-3">
-            <select
+            <CustomDropdown
               value={monthFilter}
-              onChange={(e) => {
-                const val = e.target.value;
+              onChange={(val) => {
                 setMonthFilter(val);
                 setPage(1);
                 if (val !== 'all' && onSelectMonth) {
                   onSelectMonth(val);
                 }
               }}
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-            >
-              <option value="all">All Months</option>
-              {availableMonths.map((m) => (
-                <option key={m} value={m}>
-                  {formatMonthName(m)}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: 'all', label: t('allMonths', 'All Months') },
+                ...availableMonths.map((m) => ({ value: m, label: formatMonthName(m) }))
+              ]}
+              icon={Calendar}
+              ariaLabel="Select Month Filter"
+              className="w-full"
+            />
           </div>
 
-          {/* Category Dropdown */}
+          {/* Custom Category Dropdown */}
           <div className="md:col-span-2">
-            <select
+            <CustomDropdown
               value={categoryFilter}
-              onChange={(e) => {
-                setCategoryFilter(e.target.value);
+              onChange={(val) => {
+                setCategoryFilter(val);
                 setPage(1);
               }}
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#6C47FF] truncate"
-            >
-              <option value="all">All Categories</option>
-              {categories.map((c) => (
-                <option key={c.id || c.name} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: 'all', label: t('allCategories', 'All Categories') },
+                ...categories.map((c) => ({
+                  value: c.name,
+                  label: c.name,
+                  color: c.color
+                }))
+              ]}
+              searchable={true}
+              ariaLabel="Select Category Filter"
+              className="w-full"
+            />
           </div>
 
-          {/* Payment Mode */}
+          {/* Custom Payment Mode Dropdown */}
           <div className="md:col-span-2">
-            <select
+            <CustomDropdown
               value={paymentFilter}
-              onChange={(e) => {
-                setPaymentFilter(e.target.value);
+              onChange={(val) => {
+                setPaymentFilter(val);
                 setPage(1);
               }}
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"
-            >
-              <option value="all">All Modes</option>
-              <option value="UPI">UPI</option>
-              <option value="Cash">Cash</option>
-              <option value="Credit Card">Credit Card</option>
-              <option value="Debit Card">Debit Card</option>
-              <option value="Net Banking">Net Banking</option>
-            </select>
+              options={[
+                { value: 'all', label: t('allModes', 'All Modes') },
+                { value: 'UPI', label: 'UPI' },
+                { value: 'Cash', label: 'Cash' },
+                { value: 'Credit Card', label: 'Credit Card' },
+                { value: 'Debit Card', label: 'Debit Card' },
+                { value: 'Net Banking', label: 'Net Banking' }
+              ]}
+              ariaLabel="Select Payment Mode Filter"
+              className="w-full"
+            />
           </div>
         </div>
 
@@ -280,7 +286,7 @@ export default function Transactions({
       ) : transactionsData?.grouped?.length === 0 ? (
         <div className="bg-white dark:bg-[#151226] rounded-3xl p-10 border border-slate-100 dark:border-white/10 text-center space-y-2">
           <AlertCircle size={36} className="mx-auto text-slate-300 dark:text-slate-600" />
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No matching transactions</p>
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('noTransactions', 'No matching transactions')}</p>
           <p className="text-xs text-slate-400">Try adjusting your filters or search terms</p>
         </div>
       ) : (

@@ -65,6 +65,39 @@ html.theme-rose {
   padding-top: max(0.75rem, env(safe-area-inset-top, 12px));
 }
 
+/* Polished styling for native select dropdowns and options across light & dark themes */
+select {
+  cursor: pointer;
+  background-color: var(--bg-surface, #ffffff);
+  color: var(--text-primary, #0f172a);
+}
+
+select option {
+  background-color: #ffffff;
+  color: #0f172a;
+  padding: 10px 14px;
+}
+
+.dark select,
+.dark select option,
+.theme-dark select,
+.theme-dark select option,
+.theme-midnight select,
+.theme-midnight select option,
+.theme-ocean select,
+.theme-ocean select option,
+.theme-emerald select,
+.theme-emerald select option,
+.theme-rose select,
+.theme-rose select option {
+  background-color: #1a162e !important;
+  color: #f8fafc !important;
+}
+
+select:focus {
+  outline: none;
+}
+
 html, body {
   overflow-x: hidden;
   max-width: 100vw;

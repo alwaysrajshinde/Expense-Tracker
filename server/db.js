@@ -386,7 +386,7 @@ function getOrCreateUser(googleUserId, email, name, picture) {
     const generatedSheetId = user.id === 1 ? '1x-master-raj-expenses-sheet-2026' : `1sheet_user_${user.id}_${Date.now()}`;
     const generatedUrl = `https://docs.google.com/spreadsheets/d/${generatedSheetId}/edit`;
     const status = user.id === 1 ? 'migrated' : 'active';
-    
+
     db.prepare(`
       INSERT INTO user_spreadsheet_mappings (user_id, google_user_id, email, spreadsheet_id, spreadsheet_url, status)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -821,7 +821,7 @@ function getReports(monthKey, userId = 1) {
       count: remainingCats.reduce((sum, c) => sum + c.count, 0),
       percentage: Math.round(othersPct * 10) / 10,
       icon: 'MoreHorizontal',
-      color: '#94A3B8'
+      color: '#8B5CF6'
     });
   }
 
@@ -853,14 +853,10 @@ function getReports(monthKey, userId = 1) {
     ORDER BY month_key ASC
   `).all(userId);
 
-  const targetIdx = allMonths.findIndex(m => m.month_key === targetMonth);
-  let trendSlice = allMonths;
-  if (targetIdx !== -1) {
-    const start = Math.max(0, targetIdx - 5);
-    trendSlice = allMonths.slice(start, targetIdx + 1);
-  } else {
-    trendSlice = allMonths.slice(-6);
-  }
+  const monthMap = {};
+  allMonths.forEach(m => {
+    monthMap[m.month_key] = { total: m.total, count: m.count };
+  });
 
   const monthNames = {
     '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr',
@@ -868,16 +864,23 @@ function getReports(monthKey, userId = 1) {
     '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
   };
 
-  const monthlyTrend = trendSlice.map(m => {
-    const [, mon] = m.month_key.split('-');
-    return {
-      month_key: m.month_key,
-      label: monthNames[mon] || m.month_key,
-      total: m.total,
-      count: m.count,
-      is_current: m.month_key === targetMonth
-    };
-  });
+  const [tYear, tMon] = (targetMonth || '2026-11').split('-').map(Number);
+  const monthlyTrend = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(tYear, tMon - 1 - i, 1);
+    const yStr = String(d.getFullYear());
+    const mNum = String(d.getMonth() + 1).padStart(2, '0');
+    const mk = `${yStr}-${mNum}`;
+    const mData = monthMap[mk] || { total: 0, count: 0 };
+    monthlyTrend.push({
+      month_key: mk,
+      label: monthNames[mNum] || mk,
+      month_label: `${monthNames[mNum] || mk} '${yStr.slice(2)}`,
+      total: mData.total,
+      count: mData.count,
+      is_current: mk === targetMonth
+    });
+  }
 
   return {
     month_key: targetMonth,

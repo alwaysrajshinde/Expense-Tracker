@@ -225,6 +225,49 @@ export async function seedDefaultCategories(userId) {
 }
 
 /**
+ * Query all distinct historical months containing transactions for this user
+ */
+export async function getAvailableMonths(userId) {
+  if (!isFirebaseConfigured || !db) return [];
+
+  try {
+    const txCol = collection(db, 'users', userId, 'transactions');
+    const snap = await getDocs(txCol);
+    const months = new Set();
+    snap.forEach(d => {
+      const data = d.data();
+      const m = data.month_key || (data.date ? data.date.slice(0, 7) : '');
+      if (m && /^\d{4}-\d{2}$/.test(m)) months.add(m);
+    });
+
+    try {
+      const mCol = collection(db, 'users', userId, 'months');
+      const mSnap = await getDocs(mCol);
+      mSnap.forEach(d => {
+        if (/^\d{4}-\d{2}$/.test(d.id)) months.add(d.id);
+      });
+    } catch (e) {}
+
+    const isRaj = userId === '1' || String(userId).includes('raj');
+    if (months.size === 0 && isRaj && rajHistoricalData && rajHistoricalData.transactions) {
+      rajHistoricalData.transactions.forEach(t => {
+        const m = t.month_key || (t.date ? t.date.slice(0, 7) : '');
+        if (m && /^\d{4}-\d{2}$/.test(m)) months.add(m);
+      });
+    }
+
+    if (months.size === 0) {
+      months.add(getLocalMonthKey());
+    }
+
+    return Array.from(months).sort().reverse();
+  } catch (err) {
+    console.warn('Error fetching available months in Firestore:', err);
+    return [getLocalMonthKey()];
+  }
+}
+
+/**
  * Get monthly dashboard data from Firestore with Monthly Roll-up Cache
  */
 export async function getDashboardData(userId, monthKey = getLocalMonthKey()) {
@@ -235,6 +278,7 @@ export async function getDashboardData(userId, monthKey = getLocalMonthKey()) {
     const isRaj = userDoc.exists() && userDoc.data().email === 'raaajshinde@gmail.com';
     const profile = userDoc.exists() ? userDoc.data() : { monthly_budget: 0, currency: '₹' };
     const budget = profile.monthly_budget !== undefined ? (parseFloat(profile.monthly_budget) || 0) : (isRaj ? 12000 : 0);
+    const allMonths = await getAvailableMonths(userId);
 
     // Check if pre-aggregated monthly summary document exists for instant 1-read load
     const monthDocRef = doc(db, 'users', userId, 'months', monthKey);
@@ -246,6 +290,7 @@ export async function getDashboardData(userId, monthKey = getLocalMonthKey()) {
         summary.currency = profile.currency || '₹';
         summary.remaining = Math.max(0, budget - (summary.total_spent || 0));
         summary.spent_percentage = budget > 0 ? Math.min(100, Math.round(((summary.total_spent || 0) / budget) * 100)) : 0;
+        summary.available_months = allMonths;
         return summary;
       }
     } catch (cacheErr) {}
@@ -263,6 +308,7 @@ export async function getDashboardData(userId, monthKey = getLocalMonthKey()) {
 
     // Compute dashboard metrics
     const computed = computeDashboardFromTransactions(transactions, monthKey, budget, categories);
+    computed.available_months = allMonths;
 
     // Cache summary document for instant future dashboard visits
     try {
@@ -290,22 +336,46 @@ export async function getReports(userId, monthKey = getLocalMonthKey()) {
     const isRaj = userDoc.exists() && userDoc.data().email === 'raaajshinde@gmail.com';
     const profile = userDoc.exists() ? userDoc.data() : { monthly_budget: 0, currency: '₹' };
     const budget = profile.monthly_budget !== undefined ? (parseFloat(profile.monthly_budget) || 0) : (isRaj ? 12000 : 0);
+    const allMonths = await getAvailableMonths(userId);
 
-    // Query transactions for the selected month
+    // Query transactions for the past 6 months to compute accurate 6-month spending trends
+    const [y, m] = monthKey.split('-').map(Number);
+    const targetMonths = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(y, m - 1 - i, 1);
+      targetMonths.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    const minMonthKey = targetMonths[0];
+
     const txCol = collection(db, 'users', userId, 'transactions');
-    const q = query(txCol, where('month_key', '==', monthKey));
-    const snap = await getDocs(q);
-
     let transactions = [];
-    snap.forEach(d => transactions.push(d.data()));
+
+    try {
+      // Fetch each of the 6 months cleanly in parallel without composite index dependencies
+      const monthDocs = await Promise.all(
+        targetMonths.map(mk => getDocs(query(txCol, where('month_key', '==', mk))))
+      );
+      monthDocs.forEach(snap => {
+        snap.forEach(d => transactions.push(d.data()));
+      });
+    } catch (e) {
+      try {
+        const snap = await getDocs(txCol);
+        snap.forEach(d => transactions.push(d.data()));
+      } catch (e2) {
+        console.warn('Fallback error fetching transactions for reports:', e2);
+      }
+    }
 
     // Historical fallback for Raj Shinde if Firestore collection is fresh
     if (transactions.length === 0 && isRaj && rajHistoricalData && rajHistoricalData.transactions) {
-      transactions = rajHistoricalData.transactions.filter(t => t.month_key === monthKey);
+      transactions = rajHistoricalData.transactions.filter(t => t.month_key >= minMonthKey && t.month_key <= monthKey);
     }
 
     const categories = await getCategories(userId);
-    return computeReportsFromTransactions(transactions, monthKey, budget, categories);
+    const rep = computeReportsFromTransactions(transactions, monthKey, budget, categories);
+    rep.available_months = allMonths;
+    return rep;
   } catch (err) {
     console.error('Error in firestoreService.getReports:', err);
     return null;

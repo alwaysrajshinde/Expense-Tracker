@@ -1,6 +1,7 @@
 import React from 'react';
-import { Calendar, BarChart2, Plus, ArrowRight } from 'lucide-react';
+import { Calendar, BarChart2, Plus, ArrowRight, Sparkles } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function AndroidHome({
   dashboardData,
@@ -11,6 +12,8 @@ export default function AndroidHome({
   onEditTransaction,
   formatCurrency
 }) {
+  const { t } = useLanguage();
+
   if (!dashboardData) {
     return (
       <div className="flex items-center justify-center p-12 text-slate-400 text-sm">
@@ -31,6 +34,7 @@ export default function AndroidHome({
   } = dashboardData;
 
   const percentSpentVal = Math.round(percent_spent * 10) / 10;
+  const todayFormatted = new Date().toLocaleDateString('default', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
   // Circular progress math
   const radius = 38;
@@ -47,7 +51,7 @@ export default function AndroidHome({
           <div className="space-y-2 min-w-0 flex-1 mr-2">
             <div>
               <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
-                Monthly Budget
+                {t('monthlyBudget', 'Monthly Budget')}
               </span>
               {budget > 0 ? (
                 <button
@@ -65,14 +69,14 @@ export default function AndroidHome({
                   onClick={onSetBudget}
                   className="mt-0.5 text-xs font-bold text-amber-200 hover:text-white underline block cursor-pointer"
                 >
-                  Set Monthly Budget
+                  {t('setMonthlyBudget', 'Set Monthly Budget')}
                 </button>
               )}
             </div>
 
             <div>
               <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
-                Spent
+                {t('spent', 'Spent')}
               </span>
               <p className="text-white text-2xl sm:text-3xl font-black tracking-tight truncate max-w-[170px] sm:max-w-none" title={formatCurrency(total_spent)}>
                 {formatCurrency(total_spent)}
@@ -85,12 +89,12 @@ export default function AndroidHome({
                   ? 'bg-emerald-100 text-emerald-950'
                   : 'bg-rose-100 text-rose-950'
                   }`}>
-                  {remaining_budget >= 0 ? 'Remaining: ' : 'Remaining: Over by '}
+                  {remaining_budget >= 0 ? `${t('remaining', 'Remaining')}: ` : `${t('remaining', 'Remaining')}: Over by `}
                   {formatCurrency(Math.abs(remaining_budget))}
                 </span>
               ) : (
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-200/90 text-purple-950 shadow-xs">
-                  No budget set
+                  {t('noBudgetSet', 'No budget set')}
                 </span>
               )}
             </div>
@@ -187,13 +191,13 @@ export default function AndroidHome({
       <div className="bg-white dark:bg-[#16132A] rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-xs space-y-3.5 transition-colors">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-            Top Categories
+            {t('topCategories', 'Top Categories')}
           </h3>
           <button
             onClick={onViewAllCategories}
             className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 transition-colors"
           >
-            <span>View All</span>
+            <span>{t('seeAll', 'View All')}</span>
             <ArrowRight size={13} />
           </button>
         </div>
@@ -261,13 +265,13 @@ export default function AndroidHome({
       <div className="bg-white dark:bg-[#16132A] rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-xs space-y-3 transition-colors">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-            Recent Activity
+            {t('recentActivity', 'Recent Activity')}
           </h3>
           <button
             onClick={onViewAllTransactions}
             className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 transition-colors"
           >
-            <span>See All</span>
+            <span>{t('seeAll', 'See All')}</span>
             <ArrowRight size={13} />
           </button>
         </div>

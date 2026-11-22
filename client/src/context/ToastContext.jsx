@@ -12,9 +12,10 @@ export function ToastProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const showToast = useCallback((message, type = 'info', duration = 3500) => {
+  const showToast = useCallback((message, type = 'info', duration = 2500) => {
     const id = Date.now() + Math.random().toString(36).substring(2, 7);
-    setToasts((prev) => [...prev, { id, message, type }]);
+    // Enforce strictly 1 active toast at a time: replaces previous toast, preventing stacking
+    setToasts([{ id, message, type }]);
 
     if (duration > 0) {
       setTimeout(() => {
@@ -26,28 +27,28 @@ export function ToastProvider({ children }) {
   const getIcon = (type) => {
     switch (type) {
       case 'success':
-        return <CheckCircle2 size={18} className="text-emerald-500 flex-shrink-0" />;
+        return <CheckCircle2 size={15} className="text-emerald-500 flex-shrink-0" />;
       case 'error':
-        return <AlertCircle size={18} className="text-rose-500 flex-shrink-0" />;
+        return <AlertCircle size={15} className="text-rose-500 flex-shrink-0" />;
       case 'warning':
-        return <AlertTriangle size={18} className="text-amber-500 flex-shrink-0" />;
+        return <AlertTriangle size={15} className="text-amber-500 flex-shrink-0" />;
       case 'info':
       default:
-        return <Info size={18} className="text-[#6C47FF] dark:text-[#A78BFA] flex-shrink-0" />;
+        return <Info size={15} className="text-[#6C47FF] dark:text-[#A78BFA] flex-shrink-0" />;
     }
   };
 
   const getBorderColor = (type) => {
     switch (type) {
       case 'success':
-        return 'border-emerald-500/30 bg-emerald-50/90 dark:bg-emerald-950/80 text-emerald-950 dark:text-emerald-100';
+        return 'border-emerald-500/30 bg-emerald-950/90 text-emerald-100 shadow-emerald-900/20';
       case 'error':
-        return 'border-rose-500/30 bg-rose-50/90 dark:bg-rose-950/80 text-rose-950 dark:text-rose-100';
+        return 'border-rose-500/30 bg-rose-950/90 text-rose-100 shadow-rose-900/20';
       case 'warning':
-        return 'border-amber-500/30 bg-amber-50/90 dark:bg-amber-950/80 text-amber-950 dark:text-amber-100';
+        return 'border-amber-500/30 bg-amber-950/90 text-amber-100 shadow-amber-900/20';
       case 'info':
       default:
-        return 'border-purple-500/30 bg-purple-50/90 dark:bg-[#1A172B]/95 text-slate-900 dark:text-white';
+        return 'border-purple-500/30 bg-[#16132A]/95 text-white shadow-purple-950/30';
     }
   };
 
@@ -55,26 +56,24 @@ export function ToastProvider({ children }) {
     <ToastContext.Provider value={{ showToast }}>
       {children}
 
-      {/* Floating Toasts Container */}
-      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-3 sm:px-0">
+      {/* Sleek Floating Pill Toast: Centered, Compact, Zero Stacking */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none px-3 w-auto max-w-[92vw]">
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-center justify-between gap-3 p-3.5 rounded-2xl border shadow-xl backdrop-blur-md transition-all animate-slide-down ${getBorderColor(
+            className={`pointer-events-auto inline-flex items-center gap-2.5 px-4 py-2 rounded-full border shadow-2xl backdrop-blur-xl transition-all animate-slide-down ${getBorderColor(
               toast.type
             )}`}
           >
-            <div className="flex items-center gap-2.5">
-              {getIcon(toast.type)}
-              <span className="text-xs font-semibold leading-snug">
-                {toast.message}
-              </span>
-            </div>
+            {getIcon(toast.type)}
+            <span className="text-xs font-semibold whitespace-nowrap truncate max-w-[70vw]">
+              {toast.message}
+            </span>
             <button
               onClick={() => removeToast(toast.id)}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              className="p-0.5 rounded-full text-slate-400 hover:text-white transition-colors cursor-pointer ml-1"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           </div>
         ))}

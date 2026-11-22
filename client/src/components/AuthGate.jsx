@@ -13,16 +13,19 @@ import {
   Mail,
   Lock,
   User,
-  HelpCircle,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import LegalModal from './LegalModal';
 import PublicLanding from './PublicLanding';
 import PublicLegalView from './PublicLegalView';
 
 export default function AuthGate({ children }) {
+  const { isDark, toggleTheme } = useTheme();
   const { 
     isAuthenticated, 
     isLoading, 
@@ -66,11 +69,10 @@ export default function AuthGate({ children }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [legalModalType, setLegalModalType] = useState(null);
-  const [showGoogleHelp, setShowGoogleHelp] = useState(false);
 
   // Hash route & Public Homepage state (Resolves Google OAuth Verification Requirements)
   const [currentHash, setCurrentHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash : ''));
-  const [showAuthCard, setShowAuthCard] = useState(true);
+  const [showAuthCard, setShowAuthCard] = useState(false);
 
   useEffect(() => {
     const onHashChange = () => setCurrentHash(window.location.hash);
@@ -276,18 +278,29 @@ export default function AuthGate({ children }) {
         {/* Ambient background glow */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-500/15 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Back to Homepage Button */}
-        <button
-          type="button"
-          onClick={() => {
-            setShowAuthCard(false);
-            setErrorMsg('');
-          }}
-          className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
-        >
-          <ArrowLeft size={14} />
-          <span>Back to Overview</span>
-        </button>
+        {/* Top Header: Back to Overview & Accessible Theme Toggle */}
+        <div className="flex items-center justify-between mb-4">
+          <button
+            type="button"
+            onClick={() => {
+              setShowAuthCard(false);
+              setErrorMsg('');
+            }}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Overview</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            className="w-8 h-8 rounded-xl flex items-center justify-center border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+          >
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+        </div>
 
         {/* Brand Header */}
         <div className="text-center space-y-2 mb-6">
@@ -640,12 +653,13 @@ export default function AuthGate({ children }) {
               </form>
             )}
 
-            {/* Divider */}
-            <div className="relative flex items-center justify-center pt-1">
-              <div className="border-t border-slate-200 dark:border-white/10 w-full" />
-              <span className="bg-white dark:bg-[#16132A] px-3 text-[11px] text-slate-400 font-medium tracking-wide uppercase">
+            {/* Centered OR Divider with equal spacing on both sides */}
+            <div className="flex items-center my-3.5">
+              <div className="flex-grow border-t border-slate-200 dark:border-white/10" />
+              <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                 or
               </span>
+              <div className="flex-grow border-t border-slate-200 dark:border-white/10" />
             </div>
 
             {/* Universal Continue with Google Button */}
@@ -662,16 +676,6 @@ export default function AuthGate({ children }) {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
               </svg>
               <span>Continue with Google</span>
-            </button>
-
-            {/* Google OAuth Help link */}
-            <button
-              type="button"
-              onClick={() => setShowGoogleHelp(true)}
-              className="text-[11px] text-slate-400 hover:text-[#6C47FF] dark:hover:text-[#A78BFA] transition-colors flex items-center justify-center gap-1 mx-auto pt-0.5 cursor-pointer"
-            >
-              <HelpCircle size={13} />
-              <span>Seeing "Google hasn't verified this app"? Click here</span>
             </button>
           </div>
         )}
@@ -724,51 +728,6 @@ export default function AuthGate({ children }) {
           onClose={() => setLegalModalType(null)}
           initialTab={legalModalType || 'privacy'}
         />
-
-        {/* Google OAuth Verification Guidance Modal */}
-        {showGoogleHelp && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-            <div className="fixed inset-0" onClick={() => setShowGoogleHelp(false)} />
-            <div className="relative w-full max-w-md bg-white dark:bg-[#16132A] rounded-3xl p-6 shadow-2xl z-10 border border-slate-100 dark:border-white/10 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-sm">
-                  <AlertCircle size={18} />
-                  <span>Google Sign-In Guidance</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowGoogleHelp(false)}
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                <p>
-                  Expense Tracker authenticates securely with Google using standard profile and email identity scopes to access your encrypted personal vault.
-                </p>
-                <div className="bg-amber-50 dark:bg-amber-950/40 p-3.5 rounded-2xl border border-amber-200/60 dark:border-amber-800/50 space-y-2 text-[11px]">
-                  <p className="font-bold text-amber-900 dark:text-amber-200">How to proceed:</p>
-                  <p className="text-amber-800 dark:text-amber-300">
-                    Sign in with your standard Google Account. Your account permissions only verify your email and profile name without accessing any private files or emails.
-                  </p>
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Your credentials and financial data are 100% private to your account and stored in your isolated cloud vault.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowGoogleHelp(false)}
-                className="w-full py-2.5 bg-[#6C47FF] hover:bg-[#5835E5] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-purple-600/20 cursor-pointer"
-              >
-                Got It
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
