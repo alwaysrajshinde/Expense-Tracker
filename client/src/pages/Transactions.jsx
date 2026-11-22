@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search, Filter, Calendar, Edit2, Trash2, ArrowDownLeft, ArrowUpRight,
   ChevronLeft, ChevronRight, ChevronDown, X, AlertCircle, FileSpreadsheet, Download, Upload
@@ -47,6 +47,8 @@ export default function Transactions({
     return () => clearTimeout(timer);
   }, [search]);
 
+  const recentlyDeletedRef = useRef(new Set());
+
   const loadTransactions = async (background = false) => {
     try {
       if (!background) setLoading(true);
@@ -59,6 +61,16 @@ export default function Transactions({
         limit: 40
       });
       if (data) {
+        // Filter out any recently deleted records to prevent in-flight resurrection / shuffle
+        if (Array.isArray(data.transactions)) {
+          data.transactions = data.transactions.filter(t => !recentlyDeletedRef.current.has(String(t.id)));
+        }
+        if (Array.isArray(data.grouped)) {
+          data.grouped = data.grouped.map(group => ({
+            ...group,
+            transactions: (group.transactions || []).filter(t => !recentlyDeletedRef.current.has(String(t.id)))
+          })).filter(group => group.transactions.length > 0);
+        }
         setTransactionsData(data);
       }
     } catch (err) {
@@ -79,7 +91,11 @@ export default function Transactions({
 
   // Listen for local/offline updates from other components
   useEffect(() => {
-    const handleLocalUpdate = () => {
+    const handleLocalUpdate = (e) => {
+      // If update was triggered by our own in-flight deletion, avoid re-fetch shuffle
+      if (e?.detail?.action === 'delete') {
+        return;
+      }
       loadTransactions(true);
     };
     window.addEventListener('expense_tracker_updated', handleLocalUpdate);
@@ -89,6 +105,7 @@ export default function Transactions({
   const handleDelete = async (id) => {
     if (deletingId) return; // Prevent duplicate clicks
     const prevData = transactionsData;
+    recentlyDeletedRef.current.add(String(id));
 
     // Optimistic UI update: Remove immediately from state without reloading page
     if (transactionsData && transactionsData.transactions) {
@@ -121,9 +138,11 @@ export default function Transactions({
     try {
       await onDeleteTransaction(id);
       showToast('Transaction deleted successfully', 'success');
-      // Background reconciliation: refresh in background without resetting loading state
-      await loadTransactions(true);
+      // Notice: Do NOT call loadTransactions(true) here!
+      // The optimistic deletion already accurately and cleanly updated local state and storage.
+      // Re-querying in the middle of network completion caused the visual jump/shuffle.
     } catch (err) {
+      recentlyDeletedRef.current.delete(String(id));
       // Rollback to previous data on failure
       setTransactionsData(prevData);
       showToast(err.message || 'Failed to delete transaction', 'error');

@@ -58,13 +58,31 @@ export function getCurrentUserId() {
   return '1';
 }
 
-// Get cached transactions from local storage (scoped strictly per user)
+// Get cached transactions from local storage (scoped strictly per user with ledger fallback)
 export function getLocalTransactions() {
   try {
     const email = getCurrentUserEmail();
     const key = `${LOCAL_STORAGE_TXS_KEY}_${email}`;
     const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+
+    // Check offline ledger storage fallback
+    const uid = getCurrentUserId();
+    if (uid) {
+      const ledger = getOfflineLedger(uid);
+      if (Array.isArray(ledger?.transactions) && ledger.transactions.length > 0) {
+        return ledger.transactions;
+      }
+    }
+
+    // Fallback: If Raj Shinde, seed with historical dataset so calculations never compute in isolation
+    if (email && email.toLowerCase() === 'raaajshinde@gmail.com' && rajHistoricalData?.transactions) {
+      return [...rajHistoricalData.transactions];
+    }
+    return [];
   } catch (e) {
     return [];
   }
@@ -183,7 +201,25 @@ export async function getTransactions(filters = {}) {
   if (isFirebaseConfigured) {
     try {
       const fsData = await firestoreService.getTransactions(getCurrentUserId(), filters);
-      if (fsData) return fsData;
+      if (fsData) {
+        // Cache transactions into local storage & offline ledger for full offline continuity
+        if (Array.isArray(fsData.transactions) && fsData.transactions.length > 0) {
+          const current = getLocalTransactions();
+          const merged = [...current];
+          fsData.transactions.forEach(t => {
+            const idx = merged.findIndex(m => String(m.id) === String(t.id));
+            if (idx !== -1) merged[idx] = t;
+            else merged.push(t);
+          });
+          saveLocalTransactions(merged);
+          const uid = getCurrentUserId();
+          if (uid) {
+            const ledger = getOfflineLedger(uid);
+            saveOfflineLedger(uid, { ...ledger, transactions: merged });
+          }
+        }
+        return fsData;
+      }
     } catch (e) {
       console.warn('Firestore getTransactions fallback:', e);
     }
@@ -251,8 +287,8 @@ export async function createTransaction(data) {
 
   // Always update local storage cache immediately so UI reflects change with 0 latency
   const local = getLocalTransactions();
-  local.unshift(newTx);
-  saveLocalTransactions(local);
+  const updatedLocal = [newTx, ...local.filter(t => String(t.id) !== String(newTx.id))];
+  saveLocalTransactions(updatedLocal);
   addOfflineTransaction(getCurrentUserId(), newTx);
 
   // Trigger instantaneous reactivity across all app listeners

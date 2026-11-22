@@ -32,6 +32,12 @@ const TRANSLATIONS = {
     personalFinance: 'Personal Finance',
     accountSettings: 'Account Settings',
     positiveQuote: 'Consistency builds financial freedom. Keep going!',
+    positiveQuote_0: 'Consistency builds financial freedom. Keep going!',
+    positiveQuote_1: 'Small daily savings create massive future freedom.',
+    positiveQuote_2: 'Every rupee saved is a confident step toward your dreams.',
+    positiveQuote_3: 'Mindful spending turns your hard work into lasting peace of mind.',
+    positiveQuote_4: 'Take control of your money today. Make it work for your future!',
+    positiveQuote_5: 'Smart financial discipline is the highest form of self-care.',
     tapToContinue: 'Tap anywhere to continue',
 
     // Dashboard & Budget
@@ -68,7 +74,7 @@ const TRANSLATIONS = {
     addAnother: 'Add Another',
     quickCategories: 'Quick Categories',
     moreCategories: 'More Categories',
-    notesPlaceholder: 'e.g. Lunch with colleagues',
+    notesPlaceholder: 'e.g. Grocery shopping, Coffee, Metro recharge...',
     allCategoriesTitle: 'All Categories',
 
     // Transactions page
@@ -157,6 +163,12 @@ const TRANSLATIONS = {
     personalFinance: 'व्यक्तिगत वित्त',
     accountSettings: 'खाता सेटिंग्स',
     positiveQuote: 'नियमित बचत और अनुशासन से ही वित्तीय आजादी मिलती है। आगे बढ़ते रहें!',
+    positiveQuote_0: 'नियमित बचत और अनुशासन से ही वित्तीय आजादी मिलती है। आगे बढ़ते रहें!',
+    positiveQuote_1: 'आज की छोटी सी बचत, कल का बड़ा सहारा और सुरक्षा बनती है!',
+    positiveQuote_2: 'अपने खर्चों पर समझदारी से नियंत्रण रखें, सफलता आपकी होगी!',
+    positiveQuote_3: 'हर बचाया गया रुपया आपको अपने सपनों और लक्ष्यों के करीब ले जाता है!',
+    positiveQuote_4: 'मेहनत की कमाई की सही कद्र ही सच्ची समृद्धि का रास्ता है!',
+    positiveQuote_5: 'वित्तीय अनुशासन आज, शांत और खुशहाल जीवन कल!',
     tapToContinue: 'जारी रखने के लिए कहीं भी टैप करें',
 
     monthlyBudget: 'मासिक बजट',
@@ -191,7 +203,7 @@ const TRANSLATIONS = {
     addAnother: 'एक और जोड़ें',
     quickCategories: 'त्वरित श्रेणियां',
     moreCategories: 'अधिक श्रेणियां',
-    notesPlaceholder: 'उदा. दोपहर का भोजन, चाय-नाश्ता',
+    notesPlaceholder: 'उदा. किराना खरीदारी, चाय-नाश्ता, पेट्रोल...',
     allCategoriesTitle: 'सभी श्रेणियां',
 
     expenseRecords: 'खर्च रिकॉर्ड और इतिहास',
@@ -276,6 +288,12 @@ const TRANSLATIONS = {
     personalFinance: 'वैयक्तिक फायनान्स',
     accountSettings: 'खाते सेटिंग्ज',
     positiveQuote: 'नियमित बचत आणि योग्य नियोजन आर्थिक स्वातंत्र्य देते. पुढे चालू ठेवा!',
+    positiveQuote_0: 'नियमित बचत आणि योग्य नियोजन आर्थिक स्वातंत्र्य देते. पुढे चालू ठेवा!',
+    positiveQuote_1: 'आज केलेली छोटी बचत, उद्याचे मोठे स्वप्न नक्की पूर्ण करते!',
+    positiveQuote_2: 'पैशांचे हुशारीने नियोजन म्हणजे उज्ज्वल भविष्याची पक्की खात्री!',
+    positiveQuote_3: 'तुमचा प्रत्येक वाचवलेला रुपया तुमच्या प्रगतीचा भक्कम पाया आहे!',
+    positiveQuote_4: 'शिस्तबद्ध खर्च आणि नियमित बचत हेच आर्थिक यशाचे खरे रहस्य आहे!',
+    positiveQuote_5: 'कष्टाने कमावलेला पैसा जपून वापरा, स्वतःचे भविष्य सुरक्षित करा!',
     tapToContinue: 'पुढे जाण्यासाठी कुठेही टॅप करा',
 
     monthlyBudget: 'महिन्याचे बजेट',
@@ -310,7 +328,7 @@ const TRANSLATIONS = {
     addAnother: 'आणखी जोडा',
     quickCategories: 'क्विक कॅटेगरी',
     moreCategories: 'अधिक कॅटेगरी',
-    notesPlaceholder: 'उदा. चहा-नाश्ता, किराणा माल',
+    notesPlaceholder: 'उदा. किराणा खरेदी, चहा-नाश्ता, पेट्रोल...',
     allCategoriesTitle: 'सर्व कॅटेगरी',
 
     expenseRecords: 'खर्चाचे रेकॉर्ड आणि इतिहास',
@@ -395,6 +413,12 @@ const TRANSLATIONS = {
     personalFinance: 'Finanzas Personales',
     accountSettings: 'Configuración de Cuenta',
     positiveQuote: 'La constancia construye libertad financiera. ¡Sigue adelante!',
+    positiveQuote_0: 'La constancia construye libertad financiera. ¡Sigue adelante!',
+    positiveQuote_1: 'Cada pequeño ahorro hoy es un paso gigante hacia tus metas.',
+    positiveQuote_2: 'El control inteligente de tus finanzas asegura tu tranquilidad.',
+    positiveQuote_3: 'Gasta con sabiduría y haz que tu dinero trabaje para tu futuro.',
+    positiveQuote_4: 'La disciplina financiera de hoy es tu paz del mañana.',
+    positiveQuote_5: 'Tu esfuerzo merece la mejor administración: ¡sigue creciendo!',
     tapToContinue: 'Toca en cualquier lugar para continuar',
 
     monthlyBudget: 'Presupuesto Mensual',
@@ -429,7 +453,7 @@ const TRANSLATIONS = {
     addAnother: 'Añadir Otro',
     quickCategories: 'Categorías Rápidas',
     moreCategories: 'Más Categorías',
-    notesPlaceholder: 'ej. Almuerzo de trabajo',
+    notesPlaceholder: 'ej. Compras del súper, café, gasolina...',
     allCategoriesTitle: 'Todas las Categorías',
 
     expenseRecords: 'Registros e Historial de Gastos',

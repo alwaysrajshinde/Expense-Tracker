@@ -85,14 +85,13 @@ function MainApp() {
         setHasUnreadNotifs(true);
       }
 
-      // Show update toast exactly ONCE when the app version increments, never on subsequent refreshes
-      if (lastNotified !== APP_VERSION) {
-        localStorage.setItem('expense_tracker_update_toast_version', APP_VERSION);
-        const timer = setTimeout(() => {
-          showToast(`🚀 App updated to ${APP_VERSION}! Check notifications to see latest changes.`, 'info', 4000);
-        }, 3500);
-        return () => clearTimeout(timer);
-      }
+        if (lastNotified !== APP_VERSION) {
+          localStorage.setItem('expense_tracker_update_toast_version', APP_VERSION);
+          const timer = setTimeout(() => {
+            showToast(`🚀 App updated to ${APP_VERSION} (${APP_SHORT_DATE}, ${APP_RELEASE_TIME})!`, 'info', 4000);
+          }, 3500);
+          return () => clearTimeout(timer);
+        }
     } catch (e) {}
   }, []);
 
@@ -127,13 +126,25 @@ function MainApp() {
     };
   }, [selectedMonth]);
 
+  const cleanUserEmail = (user?.email || '').toLowerCase();
+  const isEmailVerified = Boolean(
+    user?.emailVerified ||
+    user?.isGoogleUser ||
+    cleanUserEmail === 'raaajshinde@gmail.com' ||
+    (cleanUserEmail && typeof window !== 'undefined' && localStorage.getItem(`et_email_verified_${cleanUserEmail}`) === 'true')
+  );
+
   const [dismissedEmailBanner, setDismissedEmailBanner] = useState(() => {
-    return typeof window !== 'undefined' && sessionStorage.getItem('et_dismiss_verify_banner') === 'true';
+    if (typeof window === 'undefined') return false;
+    const clean = (user?.email || '').toLowerCase();
+    return localStorage.getItem(`et_dismiss_verify_banner_${clean}`) === 'true' || sessionStorage.getItem('et_dismiss_verify_banner') === 'true';
   });
 
   const handleDismissEmailBanner = () => {
     setDismissedEmailBanner(true);
     if (typeof window !== 'undefined') {
+      const clean = (user?.email || '').toLowerCase();
+      if (clean) localStorage.setItem(`et_dismiss_verify_banner_${clean}`, 'true');
       sessionStorage.setItem('et_dismiss_verify_banner', 'true');
     }
   };
@@ -373,7 +384,7 @@ function MainApp() {
             <SyncProgressIndicator syncState={syncState} isDesktop={true} />
 
             {/* Unverified Email Warning Banner (Desktop) */}
-            {user && !user.emailVerified && !user.isGoogleUser && !dismissedEmailBanner && (
+            {user && !isEmailVerified && !dismissedEmailBanner && (
               <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-4 transition-colors">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <ShieldCheck size={16} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
@@ -487,6 +498,9 @@ function MainApp() {
                   onUpdateSettings={async (data) => {
                     const updated = await api.updateSettings(data);
                     setSettings(prev => ({ ...prev, ...updated }));
+                    if (data.user_name) {
+                      setUser(prev => prev ? ({ ...prev, name: data.user_name, displayName: data.user_name }) : prev);
+                    }
                     showToast('Settings saved successfully', 'success');
                   }}
                   onUpdateBudget={async (month, budget) => {
@@ -558,7 +572,7 @@ function MainApp() {
           <SyncProgressIndicator syncState={syncState} isDesktop={false} />
 
           {/* Unverified Email Warning Banner (Mobile) */}
-          {user && !user.emailVerified && !user.isGoogleUser && !dismissedEmailBanner && (
+          {user && !isEmailVerified && !dismissedEmailBanner && (
             <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2 transition-colors">
               <div className="flex-1 min-w-0 pr-1">
                 <span className="font-semibold block truncate">Please verify your email ({user.email})</span>
@@ -667,6 +681,9 @@ function MainApp() {
                   onUpdateSettings={async (data) => {
                     const updated = await api.updateSettings(data);
                     setSettings(prev => ({ ...prev, ...updated }));
+                    if (data.user_name) {
+                      setUser(prev => prev ? ({ ...prev, name: data.user_name, displayName: data.user_name }) : prev);
+                    }
                     showToast('Settings saved successfully', 'success');
                   }}
                   onUpdateBudget={async (month, budget) => {
@@ -827,7 +844,7 @@ function MainApp() {
       {/* User's Custom Welcome Back Motivational Overlay */}
       {showWelcomeOverlay && (
         <WelcomeGreetingOverlay
-          userName={user?.name || user?.email || settings?.user_name || 'Raj'}
+          userName={user?.displayName || user?.name || settings?.user_name || (user?.email ? user.email.split('@')[0] : 'Raj')}
           onDismiss={() => setShowWelcomeOverlay(false)}
         />
       )}

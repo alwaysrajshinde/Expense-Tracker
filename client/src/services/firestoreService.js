@@ -135,6 +135,16 @@ export async function ensureUserProfile(userId, email, displayName = '') {
   }
 }
 
+export async function updateProfileName(userId, newName) {
+  if (!isFirebaseConfigured || !db || !userId) return;
+  try {
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, { displayName: newName, user_name: newName }, { merge: true });
+  } catch (err) {
+    console.error('Error updating profile name in Firestore:', err);
+  }
+}
+
 /**
  * Batch migrations for Raj Shinde's 1,216 historical transactions and 73 categories
  */

@@ -391,7 +391,7 @@ export default function AddExpenseModal({
               </label>
               <input
                 type="text"
-                placeholder={t('notesPlaceholder', 'e.g. Lunch with team')}
+                placeholder={t('notesPlaceholder', 'e.g. Grocery, Coffee, Metro recharge...')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full px-3 py-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#6C47FF]"

@@ -4,7 +4,7 @@ import {
   Plus, Trash2, RefreshCw, FileSpreadsheet, ShieldCheck, Sun, Moon, Sparkles,
   ExternalLink, LogOut, Bell, Info, Shield, HelpCircle, Palette, Key, CheckCircle2,
   History, ChevronRight, Sliders, Target, FileText, ArrowLeftRight, X, ArrowRight,
-  Wifi, WifiOff, Laptop, CheckSquare, Edit2, Calendar, Droplets, Heart, Globe
+  Wifi, WifiOff, Laptop, CheckSquare, Edit2, Calendar, Droplets, Heart, Globe, Search
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
 import CustomDropdown from '../components/CustomDropdown';
@@ -49,7 +49,7 @@ export default function Settings({
 }) {
   const { theme, setTheme, toggleTheme, isDark, availableThemes } = useTheme();
   const { showToast } = useToast();
-  const { user, logout, resendVerificationEmail, resetPassword, checkVerificationStatus } = useAuth();
+  const { user, logout, resendVerificationEmail, resetPassword, checkVerificationStatus, updateUserName } = useAuth();
   const { language, setLanguage, availableLanguages = SUPPORTED_LANGUAGES, t } = useLanguage();
 
   const [checkingVerification, setCheckingVerification] = useState(false);
@@ -224,18 +224,143 @@ export default function Settings({
 
   const handleSaveProfile = async (e) => {
     if (e) e.preventDefault();
+    const cleanName = (userNameVal || '').trim();
+    if (!cleanName) {
+      showToast('Please enter a display name', 'warning');
+      return;
+    }
     try {
       setSaving(true);
-      await onUpdateSettings({ user_name: userNameVal, currency: currencyVal });
+      if (updateUserName) {
+        await updateUserName(cleanName);
+      }
+      await onUpdateSettings({ user_name: cleanName, currency: currencyVal });
+      setUserNameVal(cleanName);
       setStatusMsg({ type: 'success', text: 'Profile preferences updated successfully' });
       showToast('Profile updated!', 'success');
       setActiveModal(null);
     } catch (err) {
       setStatusMsg({ type: 'error', text: err.message || 'Failed to update profile' });
+      showToast(err.message || 'Failed to update profile', 'error');
     } finally {
       setSaving(false);
     }
   };
+
+  const [settingsSearch, setSettingsSearch] = useState('');
+
+  const searchableSettingsItems = [
+    {
+      id: 'budget',
+      title: t('monthlyBudget', 'Monthly Budget'),
+      subtitle: t('setMonthlyBudget', 'Set or update your monthly budget limit'),
+      keywords: 'budget money limit spend target महिना बजेट खर्च नियोजन',
+      icon: Target,
+      color: '#6C47FF',
+      action: () => setActiveModal('budget')
+    },
+    {
+      id: 'categories',
+      title: t('categoriesTab', 'Categories'),
+      subtitle: 'Manage expense categories, icons and colors',
+      keywords: 'categories category tags वर्गवारी कॅटेगरी रंग',
+      icon: Tag,
+      color: '#A855F7',
+      action: () => (onOpenCategories ? onOpenCategories() : setActiveModal('categories'))
+    },
+    {
+      id: 'appearance',
+      title: t('appearanceTheme', 'Appearance & Theme'),
+      subtitle: 'Dark Violet, Light, Midnight or Fintech themes',
+      keywords: 'appearance theme dark light midnight mode रंग थीम लूक',
+      icon: Moon,
+      color: '#6366F1',
+      action: () => setActiveModal('appearance')
+    },
+    {
+      id: 'language',
+      title: t('language', 'Language'),
+      subtitle: 'English, मराठी (Marathi), हिंदी (Hindi), Español',
+      keywords: 'language भाषा मराठी हिंदी english spanish locale बोली',
+      icon: Globe,
+      color: '#06B6D4',
+      action: () => setActiveModal('language')
+    },
+    {
+      id: 'import',
+      title: t('importTransactions', 'Import Transactions'),
+      subtitle: 'Add expenses from Excel, CSV or bank statement',
+      keywords: 'import excel csv bank file upload डेटा इम्पोर्ट फाईल',
+      icon: Upload,
+      color: '#10B981',
+      action: () => (onOpenImport ? onOpenImport() : setActiveModal('import'))
+    },
+    {
+      id: 'export',
+      title: t('exportTransactions', 'Export Expenses'),
+      subtitle: 'Download your expense data in Excel or CSV format',
+      keywords: 'export download excel csv backup डाऊनलोड एक्स्पोर्ट बॅकअप',
+      icon: Download,
+      color: '#3B82F6',
+      action: () => setActiveModal('export')
+    },
+    {
+      id: 'sheets',
+      title: 'Google Sheets Export',
+      subtitle: 'Sync transaction ledger directly to Google Sheets',
+      keywords: 'google sheets spreadsheet cloud sync गुगल शीट्स',
+      icon: FileSpreadsheet,
+      color: '#10B981',
+      action: () => handleOpenGoogleSheets()
+    },
+    {
+      id: 'profile',
+      title: t('profile', 'User Profile'),
+      subtitle: 'View and update your display name and email',
+      keywords: 'profile name email user खाते प्रोफाईल नाव ईमेल',
+      icon: User,
+      color: '#8B5CF6',
+      action: () => setActiveModal('profile')
+    },
+    {
+      id: 'security',
+      title: 'Security & Password',
+      subtitle: 'Email verification, password reset & data vault',
+      keywords: 'security password email reset encryption सुरक्षा पासवर्ड कूटबद्ध',
+      icon: ShieldCheck,
+      color: '#F59E0B',
+      action: () => setActiveModal('security')
+    },
+    {
+      id: 'notifications',
+      title: t('notifications', 'Notifications & Alerts'),
+      subtitle: 'Budget warnings, milestone alerts and app updates',
+      keywords: 'notifications alerts updates सूचना नोटिफिकेशन्स चेतावणी',
+      icon: Bell,
+      color: '#EC4899',
+      action: () => (onOpenNotifications ? onOpenNotifications() : null)
+    },
+    {
+      id: 'about',
+      title: "About & What's New",
+      subtitle: `${APP_INKED_VERSION}`,
+      keywords: 'about version update release notes काय नवीन व्हर्जन माहिती',
+      icon: Info,
+      color: '#A78BFA',
+      action: () => (onOpenReleaseNotes ? onOpenReleaseNotes() : null)
+    }
+  ];
+
+  const filteredSettingsItems = settingsSearch.trim()
+    ? searchableSettingsItems.filter(item => {
+        const q = settingsSearch.toLowerCase().trim();
+        return (
+          item.title.toLowerCase().includes(q) ||
+          item.subtitle.toLowerCase().includes(q) ||
+          item.keywords.toLowerCase().includes(q)
+        );
+      })
+    : null;
 
   const handleCreateCategory = async (e) => {
     if (e) e.preventDefault();
@@ -1181,16 +1306,99 @@ export default function Settings({
            ========================================================================= */
         <div className="space-y-6">
 
-          {/* 1. Mobile Screen Header (Clean, clutter-free) */}
-          <div className="pt-1">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              {t('more', 'More')}
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-[#A78BFA]/80 mt-0.5">
-              Settings, data management and preferences
-            </p>
+          {/* 1. Mobile Screen Header (Clean, clutter-free with Quick Search) */}
+          <div className="pt-1 space-y-3">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                {t('more', 'More')}
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-[#A78BFA]/80 mt-0.5">
+                Settings, data management and preferences
+              </p>
+            </div>
+
+            {/* Quick Settings Search Bar */}
+            <div className="relative">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={settingsSearch}
+                onChange={(e) => setSettingsSearch(e.target.value)}
+                placeholder="Search settings, budget, theme, export..."
+                className="w-full pl-9 pr-9 py-2.5 bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 rounded-2xl text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6C47FF] shadow-xs transition-all"
+              />
+              {settingsSearch && (
+                <button
+                  type="button"
+                  onClick={() => setSettingsSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-0.5"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
+          {filteredSettingsItems !== null ? (
+            /* Live Filtered Search Results */
+            <div className="space-y-3 animate-fade-in">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Matching Settings ({filteredSettingsItems.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSearch('')}
+                  className="text-[11px] font-bold text-[#6C47FF] dark:text-[#C084FC] hover:underline cursor-pointer"
+                >
+                  Clear search
+                </button>
+              </div>
+
+              {filteredSettingsItems.length === 0 ? (
+                <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 p-8 text-center space-y-1">
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200">No settings found</p>
+                  <p className="text-[11px] text-slate-400">Try searching for "budget", "theme", "language", "export", or "security"</p>
+                </div>
+              ) : (
+                <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 divide-y divide-slate-100 dark:divide-white/5 overflow-hidden shadow-xs">
+                  {filteredSettingsItems.map(item => {
+                    const ItemIcon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setSettingsSearch('');
+                          item.action();
+                        }}
+                        className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm"
+                            style={{ backgroundColor: item.color }}
+                          >
+                            <ItemIcon size={16} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors truncate">
+                              {item.title}
+                            </div>
+                            <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                              {item.subtitle}
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} className="text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
           {/* 2. User Profile Section (Issue 13: Cleanly integrates Profile & Notifications) */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider px-1">
@@ -1610,6 +1818,8 @@ export default function Settings({
               <span>{t('logOut', 'Log Out of Expense Tracker')}</span>
             </button>
           </div>
+          </>
+          )}
 
           {/* Mobile Footer with Inked Version & Release Date (pb-32 ensures no overlapping by bottom navigation) */}
           <div className="pt-4 pb-32 text-center space-y-1.5 px-4">

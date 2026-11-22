@@ -32,8 +32,20 @@ export default function WelcomeGreetingOverlay({ userName = 'Raj', onDismiss }) 
   const cleanName = (userName || 'Friend').trim().split(' ')[0].split('@')[0];
   const capitalizedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
 
-  // Pick positive quote in active language
-  const quote = t('positiveQuote', POSITIVE_QUOTES[0]);
+  // Pick a fresh rotating positive quote on every appearance
+  const [quoteIndex] = useState(() => {
+    try {
+      const prev = parseInt(localStorage.getItem('et_welcome_quote_idx') || '0', 10);
+      const next = (prev + 1) % 6;
+      localStorage.setItem('et_welcome_quote_idx', String(next));
+      return next;
+    } catch (e) {
+      return Math.floor(Math.random() * 6);
+    }
+  });
+
+  const quoteKey = `positiveQuote_${quoteIndex}`;
+  const quote = t(quoteKey, t('positiveQuote', POSITIVE_QUOTES[quoteIndex] || POSITIVE_QUOTES[0]));
 
   useEffect(() => {
     // Smooth entrance

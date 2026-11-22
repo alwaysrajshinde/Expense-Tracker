@@ -54,23 +54,6 @@ export default function PublicLanding({ onOpenAuth, onOpenLegal }) {
           >
             {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
-
-          <button
-            type="button"
-            onClick={() => onOpenAuth('signin')}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 hover:border-[#6C47FF] text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-[#6C47FF] transition-all cursor-pointer"
-          >
-            Sign In
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onOpenAuth('signup')}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#5B27DC] to-[#7B42F6] hover:from-[#4E1FC5] hover:to-[#6E32E9] text-white text-xs font-bold transition-all shadow-md shadow-purple-600/25 flex items-center gap-1.5 cursor-pointer"
-          >
-            <span>Get Started</span>
-            <ArrowRight size={14} />
-          </button>
         </div>
       </header>
 
@@ -132,76 +115,8 @@ export default function PublicLanding({ onOpenAuth, onOpenLegal }) {
           </div>
         </div>
 
-        {/* 3. INTERACTIVE SIMULATED APP SHOWCASE CARD */}
-        <div className="w-full max-w-xl mx-auto pt-6">
-          <div className="rounded-3xl p-5 sm:p-6 bg-gradient-to-b from-[#1C1739] to-[#120F24] border border-purple-500/20 shadow-2xl shadow-purple-950/40 text-left space-y-4 relative overflow-hidden">
-            {/* Ambient background glow */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
-
-            {/* Simulated Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-white/5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#6C47FF] to-[#C084FC] text-white flex items-center justify-center font-bold text-xs">
-                  RS
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-white block">November Budget</span>
-                  <span className="text-[10px] text-purple-300">Live Pace: Healthy</span>
-                </div>
-              </div>
-              <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                ₹12,550 Remaining
-              </span>
-            </div>
-
-            {/* Gauge Bar */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-medium">Spent: ₹12,450</span>
-                <span className="text-white font-bold">Budget: ₹25,000</span>
-              </div>
-              <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-[#6C47FF] via-[#A855F7] to-[#10B981] rounded-full w-1/2" />
-              </div>
-            </div>
-
-            {/* Sample Recent Transactions */}
-            <div className="space-y-2 pt-1">
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Recent Expenses
-              </div>
-              
-              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white/5 border border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-[#C084FC] flex items-center justify-center">
-                    <Coffee size={16} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-white block">Coffee &amp; Snacks</span>
-                    <span className="text-[10px] text-slate-400">UPI • Today</span>
-                  </div>
-                </div>
-                <span className="text-xs font-extrabold text-white">₹140</span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white/5 border border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                    <ShoppingBag size={16} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-white block">Weekly Groceries</span>
-                    <span className="text-[10px] text-slate-400">Card • Yesterday</span>
-                  </div>
-                </div>
-                <span className="text-xs font-extrabold text-white">₹1,850</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 4. 4-CARD BENTO FEATURES GRID */}
-        <div className="w-full pt-10 space-y-6">
+        {/* 3. 4-CARD BENTO FEATURES GRID */}
+        <div className="w-full pt-4 space-y-6">
           <div className="text-center space-y-1">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Built for Speed, Privacy &amp; Simplicity

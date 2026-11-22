@@ -13,11 +13,27 @@ function stamp() {
   const rootPkgPath = path.join(rootDir, 'package.json');
   const versionFilePath = path.join(rootDir, 'client', 'src', 'constants', 'version.js');
 
-  // Read current version
-  let version = 'v2.4.2';
+  // Read or bump current version
+  let version = 'v2.4.3';
+  const shouldBump = process.argv.includes('--bump');
+
   try {
     const clientPkg = JSON.parse(fs.readFileSync(clientPkgPath, 'utf8'));
-    version = `v${clientPkg.version || '2.4.2'}`;
+    let currentVer = clientPkg.version || '2.4.2';
+    if (shouldBump) {
+      const parts = currentVer.split('.');
+      parts[parts.length - 1] = String(parseInt(parts[parts.length - 1], 10) + 1);
+      currentVer = parts.join('.');
+      clientPkg.version = currentVer;
+      fs.writeFileSync(clientPkgPath, JSON.stringify(clientPkg, null, 2) + '\n', 'utf8');
+
+      try {
+        const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, 'utf8'));
+        rootPkg.version = currentVer;
+        fs.writeFileSync(rootPkgPath, JSON.stringify(rootPkg, null, 2) + '\n', 'utf8');
+      } catch (err) {}
+    }
+    version = `v${currentVer}`;
   } catch (e) {}
 
   // Format current local timestamp (IST / System Local)
