@@ -8,6 +8,7 @@ export default function AndroidHome({
   onViewAllCategories,
   onViewAllTransactions,
   onSetBudget,
+  onEditTransaction,
   formatCurrency
 }) {
   if (!dashboardData) {
@@ -49,9 +50,15 @@ export default function AndroidHome({
                 Monthly Budget
               </span>
               {budget > 0 ? (
-                <p className="text-white text-base font-bold tracking-tight truncate">
-                  {formatCurrency(budget)}
-                </p>
+                <button
+                  type="button"
+                  onClick={onSetBudget}
+                  title="Click to edit monthly budget"
+                  className="group flex items-center gap-1.5 text-left text-white text-base font-bold tracking-tight truncate hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <span className="truncate">{formatCurrency(budget)}</span>
+                  <span className="text-[10px] text-white/80 group-hover:text-white bg-white/20 px-1.5 py-0.5 rounded font-normal">Edit</span>
+                </button>
               ) : (
                 <button
                   type="button"
@@ -268,7 +275,11 @@ export default function AndroidHome({
         <div className="divide-y divide-slate-50 dark:divide-white/5">
           {recent_transactions && recent_transactions.length > 0 ? (
             recent_transactions.slice(0, 3).map((tx) => (
-              <div key={tx.id} className="py-2.5 flex items-center justify-between">
+              <div
+                key={tx.id}
+                onClick={() => onEditTransaction && onEditTransaction(tx)}
+                className="py-2.5 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 px-2 -mx-2 rounded-xl transition-colors active:scale-[0.99]"
+              >
                 <div className="flex items-center gap-2.5">
                   <div
                     className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"

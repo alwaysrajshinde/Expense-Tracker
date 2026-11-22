@@ -180,11 +180,11 @@ export default function Reports({
       {reportMode === 'yearly' && (
         <div className="space-y-5 animate-fade-in">
           {/* Year Selector Bar */}
-          <div className="flex items-center justify-between bg-white dark:bg-[#151226] p-3 rounded-2xl border border-slate-100 dark:border-white/10 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white dark:bg-[#151226] p-3 rounded-2xl border border-slate-100 dark:border-white/10 shadow-xs">
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
               Select Accounting Year:
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {(yearlyData?.available_years || [selectedYear]).map((y) => (
                 <button
                   key={y}

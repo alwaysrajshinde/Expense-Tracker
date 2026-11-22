@@ -764,16 +764,17 @@ export default function Settings({
                     <button
                       type="button"
                       onClick={handleOpenGoogleSheets}
-                      className="p-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-emerald-500 flex items-center gap-3 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition-all cursor-pointer group text-left"
+                      className="p-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-500 flex items-center gap-3 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all cursor-pointer group text-left"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0">
                         <FileSpreadsheet size={18} />
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                          Google Sheets
+                        <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] flex items-center gap-1.5">
+                          <span>Google Sheets</span>
+                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/25">Upcoming</span>
                         </div>
-                        <div className="text-[10px] text-slate-400">Direct cloud sync</div>
+                        <div className="text-[10px] text-slate-400">Direct cloud sync · Coming Soon</div>
                       </div>
                     </button>
 
@@ -1342,22 +1343,25 @@ export default function Settings({
                 className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 shadow-xs border border-emerald-500/20">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20">
                     <FileSpreadsheet size={18} />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-1.5">
                       <span>Export to Google Sheets</span>
-                      <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                        Live Sync
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">
+                        Coming Soon
                       </span>
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
-                      Sync directly to your Google Drive spreadsheet
+                      Sync directly to your Google Drive spreadsheet (Upcoming feature)
                     </div>
                   </div>
                 </div>
-                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400">Upcoming</span>
+                  <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </button>
             </div>
           </div>
@@ -1705,21 +1709,21 @@ export default function Settings({
               <button
                 type="button"
                 onClick={() => { setActiveModal(null); handleOpenGoogleSheets(); }}
-                className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-emerald-500 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition-all cursor-pointer group"
+                className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-500 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
                     <FileSpreadsheet size={18} />
                   </div>
                   <div className="text-left">
-                    <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center gap-1.5">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] flex items-center gap-1.5">
                       <span>Google Sheets</span>
-                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600">Direct Sync</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">Coming Soon</span>
                     </div>
-                    <div className="text-[11px] text-slate-400">Export &amp; sync directly to Google Drive</div>
+                    <div className="text-[11px] text-slate-400">Export &amp; sync directly to Google Drive (Upcoming)</div>
                   </div>
                 </div>
-                <ExternalLink size={16} className="text-slate-400 group-hover:text-emerald-600" />
+                <ExternalLink size={16} className="text-slate-400 group-hover:text-[#6C47FF]" />
               </button>
 
               <button

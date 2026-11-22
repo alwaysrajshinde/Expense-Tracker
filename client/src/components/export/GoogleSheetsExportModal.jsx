@@ -183,8 +183,8 @@ export default function GoogleSheetsExportModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">Export to Google Sheets</h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                  Cloud Live Sync
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">
+                  Coming Soon · Preview
                 </span>
               </div>
               <p className="text-xs text-slate-400">Directly sync financial records to your Google Drive</p>
@@ -198,6 +198,14 @@ export default function GoogleSheetsExportModal({
           >
             <X size={16} />
           </button>
+        </div>
+
+        {/* Upcoming Feature Notice Banner */}
+        <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-900 dark:text-purple-300 text-xs flex items-center gap-2.5">
+          <Sparkles size={16} className="text-[#6C47FF] dark:text-[#C084FC] flex-shrink-0" />
+          <div className="text-[11px] leading-relaxed">
+            <strong className="font-bold text-[#6C47FF] dark:text-[#C084FC]">Upcoming Feature Preview:</strong> Direct Google Sheets sync is coming soon! Integration architecture and scopes are configured for early preview.
+          </div>
         </div>
 
         {/* Offline Warning Banner */}

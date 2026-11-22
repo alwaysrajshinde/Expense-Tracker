@@ -21,6 +21,7 @@ import { ToastProvider, useToast } from './context/ToastContext';
 import { ShieldCheck, X, WifiOff, RefreshCw } from 'lucide-react';
 import * as api from './services/api';
 import syncService from './services/syncService';
+import { APP_VERSION, APP_CHANGELOG_SUMMARY, APP_SHORT_DATE, APP_RELEASE_TIME } from './constants/version';
 
 function MainApp() {
   const { theme, toggleTheme, isDark } = useTheme();
@@ -50,6 +51,20 @@ function MainApp() {
   const [hasUnreadNotifs, setHasUnreadNotifs] = useState(true);
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
+
+  // Inform user of new application updates and changelog
+  useEffect(() => {
+    try {
+      const lastSeen = localStorage.getItem('expense_tracker_last_seen_version');
+      if (lastSeen !== APP_VERSION) {
+        setHasUnreadNotifs(true);
+        const timer = setTimeout(() => {
+          showToast(`✨ App Updated to ${APP_VERSION}: ${APP_CHANGELOG_SUMMARY}`, 'info', 7000);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    } catch (e) {}
+  }, []);
 
   // Live Sync & Network State
   const [syncState, setSyncState] = useState(() => {
@@ -139,6 +154,9 @@ function MainApp() {
 
   const openNotificationsModal = () => {
     setIsNotificationsOpen(true);
+    try {
+      localStorage.setItem('expense_tracker_last_seen_version', APP_VERSION);
+    } catch (e) {}
     if (typeof window !== 'undefined' && window.history) {
       window.history.pushState({ modal: 'notifications' }, '');
     }
@@ -589,6 +607,7 @@ function MainApp() {
               <AndroidHome
                 dashboardData={dashboardData}
                 onOpenAddExpense={() => openAddModal(null)}
+                onEditTransaction={(tx) => openAddModal(tx)}
                 onViewAllCategories={() => {
                   setActiveTab('settings');
                   setSettingsSection('categories');
@@ -732,6 +751,7 @@ function MainApp() {
         editingTransaction={editingTransaction}
         initialDate={dashboardData?.today_date || new Date().toISOString().slice(0, 10)}
         onSaveAnotherSuccess={() => showToast('Expense saved! Ready for next.', 'success')}
+        currency={settings?.currency || '₹'}
       />
 
       {/* Global Notifications Modal */}
@@ -741,6 +761,7 @@ function MainApp() {
         dashboardData={dashboardData}
         formatCurrency={formatCurrency}
         onClearUnread={() => setHasUnreadNotifs(false)}
+        onOpenReleaseNotes={openReleaseNotesModal}
       />
 
       {/* Release Notes Modal (v1.1.0) */}

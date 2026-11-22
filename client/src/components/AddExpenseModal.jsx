@@ -12,7 +12,8 @@ export default function AddExpenseModal({
   categories = [],
   editingTransaction = null,
   initialDate = new Date().toISOString().slice(0, 10),
-  onSaveAnotherSuccess
+  onSaveAnotherSuccess,
+  currency = '₹'
 }) {
   const [isRefund, setIsRefund] = useState(false);
   const [amount, setAmount] = useState('');
@@ -144,7 +145,9 @@ export default function AddExpenseModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/10">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {editingTransaction ? 'Edit Expense' : 'Add Expense'}
+              {editingTransaction
+                ? (isRefund ? 'Edit Income / Refund' : 'Edit Expense')
+                : (isRefund ? 'Add Income / Refund' : 'Add Expense')}
             </h2>
             {miniSuccess && (
               <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full animate-fade-in flex items-center gap-1">
@@ -191,7 +194,7 @@ export default function AddExpenseModal({
                 }`}
             >
               <RotateCcw size={16} />
-              <span>Refund / Return</span>
+              <span>Income / Refund</span>
             </button>
           </div>
 
@@ -202,7 +205,7 @@ export default function AddExpenseModal({
             </label>
             <div className="relative flex items-center">
               <span className="absolute left-4 text-xl font-bold text-slate-800 dark:text-slate-200">
-                ₹
+                {currency}
               </span>
               <input
                 type="number"
@@ -341,9 +344,31 @@ export default function AddExpenseModal({
 
           {/* Date */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Date *
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Date *
+              </label>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setDate(new Date().toISOString().slice(0, 10))}
+                  className="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-purple-50 dark:bg-purple-950/50 text-[#6C47FF] dark:text-[#A78BFA] hover:bg-purple-100 transition-colors cursor-pointer"
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    setDate(yesterday.toISOString().slice(0, 10));
+                  }}
+                  className="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  Yesterday
+                </button>
+              </div>
+            </div>
             <input
               type="date"
               required
@@ -392,7 +417,13 @@ export default function AddExpenseModal({
               }`}
             >
               <Check size={18} strokeWidth={2.5} />
-              <span>{saving ? 'Saving...' : editingTransaction ? 'Update Expense' : 'Save Expense'}</span>
+              <span>
+                {saving
+                  ? 'Saving...'
+                  : editingTransaction
+                    ? (isRefund ? 'Update Income / Refund' : 'Update Expense')
+                    : (isRefund ? 'Save Income / Refund' : 'Save Expense')}
+              </span>
             </button>
           </div>
         </form>

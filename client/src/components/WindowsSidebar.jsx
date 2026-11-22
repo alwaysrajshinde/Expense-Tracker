@@ -3,7 +3,7 @@ import {
   Home, ReceiptText, Plus, BarChart2, Tag, Target, ArrowLeftRight,
   Cloud, Settings, ChevronDown, Wallet, LogOut, CheckCircle2, User, Calendar
 } from 'lucide-react';
-import { APP_VERSION, APP_SHORT_DATE, APP_RELEASE_DATE } from '../constants/version';
+import { APP_VERSION, APP_SHORT_DATE, APP_RELEASE_DATE, APP_RELEASE_TIME } from '../constants/version';
 
 export default function WindowsSidebar({
   activeTab,
@@ -194,13 +194,13 @@ export default function WindowsSidebar({
           <button
             type="button"
             onClick={onOpenReleaseNotes}
-            title={`Expense Tracker ${APP_VERSION} (Last updated: ${APP_RELEASE_DATE})`}
+            title={`Expense Tracker ${APP_VERSION} (Last updated: ${APP_RELEASE_DATE} at ${APP_RELEASE_TIME})`}
             className="hover:text-[#6C47FF] dark:hover:text-[#C084FC] transition-colors flex items-center gap-1.5 cursor-pointer group"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span className="font-semibold text-slate-500 dark:text-slate-400 group-hover:text-[#6C47FF]">{APP_VERSION}</span>
             <span>·</span>
-            <span>{APP_SHORT_DATE}</span>
+            <span>{APP_SHORT_DATE} · {APP_RELEASE_TIME}</span>
           </button>
           <span className="text-[9px] uppercase tracking-wider text-slate-400">Offline PWA</span>
         </div>

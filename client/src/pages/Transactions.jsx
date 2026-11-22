@@ -248,6 +248,28 @@ export default function Transactions({
             </select>
           </div>
         </div>
+
+        {/* 1-Tap Active Filters Reset */}
+        {(search || categoryFilter !== 'all' || paymentFilter !== 'all' || (monthFilter !== 'all' && monthFilter !== selectedMonth)) && (
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5 text-xs animate-fade-in">
+            <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400">
+              Active filters applied
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setCategoryFilter('all');
+                setPaymentFilter('all');
+                setMonthFilter(selectedMonth || 'all');
+                setPage(1);
+              }}
+              className="text-[11px] font-bold text-[#6C47FF] dark:text-[#A78BFA] hover:underline cursor-pointer"
+            >
+              Reset All Filters
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Transaction List Grouped By Date */}
@@ -305,7 +327,7 @@ export default function Transactions({
                             </span>
                             {isRefund && (
                               <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                                Refund
+                                {tx.category?.toLowerCase() === 'income' || /income|salary|freelance|cashback/i.test(tx.description || '') ? 'Income' : 'Refund'}
                               </span>
                             )}
                           </div>
@@ -388,7 +410,8 @@ export default function Transactions({
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-[#1A172B] rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl border border-slate-100 dark:border-white/10">
+          <div className="fixed inset-0" onClick={() => setDeleteConfirmId(null)} />
+          <div className="relative z-10 bg-white dark:bg-[#1A172B] rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl border border-slate-100 dark:border-white/10">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               Delete Transaction?
             </h3>

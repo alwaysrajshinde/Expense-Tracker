@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { X, Bell, TrendingUp, AlertTriangle, CheckCircle, Info, ShieldCheck, CheckCheck } from 'lucide-react';
+import { X, Bell, TrendingUp, AlertTriangle, CheckCircle, Info, ShieldCheck, CheckCheck, Sparkles, ArrowRight } from 'lucide-react';
+import { APP_VERSION, APP_SHORT_DATE, APP_RELEASE_TIME, APP_CHANGELOG_SUMMARY } from '../constants/version';
 
 export default function NotificationsModal({ 
   isOpen, 
   onClose, 
   dashboardData, 
   formatCurrency,
-  onClearUnread
+  onClearUnread,
+  onOpenReleaseNotes
 }) {
   const [cleared, setCleared] = useState(false);
 
@@ -23,6 +25,21 @@ export default function NotificationsModal({
   } catch (e) {}
 
   const dynamicNotifications = [];
+
+  // Notification 0: New Application Update Alert
+  dynamicNotifications.push({
+    id: `app-update-${APP_VERSION}`,
+    title: `App Updated to ${APP_VERSION}`,
+    description: `${APP_CHANGELOG_SUMMARY} (Updated ${APP_SHORT_DATE} at ${APP_RELEASE_TIME})`,
+    time: APP_RELEASE_TIME,
+    type: 'update',
+    icon: Sparkles,
+    actionText: "See What's New",
+    onAction: () => {
+      onClose();
+      if (onOpenReleaseNotes) onOpenReleaseNotes();
+    }
+  });
 
   // Notification 1: Budget setting prompt if budget is 0
   if (budget === 0) {
@@ -80,6 +97,9 @@ export default function NotificationsModal({
 
   const handleMarkAllRead = () => {
     setCleared(true);
+    try {
+      localStorage.setItem('expense_tracker_last_seen_version', APP_VERSION);
+    } catch (e) {}
     if (onClearUnread) onClearUnread();
   };
 
@@ -131,7 +151,9 @@ export default function NotificationsModal({
                       <Icon
                         size={15}
                         className={
-                          n.type === 'success'
+                          n.type === 'update'
+                            ? 'text-[#6C47FF] dark:text-[#C084FC]'
+                            : n.type === 'success'
                             ? 'text-emerald-600 dark:text-emerald-400'
                             : n.type === 'warning'
                             ? 'text-amber-600 dark:text-amber-400'
@@ -145,6 +167,18 @@ export default function NotificationsModal({
                   <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed pl-5">
                     {n.description}
                   </p>
+                  {n.actionText && n.onAction && (
+                    <div className="pl-5 pt-1">
+                      <button
+                        type="button"
+                        onClick={n.onAction}
+                        className="text-[11px] font-bold text-[#6C47FF] dark:text-[#C084FC] hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>{n.actionText}</span>
+                        <ArrowRight size={12} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })

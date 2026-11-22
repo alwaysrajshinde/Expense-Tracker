@@ -1,16 +1,34 @@
 import React from 'react';
-import { Sparkles, X, Check, Smartphone, Palette, ShieldCheck, Zap, Layers, History, ArrowRight, FileSpreadsheet, WifiOff, Tag, LayoutDashboard, Calendar } from 'lucide-react';
-import { APP_VERSION, APP_RELEASE_DATE, APP_INKED_VERSION } from '../constants/version';
+import { Sparkles, X, Check, Smartphone, Palette, ShieldCheck, Zap, Layers, History, ArrowRight, FileSpreadsheet, WifiOff, Tag, LayoutDashboard, Calendar, Clock } from 'lucide-react';
+import { APP_VERSION, APP_RELEASE_DATE, APP_RELEASE_TIME, APP_SHORT_DATE, APP_INKED_VERSION } from '../constants/version';
 
 export default function ReleaseNotesModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const highlights = [
     {
+      icon: Smartphone,
+      title: 'Mobile-First UX & Viewport Optimization',
+      description: 'Zero horizontal page overflow on any screen (320px–430px), elevated FAB clearance with 112px bottom padding, WCAG 44px+ touch targets, and responsive currency sizing.',
+      tag: 'Mobile Experience'
+    },
+    {
+      icon: Clock,
+      title: 'Inked Date & Exact Release Timestamp',
+      description: 'Transparent platform build tracking with exact release date and time inked directly across desktop and mobile headers, sidebars, and settings.',
+      tag: 'Build Metadata'
+    },
+    {
+      icon: FileSpreadsheet,
+      title: 'Google Sheets Direct Cloud Sync (Upcoming)',
+      description: 'Previewing direct 1-click cloud sync to Google Sheets and Drive. Fully integrated architecture ready for live sync rollout.',
+      tag: 'Upcoming Feature'
+    },
+    {
       icon: FileSpreadsheet,
       title: 'Intelligent Expense Import System',
       description: 'Import transactions seamlessly from Excel (.xlsx, .xls), CSVs, direct clipboard table paste, and bank statements with smart column detection and 1-click safe undo.',
-      tag: 'New Feature'
+      tag: 'Data Import'
     },
     {
       icon: WifiOff,
@@ -32,8 +50,8 @@ export default function ReleaseNotesModal({ isOpen, onClose }) {
     },
     {
       icon: Palette,
-      title: 'Dark Violet Mobile Fintech UI',
-      description: 'Executive Dark Violet theme with smooth cards, high-contrast typography, and intuitive sub-modals matching high-end banking apps.',
+      title: '6 Refined Themes & Violet Fintech UI',
+      description: 'Support for 6 distinct themes (Dark, Light, Midnight, Ocean, Emerald, Rose) with high contrast cards and smooth transitions.',
       tag: 'UI/UX Redesign'
     },
     {
@@ -65,7 +83,7 @@ export default function ReleaseNotesModal({ isOpen, onClose }) {
               </div>
               <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                 <Calendar size={12} className="text-[#6C47FF] dark:text-[#A78BFA]" />
-                <span>Last Updated: <strong className="text-slate-700 dark:text-slate-200">{APP_RELEASE_DATE}</strong></span>
+                <span>Last Updated: <strong className="text-slate-700 dark:text-slate-200">{APP_SHORT_DATE} at {APP_RELEASE_TIME}</strong></span>
               </div>
             </div>
           </div>
