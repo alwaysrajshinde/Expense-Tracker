@@ -1,7 +1,7 @@
 {
-  "name": "My Expense Tracker",
-  "short_name": "Expenses",
-  "description": "Personal fintech expense tracking application with Google Sheets synchronization",
+  "name": "PocketNook",
+  "short_name": "PocketNook",
+  "description": "PocketNook - Personal finance and mindful daily expense tracking with real-time cloud sync, visual analytics, and offline-first storage.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -28,5 +28,9 @@
       "purpose": "any"
     }
   ],
-  "categories": ["finance", "productivity", "utilities"]
+  "categories": [
+    "finance",
+    "productivity",
+    "utilities"
+  ]
 }

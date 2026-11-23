@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PocketNook</title>
+    <script type="text/javascript">
+      // Single Page Apps for GitHub Pages
+      // MIT License https://github.com/rafgraph/spa-github-pages
+      // This script takes the current url and converts the path and query
+      // string into a hash route for index.html
+      (function() {
+        var l = window.location;
+        var pathSegments = l.pathname.split('/').filter(Boolean);
+        var isGithub = l.hostname.indexOf('github.io') !== -1;
+        var repoName = isGithub && pathSegments.length > 0 ? pathSegments[0] : '';
+        var remainingPath = (isGithub && repoName) ? pathSegments.slice(1).join('/') : pathSegments.join('/');
+
+        var redirectUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '');
+        if (isGithub && repoName) {
+          redirectUrl += '/' + repoName;
+        }
+        redirectUrl += '/#/' + remainingPath;
+        if (l.search) {
+          redirectUrl += (remainingPath.indexOf('?') !== -1 ? '&' : '?') + l.search.slice(1);
+        }
+        if (l.hash && !redirectUrl.includes('#/')) {
+          redirectUrl += l.hash;
+        }
+
+        window.location.replace(redirectUrl);
+      })();
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
