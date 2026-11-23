@@ -118,9 +118,19 @@ export default function AuthGate({ children }) {
     if (isAuthenticated) {
       const intended = consumeIntendedRoute();
       if (intended) {
-        const canonical = intended.startsWith('#') ? intended : `#/${intended.replace(/^\//, '')}`;
-        if (window.location.hash !== canonical) {
-          window.location.hash = canonical;
+        let clean = intended.replace(/^#\/?/, '').replace(/^\//, '');
+        clean = clean.replace(/^(?:expense-tracker|pocketnook)\/?/i, '');
+        clean = clean.replace(/^\/+/, '').replace(/\/+$/, '');
+        
+        if (!clean || clean === 'home' || clean === 'overview' || clean === 'pocketnook' || clean === 'expense-tracker') {
+          if (window.location.hash !== '#/overview') {
+            window.location.hash = '#/overview';
+          }
+        } else {
+          const canonical = `#/${clean}`;
+          if (window.location.hash !== canonical) {
+            window.location.hash = canonical;
+          }
         }
       }
     }

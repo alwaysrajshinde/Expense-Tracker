@@ -35,10 +35,10 @@ function extractPathAndQuery(locationObj = typeof window !== 'undefined' ? windo
   if (locationObj.hash && locationObj.hash.length > 1) {
     raw = locationObj.hash.slice(1); // remove leading '#'
   } else if (locationObj.pathname) {
-    // 2. Fall back to pathname (e.g. /transactions, /Expense-Tracker/transactions)
+    // 2. Fall back to pathname (e.g. /transactions, /PocketNook/transactions)
     let p = locationObj.pathname;
     // Strip GitHub Pages repository base name if present
-    p = p.replace(/^\/expense-tracker\/?/i, '/');
+    p = p.replace(/^\/(?:expense-tracker|pocketnook)\/?/i, '/');
     raw = p;
   }
 
@@ -59,6 +59,10 @@ function extractPathAndQuery(locationObj = typeof window !== 'undefined' ? windo
   if (raw.startsWith('#')) raw = raw.slice(1);
   if (raw.startsWith('/')) raw = raw.slice(1);
 
+  // Strip repository prefix if present inside hash (e.g. #/PocketNook or #PocketNook/transactions)
+  raw = raw.replace(/^(?:expense-tracker|pocketnook)\/?/i, '');
+  if (raw.startsWith('/')) raw = raw.slice(1);
+
   let [pathPart, queryPart] = raw.split('?');
   pathPart = (pathPart || '').toLowerCase().trim();
   // Strip trailing slashes
@@ -74,8 +78,8 @@ function extractPathAndQuery(locationObj = typeof window !== 'undefined' ? windo
 export function parseRoute(locationObj = typeof window !== 'undefined' ? window.location : {}) {
   const { pathPart, searchParams, rawOriginal } = extractPathAndQuery(locationObj);
 
-  // Default empty route -> Overview
-  if (!pathPart || pathPart === 'index.html' || pathPart === '/' || pathPart === 'home' || pathPart === 'overview') {
+  // Default empty route or repo root -> Overview
+  if (!pathPart || pathPart === 'index.html' || pathPart === '/' || pathPart === 'home' || pathPart === 'overview' || pathPart === 'pocketnook' || pathPart === 'expense-tracker') {
     return {
       tab: ROUTE_TABS.HOME,
       section: null,
@@ -302,8 +306,18 @@ export function syncRouteToUrl(route = {}, replace = false) {
 export function saveIntendedRoute() {
   if (typeof window === 'undefined') return;
   try {
-    const current = window.location.hash || window.location.pathname;
-    if (current && current !== '#/' && current !== '#/overview' && current !== '/' && !current.includes('#privacy') && !current.includes('#terms')) {
+    const hash = window.location.hash || '';
+    const pathname = window.location.pathname || '';
+    
+    // Normalize path/hash to test if it's just the root or repo slug
+    let clean = (hash.length > 1 ? hash.slice(1) : pathname).toLowerCase().trim();
+    clean = clean.replace(/^\/(?:expense-tracker|pocketnook)\/?/i, '/');
+    clean = clean.replace(/^(?:expense-tracker|pocketnook)\/?/i, '');
+    clean = clean.replace(/^\/+/, '').replace(/\/+$/, '');
+
+    // Only save genuinely deep routes like transactions, reports, settings/budget
+    if (clean && clean !== 'home' && clean !== 'overview' && clean !== 'index.html' && clean !== 'privacy' && clean !== 'terms' && clean !== 'pocketnook' && clean !== 'expense-tracker') {
+      const current = hash || pathname;
       sessionStorage.setItem(STORAGE_INTENDED_ROUTE_KEY, current);
     }
   } catch (e) {}
