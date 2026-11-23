@@ -18,7 +18,8 @@ export default function Transactions({
   onDeleteTransaction,
   formatCurrency,
   onSelectMonth,
-  onOpenImport
+  onOpenImport,
+  isMobileScreen = false
 }) {
   const { showToast } = useToast();
   const { t } = useLanguage();
@@ -173,9 +174,9 @@ export default function Transactions({
   };
 
   return (
-    <div className="space-y-5 px-4 sm:px-6 lg:px-8 py-4 pb-28 lg:pb-8 max-w-7xl mx-auto">
-      {/* Header & Quick Action Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="space-y-4 px-1 sm:px-6 lg:px-8 py-2 pb-28 lg:pb-8 max-w-7xl mx-auto">
+      {/* Header & Quick Action Banner (Shown on desktop; on mobile, header is handled by Header.jsx) */}
+      <div className="hidden lg:flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
             {t('expenseRecords', 'Expense Records & History')}
@@ -226,6 +227,12 @@ export default function Transactions({
             <span className="hidden sm:inline">{t('jsonBackup', 'JSON Backup')}</span>
           </a>
         </div>
+      </div>
+
+      {/* Mobile Stats Summary Strip */}
+      <div className="flex items-center justify-between px-1.5 text-xs text-slate-500 dark:text-[#A78BFA] lg:hidden">
+        <span>{transactionsData?.total_count || 0} {t('entriesFound', 'entries found')}</span>
+        <span>{t('totalNetSpend', 'Total Net Spend')}: <strong className="text-slate-900 dark:text-white font-bold">{formatCurrency(transactionsData?.total_amount || 0)}</strong></span>
       </div>
 
       {/* Filter Toolbar Card */}

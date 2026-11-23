@@ -19,12 +19,16 @@ import SyncProgressIndicator from './components/SyncProgressIndicator';
 import AuthGate from './components/AuthGate';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { FontSizeProvider } from './context/FontSizeContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ShieldCheck, X, WifiOff, RefreshCw } from 'lucide-react';
 import * as api from './services/api';
 import syncService from './services/syncService';
 import { APP_VERSION, APP_CHANGELOG_SUMMARY, APP_SHORT_DATE, APP_RELEASE_TIME } from './constants/version';
+import { exportTransactionsToExcel, exportDataToJson } from './services/exportService';
+import * as routeService from './services/routeService';
+import NotFoundRoute from './components/NotFoundRoute';
 
 function MainApp() {
   const { theme, toggleTheme, isDark } = useTheme();
@@ -44,8 +48,15 @@ function MainApp() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [activeTab, setActiveTab] = useState('home');
-  const [settingsSection, setSettingsSection] = useState(null);
+  const [currentRoute, setCurrentRoute] = useState(() => routeService.parseRoute());
+  const [activeTab, setActiveTab] = useState(() => {
+    const r = routeService.parseRoute();
+    return r.isValid ? r.tab : 'not_found';
+  });
+  const [settingsSection, setSettingsSection] = useState(() => {
+    const r = routeService.parseRoute();
+    return r.section || null;
+  });
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [availableMonths, setAvailableMonths] = useState([new Date().toISOString().slice(0, 7)]);
   const [dashboardData, setDashboardData] = useState(null);
@@ -171,27 +182,119 @@ function MainApp() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isImportHistoryOpen, setIsImportHistoryOpen] = useState(false);
+  const [reportsActiveTab, setReportsActiveTab] = useState(() => {
+    const r = routeService.parseRoute();
+    return r.reportsTab || 'overview';
+  });
+  const [settingsSearch, setSettingsSearch] = useState('');
 
-  // Native Mobile Back Navigation handler (popstate dismisses open modals before leaving view)
+  const handleNavigate = (newRoute, replace = false) => {
+    const tab = newRoute.tab || 'home';
+    const section = newRoute.section !== undefined ? newRoute.section : null;
+    const repTab = newRoute.reportsTab || reportsActiveTab || 'overview';
+
+    setActiveTab(tab);
+    setSettingsSection(section);
+    if (newRoute.reportsTab) {
+      setReportsActiveTab(newRoute.reportsTab);
+    }
+    setCurrentRoute({ tab, section, reportsTab: repTab, isValid: true });
+    routeService.syncRouteToUrl({ tab, section, reportsTab: repTab }, replace);
+  };
+
+  const handleReportsTabChange = (newRepTab) => {
+    setReportsActiveTab(newRepTab);
+    routeService.syncRouteToUrl({ tab: 'reports', section: null, reportsTab: newRepTab }, true);
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      let txs = api.getLocalTransactions();
+      const remote = await api.getTransactions({
+        month: selectedMonth && selectedMonth !== 'all' ? selectedMonth : undefined,
+        limit: 10000
+      });
+      if (remote?.transactions?.length > 0) {
+        txs = remote.transactions;
+      }
+      exportTransactionsToExcel(txs, `Expenses_${selectedMonth || 'all'}.xlsx`);
+      showToast('Excel ledger exported successfully!', 'success');
+    } catch (e) {
+      console.error('Export Excel failed:', e);
+      showToast('Excel export failed', 'error');
+    }
+  };
+
+  const handleExportJson = async () => {
+    try {
+      const data = await api.getTransactions({
+        month: selectedMonth && selectedMonth !== 'all' ? selectedMonth : undefined,
+        limit: 10000
+      });
+      exportDataToJson(data || {}, `Expenses_${selectedMonth || 'all'}.json`);
+      showToast('JSON backup exported successfully!', 'success');
+    } catch (e) {
+      console.error('Export JSON failed:', e);
+      showToast('JSON backup failed', 'error');
+    }
+  };
+
+  // URL routing, Browser History (Back / Forward) and Native Modal Dismissal handler
   useEffect(() => {
-    const handlePopState = () => {
+    // Initial canonical sync
+    const initial = routeService.parseRoute();
+    if (initial.isValid) {
+      routeService.syncRouteToUrl(initial, true);
+    }
+
+    const handleLocationChange = () => {
+      // 1. Dismiss active modals on back navigation if open
       if (isAddModalOpen) {
         setIsAddModalOpen(false);
         setEditingTransaction(null);
-      } else if (isImportModalOpen) {
+        return;
+      }
+      if (isImportModalOpen) {
         setIsImportModalOpen(false);
-      } else if (isImportHistoryOpen) {
+        return;
+      }
+      if (isImportHistoryOpen) {
         setIsImportHistoryOpen(false);
-      } else if (isNotificationsOpen) {
+        return;
+      }
+      if (isNotificationsOpen) {
         setIsNotificationsOpen(false);
-      } else if (isReleaseNotesOpen) {
+        return;
+      }
+      if (isReleaseNotesOpen) {
         setIsReleaseNotesOpen(false);
-      } else if (isOnboardingTourOpen) {
+        return;
+      }
+      if (isOnboardingTourOpen) {
         setIsOnboardingTourOpen(false);
+        return;
+      }
+
+      // 2. Synchronize route state with new URL
+      const parsed = routeService.parseRoute();
+      setCurrentRoute(parsed);
+      if (parsed.isValid) {
+        setActiveTab(parsed.tab);
+        setSettingsSection(parsed.section);
+        if (parsed.reportsTab) {
+          setReportsActiveTab(parsed.reportsTab);
+        }
+      } else {
+        setActiveTab('not_found');
       }
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
   }, [isAddModalOpen, isImportModalOpen, isImportHistoryOpen, isNotificationsOpen, isReleaseNotesOpen, isOnboardingTourOpen]);
 
   const openAddModal = (tx = null) => {
@@ -302,21 +405,17 @@ function MainApp() {
 
   const handleSidebarTabChange = (tabId) => {
     if (tabId === 'categories') {
-      setActiveTab('settings');
-      setSettingsSection('categories');
+      handleNavigate({ tab: 'settings', section: 'categories' });
     } else if (tabId === 'budget') {
-      setActiveTab('settings');
-      setSettingsSection('budget');
+      handleNavigate({ tab: 'settings', section: 'budget' });
     } else if (tabId === 'import_export') {
       setIsImportModalOpen(true);
     } else if (tabId === 'backup_restore') {
-      setActiveTab('settings');
-      setSettingsSection('data');
+      handleNavigate({ tab: 'settings', section: 'data' });
     } else if (tabId === 'settings') {
-      setActiveTab('settings');
-      setSettingsSection('profile');
+      handleNavigate({ tab: 'settings', section: 'profile' });
     } else {
-      setActiveTab(tabId);
+      handleNavigate({ tab: tabId, section: null });
     }
   };
 
@@ -423,8 +522,7 @@ function MainApp() {
                 onSelectMonth={setSelectedMonth}
                 onOpenNotifications={openNotificationsModal}
                 onOpenProfile={() => {
-                  setActiveTab('settings');
-                  setSettingsSection('profile');
+                  handleNavigate({ tab: 'settings', section: 'profile' });
                 }}
                 onLogout={logout}
                 hasUnreadNotifications={hasUnreadNotifs}
@@ -448,13 +546,11 @@ function MainApp() {
                   onOpenAddExpense={() => openAddModal(null)}
                   onQuickAddExpense={handleSaveTransaction}
                   onViewAllCategories={() => {
-                    setActiveTab('settings');
-                    setSettingsSection('categories');
+                    handleNavigate({ tab: 'settings', section: 'categories' });
                   }}
-                  onViewAllTransactions={() => setActiveTab('transactions')}
+                  onViewAllTransactions={() => handleNavigate({ tab: 'transactions' })}
                   onSetBudget={() => {
-                    setActiveTab('settings');
-                    setSettingsSection('budget');
+                    handleNavigate({ tab: 'settings', section: 'budget' });
                   }}
                   formatCurrency={formatCurrency}
                   onSelectMonth={setSelectedMonth}
@@ -481,6 +577,9 @@ function MainApp() {
                   availableMonths={availableMonths}
                   onSelectMonth={setSelectedMonth}
                   formatCurrency={formatCurrency}
+                  activeTab={reportsActiveTab}
+                  onTabChange={handleReportsTabChange}
+                  isMobileScreen={false}
                 />
               )}
 
@@ -495,6 +594,9 @@ function MainApp() {
                   onLogout={logout}
                   onOpenTour={() => setIsOnboardingTourOpen(true)}
                   onOpenReleaseNotes={openReleaseNotesModal}
+                  onSectionChange={(sec) => handleNavigate({ tab: 'settings', section: sec }, true)}
+                  settingsSearch={settingsSearch}
+                  setSettingsSearch={setSettingsSearch}
                   onUpdateSettings={async (data) => {
                     const updated = await api.updateSettings(data);
                     setSettings(prev => ({ ...prev, ...updated }));
@@ -557,6 +659,13 @@ function MainApp() {
                   hasUnreadNotifs={hasUnreadNotifs}
                   formatCurrency={formatCurrency}
                   selectedMonth={selectedMonth}
+                />
+              )}
+
+              {activeTab === 'not_found' && (
+                <NotFoundRoute
+                  rawPath={currentRoute?.rawPath}
+                  onGoHome={() => handleNavigate({ tab: 'home' })}
                 />
               )}
             </main>
@@ -608,8 +717,7 @@ function MainApp() {
             onSelectMonth={setSelectedMonth}
             onOpenNotifications={openNotificationsModal}
             onOpenProfile={() => {
-              setActiveTab('settings');
-              setSettingsSection('profile');
+              handleNavigate({ tab: 'settings', section: 'profile' });
             }}
             onLogout={logout}
             hasUnreadNotifications={hasUnreadNotifs}
@@ -617,6 +725,13 @@ function MainApp() {
             authProvider={user?.providerId || 'password'}
             emailVerified={Boolean(user?.emailVerified || user?.isGoogleUser)}
             onResendVerification={handleResendVerification}
+            onOpenImport={() => setIsImportModalOpen(true)}
+            onExportExcel={handleExportExcel}
+            onExportJson={handleExportJson}
+            reportsActiveTab={reportsActiveTab}
+            onSelectReportsTab={handleReportsTabChange}
+            settingsSearch={settingsSearch}
+            onSettingsSearchChange={setSettingsSearch}
           />
 
           {/* Android Mobile Main Tabs */}
@@ -627,13 +742,11 @@ function MainApp() {
                 onOpenAddExpense={() => openAddModal(null)}
                 onEditTransaction={(tx) => openAddModal(tx)}
                 onViewAllCategories={() => {
-                  setActiveTab('settings');
-                  setSettingsSection('categories');
+                  handleNavigate({ tab: 'settings', section: 'categories' });
                 }}
-                onViewAllTransactions={() => setActiveTab('transactions')}
+                onViewAllTransactions={() => handleNavigate({ tab: 'transactions' })}
                 onSetBudget={() => {
-                  setActiveTab('settings');
-                  setSettingsSection('budget');
+                  handleNavigate({ tab: 'settings', section: 'budget' });
                 }}
                 formatCurrency={formatCurrency}
               />
@@ -650,6 +763,7 @@ function MainApp() {
                   formatCurrency={formatCurrency}
                   onSelectMonth={setSelectedMonth}
                   onOpenImport={() => setIsImportModalOpen(true)}
+                  isMobileScreen={true}
                 />
               </div>
             )}
@@ -662,6 +776,9 @@ function MainApp() {
                   availableMonths={availableMonths}
                   onSelectMonth={setSelectedMonth}
                   formatCurrency={formatCurrency}
+                  activeTab={reportsActiveTab}
+                  onTabChange={handleReportsTabChange}
+                  isMobileScreen={true}
                 />
               </div>
             )}
@@ -678,6 +795,9 @@ function MainApp() {
                   onLogout={logout}
                   onOpenTour={() => setIsOnboardingTourOpen(true)}
                   onOpenReleaseNotes={openReleaseNotesModal}
+                  onSectionChange={(sec) => handleNavigate({ tab: 'settings', section: sec }, true)}
+                  settingsSearch={settingsSearch}
+                  setSettingsSearch={setSettingsSearch}
                   onUpdateSettings={async (data) => {
                     const updated = await api.updateSettings(data);
                     setSettings(prev => ({ ...prev, ...updated }));
@@ -743,17 +863,22 @@ function MainApp() {
                 />
               </div>
             )}
+
+            {activeTab === 'not_found' && (
+              <div className="px-3">
+                <NotFoundRoute
+                  rawPath={currentRoute?.rawPath}
+                  onGoHome={() => handleNavigate({ tab: 'home' })}
+                />
+              </div>
+            )}
           </main>
 
           {/* Android Mobile Bottom Navigation Bar with Center FAB */}
           <Navbar
-            activeTab={activeTab}
+            activeTab={activeTab === 'not_found' ? 'home' : activeTab}
             onTabChange={(tab) => {
-              if (tab === 'settings') {
-                // Clear any deep-linked initial section so general More page opens without forcing budget modal
-                setSettingsSection(null);
-              }
-              setActiveTab(tab);
+              handleNavigate({ tab, section: null });
             }}
             onOpenAddExpense={() => openAddModal(null)}
           />
@@ -855,15 +980,17 @@ function MainApp() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <LanguageProvider>
-          <AuthGate>
-            <ToastProvider>
-              <MainApp />
-            </ToastProvider>
-          </AuthGate>
-        </LanguageProvider>
-      </AuthProvider>
+      <FontSizeProvider>
+        <AuthProvider>
+          <LanguageProvider>
+            <AuthGate>
+              <ToastProvider>
+                <MainApp />
+              </ToastProvider>
+            </AuthGate>
+          </LanguageProvider>
+        </AuthProvider>
+      </FontSizeProvider>
     </ThemeProvider>
   );
 }

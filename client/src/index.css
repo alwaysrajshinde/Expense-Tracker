@@ -9,6 +9,24 @@
   --border-color: rgba(226, 232, 240, 0.9);
   --text-primary: #0f172a;
   --accent-purple: #6c47ff;
+  --app-font-size: 16px;
+  --app-font-scale: 1;
+  --app-font-size-num: 16;
+}
+
+html {
+  font-size: var(--app-font-size, 16px);
+}
+
+/* Proportional scaling for custom pixel-based micro typography classes */
+.text-\[10px\] {
+  font-size: calc(10px * var(--app-font-scale, 1)) !important;
+}
+.text-\[11px\] {
+  font-size: calc(11px * var(--app-font-scale, 1)) !important;
+}
+.text-\[13px\] {
+  font-size: calc(13px * var(--app-font-scale, 1)) !important;
 }
 
 html.dark, html.theme-dark {

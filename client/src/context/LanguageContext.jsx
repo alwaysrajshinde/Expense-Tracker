@@ -78,7 +78,8 @@ const TRANSLATIONS = {
     allCategoriesTitle: 'All Categories',
 
     // Transactions page
-    expenseRecords: 'Expense Records & History',
+    expenseRecords: 'Expense records & history',
+    transactionsSubtitle: 'Expense records & history',
     entriesFound: 'entries found',
     totalNetSpend: 'Total Net Spend',
     allMonths: 'All Months',
@@ -91,6 +92,8 @@ const TRANSLATIONS = {
     searchPlaceholder: 'Search by description, category, date, or amount...',
 
     // More & Account
+    moreSubtitle: 'Settings, data management and preferences',
+    searchSettingsPlaceholder: 'Search settings (e.g. Budget, Categories, Theme)',
     manageFinances: 'Manage Finances',
     personalization: 'Personalization',
     appearanceTheme: 'Appearance & Theme',
@@ -116,7 +119,8 @@ const TRANSLATIONS = {
     offline: 'Offline',
 
     // Reports
-    spendingAnalytics: 'Spending & Expense Analytics',
+    spendingAnalytics: 'Spending & expense analytics',
+    reportsSubtitle: 'Spending & expense analytics',
     monthlyReport: 'Monthly Report',
     yearlySummary: 'Yearly Summary',
     yearly: 'Yearly',
@@ -207,6 +211,7 @@ const TRANSLATIONS = {
     allCategoriesTitle: 'सभी श्रेणियां',
 
     expenseRecords: 'खर्च रिकॉर्ड और इतिहास',
+    transactionsSubtitle: 'खर्च रिकॉर्ड और इतिहास',
     entriesFound: 'प्रविष्टियां मिलीं',
     totalNetSpend: 'कुल शुद्ध खर्च',
     allMonths: 'सभी महीने',
@@ -218,6 +223,9 @@ const TRANSLATIONS = {
     noTransactions: 'कोई लेन-देन नहीं मिला।',
     searchPlaceholder: 'विवरण, श्रेणी, तारीख या राशि द्वारा खोजें...',
 
+    // More & Account
+    moreSubtitle: 'सेटिंग्स, डेटा प्रबंधन और प्राथमिकताएं',
+    searchSettingsPlaceholder: 'सेटिंग्स खोजें (उदा. बजट, श्रेणियां, थीम)',
     manageFinances: 'वित्तीय प्रबंधन',
     personalization: 'निजीकरण',
     appearanceTheme: 'दिखावट और थीम',
@@ -243,6 +251,7 @@ const TRANSLATIONS = {
     offline: 'ऑफ़लाइन',
 
     spendingAnalytics: 'खर्च विश्लेषण',
+    reportsSubtitle: 'खर्च विश्लेषण और आंकड़े',
     monthlyReport: 'मासिक रिपोर्ट',
     yearlySummary: 'वार्षिक सारांश',
     yearly: 'वार्षिक',
@@ -332,6 +341,7 @@ const TRANSLATIONS = {
     allCategoriesTitle: 'सर्व कॅटेगरी',
 
     expenseRecords: 'खर्चाचे रेकॉर्ड आणि इतिहास',
+    transactionsSubtitle: 'खर्च नोंदी आणि इतिहास',
     entriesFound: 'खर्च सापडले',
     totalNetSpend: 'एकूण निव्वळ खर्च',
     allMonths: 'सर्व महिने',
@@ -343,6 +353,9 @@ const TRANSLATIONS = {
     noTransactions: 'या फिल्टरमध्ये कोणताही खर्च सापडला नाही.',
     searchPlaceholder: 'नाव, कॅटेगरी, तारीख किंवा रकमेनुसार शोधा...',
 
+    // More & Account
+    moreSubtitle: 'सेटिंग्ज, डेटा व्यवस्थापन आणि प्राधान्ये',
+    searchSettingsPlaceholder: 'सेटिंग्ज शोधा (उदा. बजेट, कॅटेगरी, थीम)',
     manageFinances: 'पैसे आणि बजेट',
     personalization: 'पर्सनलायझेशन',
     appearanceTheme: 'थीम आणि लूक',
@@ -368,6 +381,7 @@ const TRANSLATIONS = {
     offline: 'ऑफलाइन',
 
     spendingAnalytics: 'खर्चाचे अ‍ॅनालिटिक्स',
+    reportsSubtitle: 'खर्च विश्लेषण आणि आकडेवारी',
     monthlyReport: 'मासिक रिपोर्ट',
     yearlySummary: 'वार्षिक सारांश',
     yearly: 'वार्षिक',
@@ -457,6 +471,7 @@ const TRANSLATIONS = {
     allCategoriesTitle: 'Todas las Categorías',
 
     expenseRecords: 'Registros e Historial de Gastos',
+    transactionsSubtitle: 'Registros e historial de gastos',
     entriesFound: 'entradas encontradas',
     totalNetSpend: 'Gasto Neto Total',
     allMonths: 'Todos los Meses',
@@ -468,6 +483,9 @@ const TRANSLATIONS = {
     noTransactions: 'No se encontraron transacciones.',
     searchPlaceholder: 'Buscar por descripción, categoría, fecha o importe...',
 
+    // More & Account
+    moreSubtitle: 'Ajustes, gestión de datos y preferencias',
+    searchSettingsPlaceholder: 'Buscar ajustes (ej. presupuesto, categorías, temas)',
     manageFinances: 'Gestión Financiera',
     personalization: 'Personalización',
     appearanceTheme: 'Apariencia y Tema',
@@ -493,6 +511,7 @@ const TRANSLATIONS = {
     offline: 'Sin conexión',
 
     spendingAnalytics: 'Análisis de Gastos',
+    reportsSubtitle: 'Análisis de gastos y estadísticas',
     monthlyReport: 'Informe Mensual',
     yearlySummary: 'Resumen Anual',
     yearly: 'Anual',

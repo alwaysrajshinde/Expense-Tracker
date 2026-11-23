@@ -21,9 +21,11 @@ export default function CategoryManagerModal({
   onDeleteCategory,
   onArchiveCategory,
   onRestoreCategory,
-  onReassignCategory
+  onReassignCategory,
+  initialTab = 'active',
+  initialAdd = false
 }) {
-  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'archived'
+  const [activeTab, setActiveTab] = useState(initialTab || 'active'); // 'active' | 'archived'
   const [searchQuery, setSearchQuery] = useState('');
 
   // Editing Category state
@@ -40,7 +42,14 @@ export default function CategoryManagerModal({
   const [newColor, setNewColor] = useState('#6C47FF');
   const [newIsQuick, setNewIsQuick] = useState(false);
   const [newError, setNewError] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
+  const [isAdding, setIsAdding] = useState(Boolean(initialAdd));
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialTab) setActiveTab(initialTab);
+      if (initialAdd !== undefined) setIsAdding(Boolean(initialAdd));
+    }
+  }, [isOpen, initialTab, initialAdd]);
 
   // Removing Category / Smart Confirmation state
   const [removingCategory, setRemovingCategory] = useState(null);

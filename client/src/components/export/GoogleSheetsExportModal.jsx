@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, ExternalLink, RefreshCw, CheckCircle2, AlertCircle, FileSpreadsheet,
-  Calendar, Layers, ShieldCheck, Check, Sparkles, ArrowRight, WifiOff, FileText
+  Calendar, Layers, ShieldCheck, Check, Sparkles, ArrowRight, WifiOff, FileText,
+  Lock, ArrowLeft, Table
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import CustomDropdown from '../CustomDropdown';
+import { isFeatureComingSoon } from '../../constants/featureAvailability';
 import {
   requestGoogleSheetsAccess,
   getCachedToken,
@@ -24,6 +26,7 @@ export default function GoogleSheetsExportModal({
 }) {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const isComingSoon = isFeatureComingSoon('google_sheets_sync');
 
   const [exportScope, setExportScope] = useState('all'); // 'all' | 'current_month' | 'selected_month' | 'date_range'
   const [targetMonth, setTargetMonth] = useState(selectedMonth || new Date().toISOString().slice(0, 7));
@@ -92,6 +95,10 @@ export default function GoogleSheetsExportModal({
   }).length;
 
   const handleAuthorize = async () => {
+    if (isComingSoon) {
+      console.warn('[GoogleSheetsExportModal] Action blocked: Feature is in Coming Soon preview mode.');
+      return;
+    }
     if (!isOnline) {
       showToast('Internet required to authorize Google Sheets', 'error');
       return;
@@ -112,6 +119,10 @@ export default function GoogleSheetsExportModal({
   };
 
   const handleExecuteExport = async () => {
+    if (isComingSoon) {
+      console.warn('[GoogleSheetsExportModal] Action blocked: Feature is in Coming Soon preview mode.');
+      return;
+    }
     if (!isOnline) {
       setErrorMsg('Cannot export to Google Sheets while offline. Please connect to the internet.');
       return;
@@ -184,8 +195,12 @@ export default function GoogleSheetsExportModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">Export to Google Sheets</h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">
-                  Coming Soon · Preview
+                <span
+                  data-testid="coming-soon-badge"
+                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30 uppercase tracking-wider"
+                >
+                  <Lock size={9} />
+                  <span>Coming Soon</span>
                 </span>
               </div>
               <p className="text-xs text-slate-400">Directly sync financial records to your Google Drive</p>
@@ -201,12 +216,20 @@ export default function GoogleSheetsExportModal({
           </button>
         </div>
 
-        {/* Upcoming Feature Notice Banner */}
-        <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-900 dark:text-purple-300 text-xs flex items-center gap-2.5">
-          <Sparkles size={16} className="text-[#6C47FF] dark:text-[#C084FC] flex-shrink-0" />
-          <div className="text-[11px] leading-relaxed">
-            <strong className="font-bold text-[#6C47FF] dark:text-[#C084FC]">Upcoming Feature Preview:</strong> Direct Google Sheets sync is coming soon! Integration architecture and scopes are configured for early preview.
+        {/* Positive & Professional Message Banner */}
+        <div
+          data-testid="coming-soon-message-banner"
+          className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-900 dark:text-purple-200 text-xs space-y-1.5"
+        >
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className="text-[#6C47FF] dark:text-[#C084FC] shrink-0" />
+            <span className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
+              Something exciting is on the way!
+            </span>
           </div>
+          <p className="text-[11px] sm:text-xs text-slate-600 dark:text-purple-300/90 leading-relaxed pl-6">
+            We're working to bring direct Google Drive &amp; Sheets cloud sync to you soon. Stay tuned! You can explore the planned export configuration below in read-only preview mode.
+          </p>
         </div>
 
         {/* Offline Warning Banner */}
@@ -243,12 +266,19 @@ export default function GoogleSheetsExportModal({
           ) : (
             <button
               type="button"
+              data-testid="sheets-authorize-btn"
               onClick={handleAuthorize}
-              disabled={authorizing || !isOnline}
-              className="px-3 py-1.5 rounded-xl bg-[#6C47FF] hover:bg-[#5835E5] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 flex-shrink-0"
+              disabled={isComingSoon || authorizing || !isOnline}
+              aria-disabled={isComingSoon ? "true" : undefined}
+              title={isComingSoon ? "Authorization is disabled in preview mode" : undefined}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 flex-shrink-0 ${
+                isComingSoon
+                  ? 'bg-purple-500/20 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30 cursor-not-allowed select-none'
+                  : 'bg-[#6C47FF] hover:bg-[#5835E5] text-white shadow-xs cursor-pointer disabled:opacity-50'
+              }`}
             >
-              {authorizing ? <RefreshCw size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
-              <span>Authorize Access</span>
+              {isComingSoon ? <Lock size={12} /> : authorizing ? <RefreshCw size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
+              <span>{isComingSoon ? 'Authorize Access (Coming Soon)' : 'Authorize Access'}</span>
             </button>
           )}
         </div>
@@ -449,29 +479,38 @@ export default function GoogleSheetsExportModal({
         )}
 
         {/* Modal Action Footer */}
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
           <div className="text-xs text-slate-500 dark:text-slate-400">
-            Selected: <span className="font-bold text-slate-900 dark:text-white">{currentFilteredCount}</span> transactions
+            Planned Export: <span className="font-bold text-slate-900 dark:text-white">{currentFilteredCount}</span> transactions ready
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               type="button"
               onClick={onClose}
+              data-testid="coming-soon-back-btn"
               disabled={exporting}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer disabled:opacity-30"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer disabled:opacity-30 flex items-center gap-1.5"
             >
-              Close
+              <ArrowLeft size={13} />
+              <span>Back to Settings</span>
             </button>
 
             <button
               type="button"
+              data-testid="coming-soon-disabled-action-btn"
               onClick={handleExecuteExport}
-              disabled={exporting || currentFilteredCount === 0 || !isOnline}
-              className="px-6 py-2 rounded-xl bg-[#6C47FF] hover:bg-[#5835E5] text-white text-xs font-bold transition-all shadow-md shadow-purple-600/30 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              disabled={isComingSoon || exporting || currentFilteredCount === 0 || !isOnline}
+              aria-disabled={isComingSoon ? "true" : undefined}
+              title={isComingSoon ? "This feature is in development and currently disabled" : undefined}
+              className={`px-5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all select-none ${
+                isComingSoon
+                  ? 'bg-purple-500/20 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30 cursor-not-allowed opacity-80'
+                  : 'bg-[#6C47FF] hover:bg-[#5835E5] text-white shadow-md shadow-purple-600/30 cursor-pointer disabled:opacity-50'
+              }`}
             >
-              {exporting && <RefreshCw size={13} className="animate-spin" />}
-              <span>{exporting ? 'Exporting...' : 'Export Now'}</span>
+              <Lock size={13} />
+              <span>{isComingSoon ? 'Export to Google Sheets (Coming Soon)' : (exporting ? 'Exporting...' : 'Export Now')}</span>
             </button>
           </div>
         </div>

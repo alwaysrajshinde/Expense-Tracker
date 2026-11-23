@@ -10,10 +10,15 @@ export default function Reports({
   selectedMonth,
   availableMonths = [],
   onSelectMonth,
-  formatCurrency
+  formatCurrency,
+  activeTab: externalActiveTab,
+  onTabChange: externalOnTabChange,
+  isMobileScreen = false
 }) {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'category' | 'payment' | 'yearly'
+  const [internalActiveTab, setInternalActiveTab] = useState('overview'); // 'overview' | 'category' | 'payment' | 'yearly'
+  const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalActiveTab;
+  const setActiveTab = externalOnTabChange || setInternalActiveTab;
   const [selectedYear, setSelectedYear] = useState(() => (selectedMonth ? selectedMonth.slice(0, 4) : new Date().getFullYear().toString()));
   const [yearlyData, setYearlyData] = useState(null);
   const [loadingYearly, setLoadingYearly] = useState(false);
@@ -140,9 +145,9 @@ export default function Reports({
   });
 
   return (
-    <div className="space-y-5 px-4 sm:px-6 lg:px-8 py-4 pb-28 lg:pb-8 max-w-7xl mx-auto">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="space-y-4 px-1 sm:px-6 lg:px-8 py-2 pb-28 lg:pb-8 max-w-7xl mx-auto">
+      {/* Top Header & Navigation Bar (Shown on desktop; on mobile, header and navigation pills are rendered in Header.jsx) */}
+      <div className="hidden lg:flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
             Spending &amp; Expense Analytics
@@ -155,8 +160,8 @@ export default function Reports({
         </div>
       </div>
 
-      {/* Unified Single Navigation Bar: Overview | Categories | Payment Modes | Yearly */}
-      <div className="w-full bg-slate-100 dark:bg-white/10 p-1 rounded-2xl grid grid-cols-4 gap-1">
+      {/* Unified Single Navigation Bar (Shown on desktop only; on mobile, handled in Header.jsx) */}
+      <div className="hidden lg:grid w-full bg-slate-100 dark:bg-white/10 p-1 rounded-2xl grid-cols-4 gap-1">
         <button
           onClick={() => setActiveTab('overview')}
           className={`py-2 rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${

@@ -23,6 +23,7 @@ import { useTheme } from '../context/ThemeContext';
 import LegalModal from './LegalModal';
 import PublicLanding from './PublicLanding';
 import PublicLegalView from './PublicLegalView';
+import { saveIntendedRoute, consumeIntendedRoute } from '../services/routeService';
 
 export default function AuthGate({ children }) {
   const { isDark, toggleTheme } = useTheme();
@@ -100,12 +101,28 @@ export default function AuthGate({ children }) {
     } catch (e) {}
   }, [handleVerifyEmailCode]);
 
-  // Reset view state when logged out
+  // Reset view state when logged out & save intended route
   useEffect(() => {
     if (!isAuthenticated) {
       setShowForgotModal(false);
       setErrorMsg('');
       setResetSuccessMsg('');
+      if (!isLoading) {
+        saveIntendedRoute();
+      }
+    }
+  }, [isAuthenticated, isLoading]);
+
+  // Restore intended route once user authenticates
+  useEffect(() => {
+    if (isAuthenticated) {
+      const intended = consumeIntendedRoute();
+      if (intended) {
+        const canonical = intended.startsWith('#') ? intended : `#/${intended.replace(/^\//, '')}`;
+        if (window.location.hash !== canonical) {
+          window.location.hash = canonical;
+        }
+      }
     }
   }, [isAuthenticated]);
 

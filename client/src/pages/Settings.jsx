@@ -1,16 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   DollarSign, User, Tag, Download, Upload, Database, Check, AlertCircle,
   Plus, Trash2, RefreshCw, FileSpreadsheet, ShieldCheck, Sun, Moon, Sparkles,
   ExternalLink, LogOut, Bell, Info, Shield, HelpCircle, Palette, Key, CheckCircle2,
   History, ChevronRight, Sliders, Target, FileText, ArrowLeftRight, X, ArrowRight,
-  Wifi, WifiOff, Laptop, CheckSquare, Edit2, Calendar, Droplets, Heart, Globe, Search
+  Wifi, WifiOff, Laptop, CheckSquare, Edit2, Calendar, Droplets, Heart, Globe, Search, Type,
+  Camera, CalendarClock, Landmark, Lock
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
 import CustomDropdown from '../components/CustomDropdown';
 import LegalModal from '../components/LegalModal';
 import CategoryManagerModal from '../components/CategoryManagerModal';
+import FontSizeSettingsControl from '../components/FontSizeSettingsControl';
+import ComingSoonPreviewModal from '../components/common/ComingSoonPreviewModal';
 import { useTheme } from '../context/ThemeContext';
+import { useFontSize } from '../context/FontSizeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useLanguage, SUPPORTED_LANGUAGES } from '../context/LanguageContext';
@@ -19,11 +23,14 @@ import syncService from '../services/syncService';
 import { APP_VERSION, APP_RELEASE_DATE, APP_INKED_VERSION, APP_SHORT_DATE } from '../constants/version';
 import GoogleSheetsExportModal from '../components/export/GoogleSheetsExportModal';
 import { getLocalTransactions, getTransactions } from '../services/api';
+import { buildMoreSearchIndex, searchMoreIndex } from '../services/moreSearchService';
+import { getComingSoonFeatures, isFeatureComingSoon } from '../constants/featureAvailability';
 
 export default function Settings({
   settings = {},
   categories = [],
   initialSection = null,
+  onSectionChange = null,
   isDesktopScreen = false,
   onUpdateSettings,
   onUpdateBudget,
@@ -45,9 +52,12 @@ export default function Settings({
   onOpenImport,
   onOpenImportHistory,
   onOpenNotifications,
-  hasUnreadNotifs = false
+  hasUnreadNotifs = false,
+  settingsSearch: externalSettingsSearch,
+  setSettingsSearch: externalSetSettingsSearch
 }) {
   const { theme, setTheme, toggleTheme, isDark, availableThemes } = useTheme();
+  const { fontSizePx, fontMode, fontPreset, setFontPreset, setFontCustom, resetFont, availablePresets, deviceCategory } = useFontSize();
   const { showToast } = useToast();
   const { user, logout, resendVerificationEmail, resetPassword, checkVerificationStatus, updateUserName } = useAuth();
   const { language, setLanguage, availableLanguages = SUPPORTED_LANGUAGES, t } = useLanguage();
@@ -76,6 +86,9 @@ export default function Settings({
   const [isGoogleSheetsModalOpen, setIsGoogleSheetsModalOpen] = useState(false);
   const [exportTransactionsList, setExportTransactionsList] = useState([]);
 
+  // Upcoming Features Preview Modal State
+  const [activeComingSoonFeature, setActiveComingSoonFeature] = useState(null);
+
   const handleOpenGoogleSheets = async () => {
     let txs = getLocalTransactions();
     if (user?.uid) {
@@ -90,16 +103,52 @@ export default function Settings({
     setIsGoogleSheetsModalOpen(true);
   };
 
-  // Active Sub-Modal: null | 'profile' | 'budget' | 'categories' | 'theme' | 'export' | 'security' | 'help'
+  const handleOpenComingSoon = (featureId) => {
+    if (featureId === 'google_sheets_sync') {
+      handleOpenGoogleSheets();
+    } else {
+      setActiveComingSoonFeature(featureId);
+    }
+  };
+
+  // Active Sub-Modal: null | 'profile' | 'budget' | 'categories' | 'theme' | 'export' | 'security' | 'help' | 'language'
   const [activeModal, setActiveModal] = useState(() => {
     if (!isDesktopScreen) {
       if (initialSection === 'budget') return 'budget';
       if (initialSection === 'categories') return 'categories';
       if (initialSection === 'account' || initialSection === 'security') return 'security';
       if (initialSection === 'data' || initialSection === 'export') return 'export';
+      if (initialSection === 'theme' || initialSection === 'appearance') return 'theme';
+      if (initialSection === 'profile') return 'profile';
+      if (initialSection === 'language') return 'language';
+      if (initialSection === 'help') return 'help';
     }
     return null;
   });
+
+  const closeModal = () => {
+    setActiveModal(null);
+    if (onSectionChange) onSectionChange(null);
+  };
+
+  const [categoryModalTab, setCategoryModalTab] = useState('active');
+  const [categoryModalAdd, setCategoryModalAdd] = useState(false);
+  const [appearanceModalTab, setAppearanceModalTab] = useState('theme'); // 'theme' | 'font'
+
+  const handleOpenModal = (modalName, options = {}) => {
+    const sec = modalName === 'appearance' || modalName === 'fontSize' ? 'theme' : modalName;
+    if (onSectionChange) onSectionChange(sec);
+    if (modalName === 'categories') {
+      setCategoryModalTab(options?.tab || 'active');
+      setCategoryModalAdd(Boolean(options?.add));
+      setActiveModal('categories');
+    } else if (modalName === 'theme' || modalName === 'appearance' || modalName === 'fontSize') {
+      setAppearanceModalTab(options?.tab || (modalName === 'fontSize' ? 'font' : 'theme'));
+      setActiveModal('theme');
+    } else {
+      setActiveModal(modalName);
+    }
+  };
 
   useEffect(() => {
     if (!isDesktopScreen) {
@@ -107,6 +156,11 @@ export default function Settings({
       else if (initialSection === 'categories') setActiveModal('categories');
       else if (initialSection === 'account' || initialSection === 'security') setActiveModal('security');
       else if (initialSection === 'data' || initialSection === 'export') setActiveModal('export');
+      else if (initialSection === 'theme' || initialSection === 'appearance') setActiveModal('theme');
+      else if (initialSection === 'profile') setActiveModal('profile');
+      else if (initialSection === 'language') setActiveModal('language');
+      else if (initialSection === 'help') setActiveModal('help');
+      else if (!initialSection) closeModal();
     }
   }, [initialSection, isDesktopScreen]);
 
@@ -214,7 +268,7 @@ export default function Settings({
       localStorage.setItem(budgetKey, 'true');
       setStatusMsg({ type: 'success', text: `Monthly target budget updated to ${formatCurrency(numBudget)}` });
       showToast(`Monthly budget set to ${formatCurrency(numBudget)}`, 'success');
-      setActiveModal(null);
+      closeModal();
     } catch (err) {
       setStatusMsg({ type: 'error', text: err.message || 'Failed to update budget' });
     } finally {
@@ -238,7 +292,7 @@ export default function Settings({
       setUserNameVal(cleanName);
       setStatusMsg({ type: 'success', text: 'Profile preferences updated successfully' });
       showToast('Profile updated!', 'success');
-      setActiveModal(null);
+      closeModal();
     } catch (err) {
       setStatusMsg({ type: 'error', text: err.message || 'Failed to update profile' });
       showToast(err.message || 'Failed to update profile', 'error');
@@ -247,120 +301,9 @@ export default function Settings({
     }
   };
 
-  const [settingsSearch, setSettingsSearch] = useState('');
-
-  const searchableSettingsItems = [
-    {
-      id: 'budget',
-      title: t('monthlyBudget', 'Monthly Budget'),
-      subtitle: t('setMonthlyBudget', 'Set or update your monthly budget limit'),
-      keywords: 'budget money limit spend target महिना बजेट खर्च नियोजन',
-      icon: Target,
-      color: '#6C47FF',
-      action: () => setActiveModal('budget')
-    },
-    {
-      id: 'categories',
-      title: t('categoriesTab', 'Categories'),
-      subtitle: 'Manage expense categories, icons and colors',
-      keywords: 'categories category tags वर्गवारी कॅटेगरी रंग',
-      icon: Tag,
-      color: '#A855F7',
-      action: () => (onOpenCategories ? onOpenCategories() : setActiveModal('categories'))
-    },
-    {
-      id: 'appearance',
-      title: t('appearanceTheme', 'Appearance & Theme'),
-      subtitle: 'Dark Violet, Light, Midnight or Fintech themes',
-      keywords: 'appearance theme dark light midnight mode रंग थीम लूक',
-      icon: Moon,
-      color: '#6366F1',
-      action: () => setActiveModal('appearance')
-    },
-    {
-      id: 'language',
-      title: t('language', 'Language'),
-      subtitle: 'English, मराठी (Marathi), हिंदी (Hindi), Español',
-      keywords: 'language भाषा मराठी हिंदी english spanish locale बोली',
-      icon: Globe,
-      color: '#06B6D4',
-      action: () => setActiveModal('language')
-    },
-    {
-      id: 'import',
-      title: t('importTransactions', 'Import Transactions'),
-      subtitle: 'Add expenses from Excel, CSV or bank statement',
-      keywords: 'import excel csv bank file upload डेटा इम्पोर्ट फाईल',
-      icon: Upload,
-      color: '#10B981',
-      action: () => (onOpenImport ? onOpenImport() : setActiveModal('import'))
-    },
-    {
-      id: 'export',
-      title: t('exportTransactions', 'Export Expenses'),
-      subtitle: 'Download your expense data in Excel or CSV format',
-      keywords: 'export download excel csv backup डाऊनलोड एक्स्पोर्ट बॅकअप',
-      icon: Download,
-      color: '#3B82F6',
-      action: () => setActiveModal('export')
-    },
-    {
-      id: 'sheets',
-      title: 'Google Sheets Export',
-      subtitle: 'Sync transaction ledger directly to Google Sheets',
-      keywords: 'google sheets spreadsheet cloud sync गुगल शीट्स',
-      icon: FileSpreadsheet,
-      color: '#10B981',
-      action: () => handleOpenGoogleSheets()
-    },
-    {
-      id: 'profile',
-      title: t('profile', 'User Profile'),
-      subtitle: 'View and update your display name and email',
-      keywords: 'profile name email user खाते प्रोफाईल नाव ईमेल',
-      icon: User,
-      color: '#8B5CF6',
-      action: () => setActiveModal('profile')
-    },
-    {
-      id: 'security',
-      title: 'Security & Password',
-      subtitle: 'Email verification, password reset & data vault',
-      keywords: 'security password email reset encryption सुरक्षा पासवर्ड कूटबद्ध',
-      icon: ShieldCheck,
-      color: '#F59E0B',
-      action: () => setActiveModal('security')
-    },
-    {
-      id: 'notifications',
-      title: t('notifications', 'Notifications & Alerts'),
-      subtitle: 'Budget warnings, milestone alerts and app updates',
-      keywords: 'notifications alerts updates सूचना नोटिफिकेशन्स चेतावणी',
-      icon: Bell,
-      color: '#EC4899',
-      action: () => (onOpenNotifications ? onOpenNotifications() : null)
-    },
-    {
-      id: 'about',
-      title: "About & What's New",
-      subtitle: `${APP_INKED_VERSION}`,
-      keywords: 'about version update release notes काय नवीन व्हर्जन माहिती',
-      icon: Info,
-      color: '#A78BFA',
-      action: () => (onOpenReleaseNotes ? onOpenReleaseNotes() : null)
-    }
-  ];
-
-  const filteredSettingsItems = settingsSearch.trim()
-    ? searchableSettingsItems.filter(item => {
-        const q = settingsSearch.toLowerCase().trim();
-        return (
-          item.title.toLowerCase().includes(q) ||
-          item.subtitle.toLowerCase().includes(q) ||
-          item.keywords.toLowerCase().includes(q)
-        );
-      })
-    : null;
+  const [internalSettingsSearch, setInternalSettingsSearch] = useState('');
+  const settingsSearch = externalSettingsSearch !== undefined ? externalSettingsSearch : internalSettingsSearch;
+  const setSettingsSearch = externalSetSettingsSearch || setInternalSettingsSearch;
 
   const handleCreateCategory = async (e) => {
     if (e) e.preventDefault();
@@ -415,7 +358,7 @@ export default function Settings({
       showToast('Data restored successfully!', 'success');
       setRestoreFilePending(null);
       if (onRefreshAll) onRefreshAll();
-      setActiveModal(null);
+      closeModal();
     } catch (err) {
       setStatusMsg({ type: 'error', text: err.message || 'Failed to restore backup' });
     } finally {
@@ -444,6 +387,126 @@ export default function Settings({
     } catch (err) {
       showToast(err.message || 'Could not send reset email', 'error');
     }
+  };
+
+  const searchIndex = useMemo(() => {
+    return buildMoreSearchIndex({
+      t,
+      user,
+      settings: { ...settings, monthly_budget: budgetVal, user_name: userNameVal, currency: currencyVal },
+      availableThemes,
+      availableLanguages,
+      setTheme,
+      setLanguage,
+      setFontPreset,
+      setFontCustom,
+      resetFont,
+      openModal: handleOpenModal,
+      openGoogleSheets: handleOpenGoogleSheets,
+      openComingSoon: handleOpenComingSoon,
+      openImport: onOpenImport || (() => handleOpenModal('import')),
+      openImportHistory: onOpenImportHistory || (() => handleOpenModal('export')),
+      openTour: onOpenTour || (() => {}),
+      openReleaseNotes: onOpenReleaseNotes || (() => {}),
+      openNotifications: onOpenNotifications || (() => {}),
+      openPrivacyPolicy: () => setLegalModalType('privacy'),
+      openTermsOfService: () => setLegalModalType('terms'),
+      exportExcel: handleExcelExport,
+      exportJson: handleJsonExport,
+      triggerRestoreJson: () => {
+        handleOpenModal('export');
+        setTimeout(() => {
+          if (jsonInputRef.current) jsonInputRef.current.click();
+        }, 150);
+      },
+      sendPasswordReset: handlePasswordReset,
+      checkEmailVerification: handleCheckVerification,
+      resendVerificationEmail: handleResendEmail,
+      logout: onLogout || logout
+    });
+  }, [
+    t, user, settings, budgetVal, userNameVal, currencyVal, availableThemes,
+    availableLanguages, setTheme, setLanguage, setFontPreset, setFontCustom, resetFont,
+    onOpenImport, onOpenImportHistory, onOpenTour, onOpenReleaseNotes, onOpenNotifications,
+    onLogout, logout
+  ]);
+
+  const filteredSettingsItems = useMemo(() => {
+    return searchMoreIndex(settingsSearch, searchIndex);
+  }, [settingsSearch, searchIndex]);
+
+  const renderSearchResults = () => {
+    if (filteredSettingsItems === null) return null;
+
+    return (
+      <div className="space-y-3 animate-fade-in pt-1" data-testid="more-search-results">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Matching Settings ({filteredSettingsItems.length})
+          </span>
+          <button
+            type="button"
+            onClick={() => setSettingsSearch('')}
+            className="text-[11px] font-bold text-[#6C47FF] dark:text-[#C084FC] hover:underline cursor-pointer"
+          >
+            Clear search
+          </button>
+        </div>
+
+        {filteredSettingsItems.length === 0 ? (
+          <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 p-8 text-center space-y-1.5" data-testid="more-no-results">
+            <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-white/5 text-slate-400 flex items-center justify-center mx-auto mb-2">
+              <Search size={18} />
+            </div>
+            <p className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">No settings found</p>
+            <p className="text-[11px] text-slate-400">No options match your query. Try searching for "budget", "dark mode", "categories", "alerts", or "export".</p>
+          </div>
+        ) : (
+          <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 divide-y divide-slate-100 dark:divide-white/5 overflow-hidden shadow-xs">
+            {filteredSettingsItems.map(item => {
+              const ItemIcon = item.icon || Sliders;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  data-testid={`search-result-${item.id}`}
+                  onClick={() => {
+                    setSettingsSearch('');
+                    if (item.action) item.action();
+                  }}
+                  className="w-full p-3.5 sm:p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-all cursor-pointer group active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+                    <div
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm"
+                      style={{ backgroundColor: item.color || '#6C47FF' }}
+                    >
+                      <ItemIcon size={17} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors truncate">
+                          {item.title}
+                        </span>
+                        {item.parentCategory && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#6C47FF]/10 text-[#6C47FF] dark:text-[#C084FC] border border-[#6C47FF]/20 shrink-0">
+                            {item.parentCategory}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] sm:text-xs text-slate-400 truncate mt-0.5">
+                        {item.subtitle}
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} className="text-slate-400 group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const categoryIcons = [
@@ -579,6 +642,33 @@ export default function Settings({
             </div>
           </div>
 
+          {/* Executive Desktop Search Input */}
+          <div className="relative">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={settingsSearch}
+              onChange={(e) => setSettingsSearch(e.target.value)}
+              placeholder={t('searchSettingsPlaceholder', 'Search settings (e.g. Budget, Categories, Theme, Alerts, Export)')}
+              aria-label="Search Settings"
+              className="w-full pl-11 pr-10 py-3 bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/15 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6C47FF] shadow-xs transition-all"
+            />
+            {settingsSearch && (
+              <button
+                type="button"
+                onClick={() => setSettingsSearch('')}
+                aria-label="Clear Search"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer p-0.5"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {filteredSettingsItems !== null ? (
+            renderSearchResults()
+          ) : (
+            <>
           {/* 2. Full-Width Hero Profile & Account Banner */}
           <div
             id="desktop-section-profile"
@@ -971,6 +1061,41 @@ export default function Settings({
                       </div>
                     </button>
                   </div>
+
+                  {/* Desktop Upcoming Integrations Preview Grid */}
+                  <div className="pt-2">
+                    <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-1.5">
+                      <Sparkles size={13} className="text-[#6C47FF] dark:text-[#C084FC]" />
+                      <span>Upcoming Features &amp; Integrations (Preview)</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      {getComingSoonFeatures().filter(f => f.id !== 'google_sheets_sync').map((f) => {
+                        const FIcon = f.id === 'receipt_scanner' ? Camera : f.id === 'recurring_expenses' ? CalendarClock : Landmark;
+                        return (
+                          <button
+                            key={f.id}
+                            type="button"
+                            data-testid={`desktop-upcoming-${f.id}`}
+                            onClick={() => handleOpenComingSoon(f.id)}
+                            className="p-2.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-500/50 flex items-center gap-2.5 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all cursor-pointer text-left group"
+                          >
+                            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white" style={{ backgroundColor: f.badgeColor || '#6C47FF' }}>
+                              <FIcon size={15} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
+                                {f.shortName || f.name}
+                              </div>
+                              <div className="text-[10px] text-purple-600 dark:text-[#C084FC] flex items-center gap-1 font-semibold">
+                                <Lock size={8} />
+                                <span>Coming Soon</span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Sub-Section C: Restore JSON Backup */}
@@ -1087,7 +1212,12 @@ export default function Settings({
                   </div>
                 </div>
 
-                {/* Sub-Section B: Language & Region Selection */}
+                {/* Sub-Section B: App Font Size (Appearance & Accessibility) */}
+                <div className="pt-3 border-t border-slate-100 dark:border-white/5">
+                  <FontSizeSettingsControl isCompact={true} showTitle={true} />
+                </div>
+
+                {/* Sub-Section C: Language & Region Selection */}
                 <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-white/5">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
                     <Globe size={14} className="text-[#6C47FF] dark:text-[#C084FC]" />
@@ -1298,105 +1428,53 @@ export default function Settings({
 
             </div>
           </div>
+            </>
+          )}
         </div>
       ) : (
 
         /* =========================================================================
             VIEW B: MOBILE VERSION (Strictly matching Dark Violet Design)
            ========================================================================= */
-        <div className="space-y-6">
+        <div className="space-y-4">
 
-          {/* 1. Mobile Screen Header (Clean, clutter-free with Quick Search) */}
-          <div className="pt-1 space-y-3">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                {t('more', 'More')}
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-[#A78BFA]/80 mt-0.5">
-                Settings, data management and preferences
-              </p>
-            </div>
-
-            {/* Quick Settings Search Bar */}
-            <div className="relative">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={settingsSearch}
-                onChange={(e) => setSettingsSearch(e.target.value)}
-                placeholder="Search settings, budget, theme, export..."
-                className="w-full pl-9 pr-9 py-2.5 bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 rounded-2xl text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6C47FF] shadow-xs transition-all"
-              />
-              {settingsSearch && (
-                <button
-                  type="button"
-                  onClick={() => setSettingsSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-0.5"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {filteredSettingsItems !== null ? (
-            /* Live Filtered Search Results */
-            <div className="space-y-3 animate-fade-in">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Matching Settings ({filteredSettingsItems.length})
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setSettingsSearch('')}
-                  className="text-[11px] font-bold text-[#6C47FF] dark:text-[#C084FC] hover:underline cursor-pointer"
-                >
-                  Clear search
-                </button>
+          {/* 1. Mobile Screen Header (Shown only when not controlled by Header.jsx) */}
+          {externalSettingsSearch === undefined && (
+            <div className="pt-1 space-y-3">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  {t('more', 'More')}
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-[#A78BFA]/80 mt-0.5">
+                  Settings, data management and preferences
+                </p>
               </div>
 
-              {filteredSettingsItems.length === 0 ? (
-                <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 p-8 text-center space-y-1">
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200">No settings found</p>
-                  <p className="text-[11px] text-slate-400">Try searching for "budget", "theme", "language", "export", or "security"</p>
-                </div>
-              ) : (
-                <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 divide-y divide-slate-100 dark:divide-white/5 overflow-hidden shadow-xs">
-                  {filteredSettingsItems.map(item => {
-                    const ItemIcon = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setSettingsSearch('');
-                          item.action();
-                        }}
-                        className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm"
-                            style={{ backgroundColor: item.color }}
-                          >
-                            <ItemIcon size={16} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors truncate">
-                              {item.title}
-                            </div>
-                            <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                              {item.subtitle}
-                            </div>
-                          </div>
-                        </div>
-                        <ChevronRight size={16} className="text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              {/* Quick Settings Search Bar */}
+              <div className="relative">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={settingsSearch}
+                  onChange={(e) => setSettingsSearch(e.target.value)}
+                  placeholder={t('searchSettingsPlaceholder', 'Search settings (e.g. Budget, Categories, Theme)')}
+                  className="w-full pl-9 pr-9 py-2.5 bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 rounded-2xl text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6C47FF] shadow-xs transition-all"
+                />
+                {settingsSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setSettingsSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-0.5"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
             </div>
+          )}
+
+          {filteredSettingsItems !== null ? (
+            renderSearchResults()
           ) : (
             <>
           {/* 2. User Profile Section (Issue 13: Cleanly integrates Profile & Notifications) */}
@@ -1568,7 +1646,10 @@ export default function Settings({
             <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
               <button
                 type="button"
-                onClick={() => setActiveModal('theme')}
+                onClick={() => {
+                  setAppearanceModalTab('theme');
+                  setActiveModal('theme');
+                }}
                 className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-3.5">
@@ -1577,10 +1658,35 @@ export default function Settings({
                   </div>
                   <div>
                     <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
-                      {t('appearanceTheme', 'Appearance & Theme')}
+                      {t('appearanceAccessibility', 'Appearance & Accessibility')}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 capitalize">
-                      Choose a theme ({theme})
+                      Theme ({theme}) · Font ({fontSizePx}px)
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              <button
+                type="button"
+                data-testid="more-app-font-size-row"
+                onClick={() => {
+                  setAppearanceModalTab('font');
+                  setActiveModal('theme');
+                }}
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                    <Type size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors">
+                      {t('appFontSize', 'App Font Size')}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      {fontMode === 'preset' ? (availablePresets.find(p => p.id === fontPreset)?.label || 'Medium') : 'Custom'} · {fontSizePx}px (Mobile Preference)
                     </div>
                   </div>
                 </div>
@@ -1687,29 +1793,44 @@ export default function Settings({
             </div>
 
             <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
-              <button
-                type="button"
-                onClick={handleOpenGoogleSheets}
-                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20">
-                    <FileSpreadsheet size={18} />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2">
-                      <span>{t('exportGoogleSheets', 'Export to Google Sheets')}</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">
-                        {t('upcoming', 'Upcoming')}
-                      </span>
+              {getComingSoonFeatures().map((feat) => {
+                const FeatIcon = feat.id === 'google_sheets_sync' ? FileSpreadsheet
+                  : feat.id === 'receipt_scanner' ? Camera
+                  : feat.id === 'recurring_expenses' ? CalendarClock
+                  : Landmark;
+
+                return (
+                  <button
+                    key={feat.id}
+                    type="button"
+                    data-testid={`upcoming-feature-${feat.id}`}
+                    onClick={() => handleOpenComingSoon(feat.id)}
+                    className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div
+                        className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white"
+                        style={{ backgroundColor: feat.badgeColor || '#6C47FF' }}
+                      >
+                        <FeatIcon size={18} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2 flex-wrap">
+                          <span>{feat.name}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30 flex items-center gap-1">
+                            <Lock size={9} />
+                            <span>{feat.badgeText || t('upcoming', 'Upcoming')}</span>
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          {feat.description}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      Direct cloud export &amp; sync to your personal Google Drive spreadsheet
-                    </div>
-                  </div>
-                </div>
-                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
-              </button>
+                    <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -1850,7 +1971,7 @@ export default function Settings({
          ======================================================== */}
       {activeModal === 'budget' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="fixed inset-0" onClick={() => closeModal()} />
           <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
@@ -1862,7 +1983,7 @@ export default function Settings({
                   <p className="text-xs text-slate-400">Set your spending ceiling for {selectedMonth || 'this month'}</p>
                 </div>
               </div>
-              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -1908,7 +2029,7 @@ export default function Settings({
                   onClick={() => {
                     const budgetKey = 'et_budget_configured_' + (user?.uid || user?.email || 'guest');
                     localStorage.setItem(budgetKey, 'true');
-                    setActiveModal(null);
+                    closeModal();
                     showToast('Budget setup skipped. You can configure it anytime in Settings.', 'info');
                   }}
                   className="text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
@@ -1918,7 +2039,7 @@ export default function Settings({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setActiveModal(null)}
+                    onClick={() => closeModal()}
                     className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
                   >
                     Cancel
@@ -1943,7 +2064,12 @@ export default function Settings({
          ======================================================== */}
       <CategoryManagerModal
         isOpen={activeModal === 'categories'}
-        onClose={() => setActiveModal(null)}
+        onClose={() => {
+          closeModal();
+          setCategoryModalAdd(false);
+        }}
+        initialTab={categoryModalTab}
+        initialAdd={categoryModalAdd}
         categories={categories}
         onAddCategory={onAddCategory}
         onUpdateCategory={onUpdateCategory}
@@ -1954,79 +2080,119 @@ export default function Settings({
       />
 
       {/* ========================================================
-          SUB-MODAL 3: APPEARANCE & THEME DIALOG
+          SUB-MODAL 3: APPEARANCE & ACCESSIBILITY DIALOG
          ======================================================== */}
       {activeModal === 'theme' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
-          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0" onClick={() => closeModal()} />
+          <div className="relative w-full max-w-lg bg-white dark:bg-[#18132F] rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
-                  <Moon size={18} />
+                  {appearanceModalTab === 'font' ? <Type size={18} /> : <Moon size={18} />}
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Appearance &amp; Theme</h3>
-                  <p className="text-xs text-slate-400">Choose your preferred visual presentation</p>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Appearance &amp; Accessibility</h3>
+                  <p className="text-xs text-slate-400">Themes, visual presentation &amp; device font sizing</p>
                 </div>
               </div>
-              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} aria-label="Close dialog" className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5 pt-2 max-h-[60vh] overflow-y-auto pr-1">
-              {availableThemes.map((t) => {
-                const isSelected = theme === t.id;
-                const Icon = t.id === 'light' ? Sun
-                  : t.id === 'dark' ? Moon
-                  : t.id === 'midnight' ? Shield
-                  : t.id === 'ocean' ? Droplets
-                  : t.id === 'emerald' ? Sparkles
-                  : t.id === 'rose' ? Heart
-                  : Laptop;
-
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => {
-                      setTheme(t.id);
-                    }}
-                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer space-y-1.5 relative ${isSelected
-                      ? 'border-[#6C47FF] bg-purple-500/10 dark:bg-purple-900/30 shadow-md ring-2 ring-[#6C47FF]/20'
-                      : 'border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
-                      }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div 
-                        className="w-7 h-7 rounded-xl flex items-center justify-center text-white"
-                        style={{ backgroundColor: t.accent }}
-                      >
-                        <Icon size={14} />
-                      </div>
-                      {isSelected && (
-                        <span className="w-4 h-4 rounded-full bg-[#6C47FF] text-white flex items-center justify-center text-[10px] font-bold">
-                          ✓
-                        </span>
-                      )}
-                    </div>
-                    <div className="font-bold text-xs text-slate-900 dark:text-white truncate">{t.name}</div>
-                    <div className="text-[10px] text-slate-400 line-clamp-1">{t.description}</div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="pt-3">
+            {/* Modal Tabs: Theme & Style vs App Font Size */}
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-white/5">
               <button
                 type="button"
-                onClick={() => setActiveModal(null)}
-                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
+                data-testid="modal-tab-theme"
+                onClick={() => setAppearanceModalTab('theme')}
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  appearanceModalTab === 'theme'
+                    ? 'bg-white dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] shadow-xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
               >
-                Done
+                <Moon size={13} />
+                <span>Theme &amp; Style</span>
+              </button>
+              <button
+                type="button"
+                data-testid="modal-tab-font-size"
+                onClick={() => setAppearanceModalTab('font')}
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  appearanceModalTab === 'font'
+                    ? 'bg-white dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] shadow-xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                <Type size={13} />
+                <span>App Font Size</span>
               </button>
             </div>
+
+            {appearanceModalTab === 'font' ? (
+              <FontSizeSettingsControl
+                isCompact={true}
+                showTitle={false}
+                onClose={() => closeModal()}
+              />
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2.5 pt-1 max-h-[60vh] overflow-y-auto pr-1">
+                  {availableThemes.map((t) => {
+                    const isSelected = theme === t.id;
+                    const Icon = t.id === 'light' ? Sun
+                      : t.id === 'dark' ? Moon
+                      : t.id === 'midnight' ? Shield
+                      : t.id === 'ocean' ? Droplets
+                      : t.id === 'emerald' ? Sparkles
+                      : t.id === 'rose' ? Heart
+                      : Laptop;
+
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          setTheme(t.id);
+                        }}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer space-y-1.5 relative ${isSelected
+                          ? 'border-[#6C47FF] bg-purple-500/10 dark:bg-purple-900/30 shadow-md ring-2 ring-[#6C47FF]/20'
+                          : 'border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
+                          }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div 
+                            className="w-7 h-7 rounded-xl flex items-center justify-center text-white"
+                            style={{ backgroundColor: t.accent }}
+                          >
+                            <Icon size={14} />
+                          </div>
+                          {isSelected && (
+                            <span className="w-4 h-4 rounded-full bg-[#6C47FF] text-white flex items-center justify-center text-[10px] font-bold">
+                              ✓
+                            </span>
+                          )}
+                        </div>
+                        <div className="font-bold text-xs text-slate-900 dark:text-white truncate">{t.name}</div>
+                        <div className="text-[10px] text-slate-400 line-clamp-1">{t.description}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => closeModal()}
+                    className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -2036,7 +2202,7 @@ export default function Settings({
          ======================================================== */}
       {activeModal === 'export' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="fixed inset-0" onClick={() => closeModal()} />
           <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
@@ -2048,7 +2214,7 @@ export default function Settings({
                   <p className="text-xs text-slate-400">Download your personal financial records</p>
                 </div>
               </div>
-              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -2056,7 +2222,7 @@ export default function Settings({
             <div className="space-y-3 pt-1">
               <button
                 type="button"
-                onClick={() => { setActiveModal(null); handleOpenGoogleSheets(); }}
+                onClick={() => { closeModal(); handleOpenGoogleSheets(); }}
                 className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-500 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
@@ -2115,7 +2281,7 @@ export default function Settings({
               {onOpenImportHistory && (
                 <button
                   type="button"
-                  onClick={() => { setActiveModal(null); onOpenImportHistory(); }}
+                  onClick={() => { closeModal(); onOpenImportHistory(); }}
                   className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-[#6C47FF] flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
@@ -2142,7 +2308,7 @@ export default function Settings({
          ======================================================== */}
       {activeModal === 'security' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="fixed inset-0" onClick={() => closeModal()} />
           <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
@@ -2154,7 +2320,7 @@ export default function Settings({
                   <p className="text-xs text-slate-400">{user?.email}</p>
                 </div>
               </div>
-              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -2203,7 +2369,7 @@ export default function Settings({
               <div className="pt-2">
                 <button
                   type="button"
-                  onClick={() => { setActiveModal(null); if (onLogout) onLogout(); }}
+                  onClick={() => { closeModal(); if (onLogout) onLogout(); }}
                   className="w-full py-2.5 px-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/30 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <LogOut size={14} />
@@ -2220,7 +2386,7 @@ export default function Settings({
          ======================================================== */}
       {activeModal === 'help' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="fixed inset-0" onClick={() => closeModal()} />
           <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
@@ -2232,7 +2398,7 @@ export default function Settings({
                   <p className="text-xs text-slate-400">Guides, tours and contact support</p>
                 </div>
               </div>
-              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -2240,7 +2406,7 @@ export default function Settings({
             <div className="space-y-3 pt-1">
               <button
                 type="button"
-                onClick={() => { setActiveModal(null); if (onOpenTour) onOpenTour(); }}
+                onClick={() => { closeModal(); if (onOpenTour) onOpenTour(); }}
                 className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-[#6C47FF] flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
@@ -2276,7 +2442,7 @@ export default function Settings({
          ======================================================== */}
       {activeModal === 'profile' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="fixed inset-0" onClick={() => closeModal()} />
           <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
@@ -2288,7 +2454,7 @@ export default function Settings({
                   <p className="text-xs text-slate-400">Display name &amp; currency preferences</p>
                 </div>
               </div>
-              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -2328,7 +2494,7 @@ export default function Settings({
               <div className="flex justify-end gap-2 pt-4">
                 <button
                   type="button"
-                  onClick={() => setActiveModal(null)}
+                  onClick={() => closeModal()}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
                 >
                   Cancel
@@ -2352,7 +2518,7 @@ export default function Settings({
          ======================================================== */}
       {activeModal === 'language' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="fixed inset-0" onClick={() => setActiveModal(null)} />
+          <div className="fixed inset-0" onClick={() => closeModal()} />
           <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
@@ -2364,7 +2530,7 @@ export default function Settings({
                   <p className="text-xs text-slate-400">Select your preferred app language</p>
                 </div>
               </div>
-              <button onClick={() => setActiveModal(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -2379,7 +2545,7 @@ export default function Settings({
                     onClick={() => {
                       setLanguage(lang.code);
                       showToast(`Language switched to ${lang.label}`, 'success');
-                      setActiveModal(null);
+                      closeModal();
                     }}
                     className={`w-full p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
                       isSelected
@@ -2407,7 +2573,7 @@ export default function Settings({
             <div className="pt-2">
               <button
                 type="button"
-                onClick={() => setActiveModal(null)}
+                onClick={() => closeModal()}
                 className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
               >
                 Close
@@ -2432,6 +2598,13 @@ export default function Settings({
         selectedMonth={selectedMonth}
         availableMonths={availableMonths}
         formatCurrency={formatCurrency}
+      />
+
+      {/* Global Coming Soon Feature Preview Modal */}
+      <ComingSoonPreviewModal
+        isOpen={Boolean(activeComingSoonFeature)}
+        featureId={activeComingSoonFeature}
+        onClose={() => setActiveComingSoonFeature(null)}
       />
     </div>
   );

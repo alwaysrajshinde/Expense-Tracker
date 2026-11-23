@@ -50,23 +50,52 @@ export default function WindowsHeader({
     }
   };
 
-  const initials = userName
-    .split(' ')
-    .map(p => p[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || 'RS';
+  const initials = (userName || 'User')
+    .trim()
+    .charAt(0)
+    .toUpperCase() || 'R';
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
       {/* Greeting Title */}
       <div>
-        <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white flex items-center gap-2 tracking-tight">
-          {getGreeting()}, {userName.split(' ')[0]}
-        </h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Here's your expense summary
-        </p>
+        {activeTab === 'transactions' ? (
+          <>
+            <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white flex items-center gap-2 tracking-tight">
+              {t('transactions', 'Transactions')}
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-[#A78BFA]/80 mt-0.5">
+              {t('expenseRecords', 'Expense records & history')}
+            </p>
+          </>
+        ) : activeTab === 'reports' ? (
+          <>
+            <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white flex items-center gap-2 tracking-tight">
+              {t('reports', 'Reports')}
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-[#A78BFA]/80 mt-0.5">
+              {t('spendingAnalytics', 'Spending & expense analytics')}
+            </p>
+          </>
+        ) : activeTab === 'settings' ? (
+          <>
+            <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white flex items-center gap-2 tracking-tight">
+              {t('more', 'More')}
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-[#A78BFA]/80 mt-0.5">
+              {t('moreSubtitle', 'Settings, data management and preferences')}
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white flex items-center gap-2 tracking-tight">
+              {getGreeting()}, {userName.split(' ')[0]}
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Here's your expense summary
+            </p>
+          </>
+        )}
       </div>
 
       {/* Action Controls Toolbar */}
@@ -99,9 +128,7 @@ export default function WindowsHeader({
             className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#381285] to-[#763cf8] text-white font-bold text-xs flex items-center justify-center shadow-xs hover:opacity-90 transition-opacity cursor-pointer ring-2 ring-purple-500/20 relative"
           >
             {initials}
-            {hasUnreadNotifications && (
-              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-purple-500 rounded-full ring-2 ring-white dark:ring-[#16132A]" />
-            )}
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#C084FC] rounded-full ring-2 ring-white dark:ring-[#16132A]" />
           </button>
 
           {profileDropdownOpen && (
