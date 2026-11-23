@@ -93,7 +93,7 @@ export default function PublicLegalView({ initialTab = 'privacy', onBack }) {
                 1. Overview &amp; Data Controller
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                <strong>PocketNook</strong> (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) is a personal finance management tool created and maintained by <strong>Raj Shinde</strong> (contact: <a href="mailto:raaajshinde@gmail.com" className="text-[#6C47FF] hover:underline font-semibold">raaajshinde@gmail.com</a>). This Privacy Policy explains how our web application collects, uses, protects, and discloses personal information when you access our service hosted at <a href="https://alwaysrajshinde.github.io/Expense-Tracker/" className="text-[#6C47FF] hover:underline">https://alwaysrajshinde.github.io/Expense-Tracker/</a>.
+                <strong>PocketNook</strong> (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) is a personal finance management tool created and maintained by <strong>Raj Shinde</strong> (contact: <a href="mailto:raaajshinde@gmail.com" className="text-[#6C47FF] hover:underline font-semibold">raaajshinde@gmail.com</a>). This Privacy Policy explains how our web application collects, uses, protects, and discloses personal information when you access our service hosted at <a href="https://alwaysrajshinde.github.io/PocketNook/" className="text-[#6C47FF] hover:underline">https://alwaysrajshinde.github.io/PocketNook/</a>.
               </p>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
                 We believe that personal financial records belong strictly to the user. We adhere to privacy-by-design principles, collecting only the absolute minimum data required to deliver expense accounting and monthly budget calculations.
@@ -228,7 +228,7 @@ export default function PublicLegalView({ initialTab = 'privacy', onBack }) {
               <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1 pt-1 font-mono">
                 <p>Developer: Raj Shinde</p>
                 <p>Email: <a href="mailto:raaajshinde@gmail.com" className="text-[#6C47FF] hover:underline font-bold">raaajshinde@gmail.com</a></p>
-                <p>Application Website: <a href="https://alwaysrajshinde.github.io/Expense-Tracker/" className="text-[#6C47FF] hover:underline">https://alwaysrajshinde.github.io/Expense-Tracker/</a></p>
+                <p>Application Website: <a href="https://alwaysrajshinde.github.io/PocketNook/" className="text-[#6C47FF] hover:underline">https://alwaysrajshinde.github.io/PocketNook/</a></p>
               </div>
             </section>
           </article>
@@ -253,7 +253,7 @@ export default function PublicLegalView({ initialTab = 'privacy', onBack }) {
             <section className="space-y-3">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">1. Acceptance of Terms</h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                By accessing or using the <strong>PocketNook</strong> application hosted at <a href="https://alwaysrajshinde.github.io/Expense-Tracker/" className="text-[#6C47FF] hover:underline">https://alwaysrajshinde.github.io/Expense-Tracker/</a>, you agree to comply with and be bound by these Terms of Service. If you do not agree, you should not access or use this software.
+                By accessing or using the <strong>PocketNook</strong> application hosted at <a href="https://alwaysrajshinde.github.io/PocketNook/" className="text-[#6C47FF] hover:underline">https://alwaysrajshinde.github.io/PocketNook/</a>, you agree to comply with and be bound by these Terms of Service. If you do not agree, you should not access or use this software.
               </p>
             </section>
 
