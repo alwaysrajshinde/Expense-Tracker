@@ -111,7 +111,7 @@ router.get('/template/download', resolveUser, (req, res) => {
 // Get Google Sheets API v4 payload structure for client-side Drive creation
 router.get('/template/sheets-payload', resolveUser, (req, res) => {
   try {
-    const payload = sheetTemplate.getGoogleSheetsApiTemplatePayload(`My Expense Tracker - ${req.user.email}`);
+    const payload = sheetTemplate.getGoogleSheetsApiTemplatePayload(`PocketNook - ${req.user.email}`);
     res.json({ success: true, payload });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

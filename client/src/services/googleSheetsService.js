@@ -216,11 +216,11 @@ export async function createNewSpreadsheet(token, userName = 'Personal', onProgr
     return {
       spreadsheetId: id,
       spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${id}/edit`,
-      title: `Expense Tracker - Financial Records (${userName})`
+      title: `PocketNook - Financial Records (${userName})`
     };
   }
 
-  const title = `Expense Tracker - Financial Records (${userName})`;
+  const title = `PocketNook - Financial Records (${userName})`;
 
   const res = await fetch(SHEETS_API_BASE, {
     method: 'POST',
@@ -553,7 +553,7 @@ export async function executeGoogleSheetsExport({
     sheetMetadata = {
       spreadsheetId: existingSpreadsheetId,
       spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${existingSpreadsheetId}/edit`,
-      title: `Expense Tracker - Financial Records (${userName})`
+      title: `PocketNook - Financial Records (${userName})`
     };
   } else {
     sheetMetadata = await createNewSpreadsheet(token, userName, onProgress);

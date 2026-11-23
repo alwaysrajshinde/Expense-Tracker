@@ -11,7 +11,7 @@ const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
 export async function createPersonalGoogleSheet(accessToken, userName = 'Personal') {
   if (!accessToken) throw new Error('Google OAuth access token is required');
 
-  const title = `My Expense Tracker - ${userName}`;
+  const title = `PocketNook - ${userName}`;
 
   const requestBody = {
     properties: {

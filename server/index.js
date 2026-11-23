@@ -64,7 +64,7 @@ app.use((req, res, next) => {
   const indexFile = path.join(clientDist, 'index.html');
   res.sendFile(indexFile, (err) => {
     if (err) {
-      res.status(200).send('Expense Tracker API running. Run client dev server or build frontend.');
+      res.status(200).send('PocketNook API running. Run client dev server or build frontend.');
     }
   });
 });

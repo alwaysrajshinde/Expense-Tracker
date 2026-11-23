@@ -162,7 +162,7 @@ function createStandardWorkbookBuffer(userEmail, defaultBudget = 12000) {
 /**
  * Generate Google Sheets API v4 Resource JSON for direct Google Drive / Sheets creation
  */
-function getGoogleSheetsApiTemplatePayload(title = 'My Expense Tracker - Personal Vault', defaultBudget = 12000) {
+function getGoogleSheetsApiTemplatePayload(title = 'PocketNook - Personal Vault', defaultBudget = 12000) {
   return {
     properties: {
       title: title,
