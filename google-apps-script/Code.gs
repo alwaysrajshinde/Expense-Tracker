@@ -155,7 +155,7 @@ function handleRequest(e, method) {
     // Action: Create Brand New Spreadsheet Template for New User
     if (action === "createSpreadsheet") {
       var defaultBudget = parseFloat(params.default_budget) || 12000;
-      var title = params.title || ("My Expense Tracker - " + userEmail);
+      var title = params.title || ("PocketNook - " + userEmail);
       var newSheetInfo = createSpreadsheetTemplate(userEmail, title, defaultBudget);
       output = {
         success: true,
@@ -301,7 +301,7 @@ function getTargetSpreadsheet(params) {
  * Provision Standard 4-Sheet Template for a New User
  */
 function createSpreadsheetTemplate(userEmail, title, defaultBudget) {
-  var ss = SpreadsheetApp.create(title || ("My Expense Tracker - " + userEmail));
+  var ss = SpreadsheetApp.create(title || ("PocketNook - " + userEmail));
   
   // 1. Setup Expenses Sheet
   var expSheet = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'expense-tracker-cache-v3';
+const CACHE_NAME = 'pocketnook-cache-v4';
 const STATIC_ASSETS = [
   './',
   './index.html',

@@ -1,6 +1,8 @@
-# Expense Tracker 💜
+# PocketNook 💜
 
-A modern, high-performance personal finance and expense tracking application built with **React 19**, **Vite**, **Tailwind CSS v4**, and **SQLite**, featuring seamless **Google Sheets synchronization**, **Progressive Web App (PWA)** mobile support, and **Multi-User data isolation**.
+A modern, high-performance personal finance and mindful daily expense tracking application built with **React 19**, **Vite**, **Tailwind CSS v4**, and **SQLite**, featuring seamless **Google Sheets synchronization**, **Progressive Web App (PWA)** mobile support, and **Multi-User data isolation**.
+
+**Live Web Application:** [https://alwaysrajshinde.github.io/PocketNook/](https://alwaysrajshinde.github.io/PocketNook/)
 
 ---
 

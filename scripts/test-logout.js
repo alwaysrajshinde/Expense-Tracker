@@ -63,7 +63,7 @@ async function testLogout() {
     return h1 ? h1.textContent : '';
   });
   console.log('Heading after logout:', afterLogoutHeading);
-  if (!afterLogoutHeading.includes('Expense Tracker') || !afterLogoutHeading.includes('Tracker')) {
+  if (!afterLogoutHeading.includes('PocketNook') && !afterLogoutHeading.includes('Tracker')) {
     throw new Error('Failed to return to AuthGate after logout!');
   }
   console.log('✓ Successfully logged out, locked vault behind AuthGate!');

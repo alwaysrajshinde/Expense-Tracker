@@ -62,7 +62,7 @@ async function testPWA() {
   // Requirement 8: Authentication Gate Preservation (Never bypassed offline or online)
   console.log('\n[Check 5] Verifying Authentication Gate on Android Mobile...');
   const isAuthGateVisible = await page.evaluate(() => {
-    return document.querySelector('h1')?.textContent.includes('Expense Tracker');
+    return document.querySelector('h1')?.textContent.includes('PocketNook') || document.querySelector('h1')?.textContent.includes('Expense Tracker');
   });
   console.log('✓ AuthGate rendered on mobile screen.');
 
