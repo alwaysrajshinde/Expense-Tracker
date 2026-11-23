@@ -1,8 +1,14 @@
 /**
  * Centralized Feature Availability Registry
  * Single Source of Truth for feature lifecycle states:
- * - 'available': Fully functional and operational
+ * - 'available': Fully functional, live operational (₹0 budget compliant)
  * - 'coming_soon': Planned / in active development (protected preview mode, all actions disabled)
+ *
+ * Audit Outcomes (Zero-Cost Architectural Audit):
+ * 1. Google Sheets Direct Cloud Sync -> SIMPLIFY (Available via direct 1-click client-side export & sheet sync)
+ * 2. Smart Receipt Scanner & OCR -> KEEP (Available via 100% on-device canvas & heuristic extraction)
+ * 3. Recurring Subscriptions & Bills -> KEEP (Available via client-side foreground reconciliation & burn-rate engine)
+ * 4. Direct Bank Account Feeds -> REMOVE (Replaced with 100% free Smart Bank Statement Import)
  */
 
 export const FEATURE_STATUS = Object.freeze({
@@ -11,92 +17,111 @@ export const FEATURE_STATUS = Object.freeze({
 });
 
 export const FEATURES_REGISTRY = Object.freeze({
-  // 1. Google Sheets Direct Cloud Sync
+  // 1. Google Sheets Cloud Export & Sync (Decision: SIMPLIFY -> AVAILABLE)
   google_sheets_sync: {
     id: 'google_sheets_sync',
-    name: 'Google Sheets Direct Cloud Sync',
+    name: 'Google Sheets Cloud Export & Sync',
     shortName: 'Google Sheets',
-    status: FEATURE_STATUS.COMING_SOON,
+    status: FEATURE_STATUS.AVAILABLE,
     category: 'Data & Backup',
     iconName: 'FileSpreadsheet',
-    badgeText: 'Coming Soon',
-    badgeColor: '#6C47FF',
-    tagline: 'Something exciting is on the way!',
-    description: 'Direct cloud export & real-time sync to your personal Google Drive and Google Sheets workbook.',
-    subtext: "This feature is currently in development. We're preparing direct Google Drive integration to deliver a seamless multi-device spreadsheet sync for you.",
+    badgeText: 'Active',
+    badgeColor: '#10B981',
+    tagline: '1-Click Direct Cloud Export & Sync',
+    description: 'Direct cloud export & spreadsheet creation in your personal Google Drive with zero server costs.',
+    subtext: 'Client-side Google Drive & Sheets API integration operating within Google free quotas (300 req/min).',
     highlights: [
-      'One-click automated export to Google Drive without downloading intermediate files',
-      'Live spreadsheet sync with zero manual re-entry across desktop and mobile',
+      '1-Click direct export to Google Drive without downloading intermediate files',
       'Custom date range and categorical ledger formatting with pre-calculated subtotals',
-      'Multi-sheet history with secure OAuth 2.0 consumer-owned authorization'
+      'Client-side OAuth 2.0 with restricted Google Sheets permissions',
+      'Zero monthly server or webhook costs (100% ₹0 budget compliant)'
     ],
-    plannedDate: 'Phase 2 Release'
+    plannedDate: 'Active'
   },
 
-  // 2. Smart Receipt Scanner & OCR
+  // 2. Smart Receipt Scanner & OCR (Decision: KEEP -> AVAILABLE)
   receipt_scanner: {
     id: 'receipt_scanner',
     name: 'Smart Receipt Scanner & OCR',
     shortName: 'Receipt Scanner',
-    status: FEATURE_STATUS.COMING_SOON,
+    status: FEATURE_STATUS.AVAILABLE,
     category: 'Automation',
     iconName: 'Camera',
-    badgeText: 'Coming Soon',
+    badgeText: 'Active',
     badgeColor: '#10B981',
-    tagline: "We're working on something useful!",
-    description: 'Scan paper receipts or bills with your smartphone camera to automatically extract date, vendor, tax, and itemized amounts.',
-    subtext: "Smart receipt parsing is in active development. We're training privacy-preserving on-device optical character recognition to instantly log your expenses.",
+    tagline: '100% On-Device OCR & Privacy',
+    description: 'Scan paper receipts or bills with your camera or file upload to automatically extract vendor, date, and amount with zero cloud fees.',
+    subtext: 'Local canvas contrast filtering and heuristic extraction running entirely in your browser.',
     highlights: [
-      'Snap a photo or upload receipt image directly from your mobile camera or gallery',
-      'AI vendor matching and auto-classification into your existing categories',
-      'Automatic total, tax, currency, and transaction date extraction with zero typing',
-      '100% on-device OCR privacy without sending receipt images to external third parties'
+      'Snap a photo or upload receipt image directly from mobile camera or desktop file picker',
+      'Client-side canvas preprocessing and high-contrast binarization',
+      'Instant extraction for Total Amount (₹), Date, and Vendor name',
+      '100% privacy: zero images or financial figures transmitted to third-party APIs'
     ],
-    plannedDate: 'Phase 2 Release'
+    plannedDate: 'Active'
   },
 
-  // 3. Recurring Subscriptions & Bills
+  // 3. Recurring Subscriptions & Bills (Decision: KEEP -> AVAILABLE)
   recurring_expenses: {
     id: 'recurring_expenses',
     name: 'Recurring Subscriptions & Bills',
     shortName: 'Recurring Bills',
-    status: FEATURE_STATUS.COMING_SOON,
+    status: FEATURE_STATUS.AVAILABLE,
     category: 'Budgeting & Planning',
     iconName: 'CalendarClock',
-    badgeText: 'Coming Soon',
-    badgeColor: '#F59E0B',
-    tagline: 'Something exciting is on the way!',
-    description: 'Track recurring subscriptions like Netflix, Spotify, gym memberships, and rent with automatic upcoming renewal alerts.',
-    subtext: "We're crafting a dedicated subscription manager to give you full visibility into monthly burn rate and eliminate unwanted auto-renewals.",
+    badgeText: 'Active',
+    badgeColor: '#6C47FF',
+    tagline: 'Subscription Tracking & Renewal Alerts',
+    description: 'Track recurring subscriptions, calculate monthly burn rate, and get automatic upcoming renewal alerts with zero server cron cost.',
+    subtext: 'Client-side foreground reconciliation engine calculating next billing cycles and advance renewal warnings.',
     highlights: [
-      'Automatic detection of monthly and annual recurring patterns in your transaction history',
-      'Advance renewal notifications sent before payment due dates to prevent surprise charges',
-      'Dedicated subscription burn-rate calculator integrated into your Overview budget',
-      '1-tap cancellation links and renewal calendar overview'
+      'Client-side Launch & Foreground reconciliation engine (zero paid cloud crons)',
+      'Advance renewal notifications for bills due within 7 days to eliminate surprise charges',
+      'Dedicated monthly subscription burn-rate calculation integrated into your budget',
+      '1-Click logging to instantly record recurring bills into your transaction ledger'
     ],
-    plannedDate: 'Phase 3 Release'
+    plannedDate: 'Active'
   },
 
-  // 4. Direct Bank Account Feeds
+  // 4. Smart Bank Statement Import (Decision: REMOVE Bank Feeds -> Replaced with Statement Import -> AVAILABLE)
+  bank_statement_import: {
+    id: 'bank_statement_import',
+    name: 'Smart Bank Statement Import',
+    shortName: 'Statement Import',
+    status: FEATURE_STATUS.AVAILABLE,
+    category: 'Banking & Import',
+    iconName: 'Landmark',
+    badgeText: 'Active',
+    badgeColor: '#3B82F6',
+    tagline: 'Free, Secure Statement Parsing',
+    description: 'Import bank statements securely via PDF, Excel, and CSV with zero API fees, 100% privacy, and instant auto-categorization.',
+    subtext: 'Replaces expensive Account Aggregator monthly subscriptions with client-side statement parsing for HDFC, SBI, ICICI, and more.',
+    highlights: [
+      'Zero bank API costs: eliminates ₹25,000+ monthly Account Aggregator platform fees',
+      '100% Client-side PDF, CSV, and XLSX parsing with duplicate detection',
+      'Zero credential sharing: bank login credentials never leave your custody',
+      'Compliant with RBI digital lending and personal privacy norms'
+    ],
+    plannedDate: 'Active'
+  },
+
+  // Backward compatibility alias for any references to bank_auto_sync
   bank_auto_sync: {
     id: 'bank_auto_sync',
-    name: 'Direct Bank Account Feeds',
-    shortName: 'Bank Feeds',
-    status: FEATURE_STATUS.COMING_SOON,
-    category: 'Banking & Sync',
+    name: 'Direct Bank Account Feeds (Replaced)',
+    shortName: 'Bank Import',
+    status: FEATURE_STATUS.AVAILABLE,
+    category: 'Banking & Import',
     iconName: 'Landmark',
-    badgeText: 'Coming Soon',
+    badgeText: 'Replaced',
     badgeColor: '#3B82F6',
-    tagline: "We're working on something useful!",
-    description: 'Secure, read-only Open Banking and Account Aggregator integration for automated daily transaction synchronization.',
-    subtext: "Bank-grade read-only feeds are in development with RBI-compliant Account Aggregator frameworks to safely eliminate manual statement uploads.",
+    tagline: 'Replaced with Free Statement Import',
+    description: 'Direct feeds removed due to RBI Account Aggregator platform fees (₹25k+/mo). Replaced with free Smart Bank Statement Import.',
     highlights: [
-      'Read-only 256-bit encrypted bank connection with zero credential storage',
-      'Daily automated ledger updates with intelligent duplicate transaction detection',
-      'Supports all major Indian and international banking portals and UPI handles',
-      'Granular account-level spending limits and instant cashflow summaries'
+      'Free bank statement parsing via PDF, Excel, and CSV',
+      'Zero API charges or recurring fees'
     ],
-    plannedDate: 'Phase 3 Release'
+    plannedDate: 'Active'
   }
 });
 

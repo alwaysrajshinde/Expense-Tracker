@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Wallet, 
-  CheckCircle2, 
-  AlertCircle, 
-  ArrowRight, 
-  Loader2, 
-  ShieldCheck, 
+import {
+  Wallet,
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
+  Loader2,
+  ShieldCheck,
   FileSpreadsheet,
   Database,
   Eye,
@@ -27,12 +27,12 @@ import { saveIntendedRoute, consumeIntendedRoute } from '../services/routeServic
 
 export default function AuthGate({ children }) {
   const { isDark, toggleTheme } = useTheme();
-  const { 
-    isAuthenticated, 
-    isLoading, 
-    authError, 
-    loginWithEmail, 
-    registerWithEmail, 
+  const {
+    isAuthenticated,
+    isLoading,
+    authError,
+    loginWithEmail,
+    registerWithEmail,
     loginWithGoogle,
     resetPassword,
     handleConfirmPasswordReset,
@@ -98,7 +98,7 @@ export default function AuthGate({ children }) {
           setErrorMsg(err.message || 'Email verification link has expired or is invalid.');
         });
       }
-    } catch (e) {}
+    } catch (e) { }
   }, [handleVerifyEmailCode]);
 
   // Reset view state when logged out & save intended route
@@ -487,22 +487,20 @@ export default function AuthGate({ children }) {
               <button
                 type="button"
                 onClick={() => { setActiveAuthTab('signin'); setErrorMsg(''); }}
-                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                  activeAuthTab === 'signin'
-                    ? 'bg-white dark:bg-[#1E1B38] text-slate-900 dark:text-white shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
-                }`}
+                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${activeAuthTab === 'signin'
+                  ? 'bg-white dark:bg-[#1E1B38] text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                  }`}
               >
                 Sign In
               </button>
               <button
                 type="button"
                 onClick={() => { setActiveAuthTab('signup'); setErrorMsg(''); }}
-                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                  activeAuthTab === 'signup'
-                    ? 'bg-white dark:bg-[#1E1B38] text-slate-900 dark:text-white shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
-                }`}
+                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${activeAuthTab === 'signup'
+                  ? 'bg-white dark:bg-[#1E1B38] text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                  }`}
               >
                 Create Account
               </button>

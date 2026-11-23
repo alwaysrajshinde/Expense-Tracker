@@ -22,6 +22,8 @@ import { exportTransactionsToExcel, exportDataToJson } from '../services/exportS
 import syncService from '../services/syncService';
 import { APP_VERSION, APP_RELEASE_DATE, APP_INKED_VERSION, APP_SHORT_DATE } from '../constants/version';
 import GoogleSheetsExportModal from '../components/export/GoogleSheetsExportModal';
+import RecurringSubscriptionsModal from '../components/RecurringSubscriptionsModal';
+import ReceiptScannerModal from '../components/ReceiptScannerModal';
 import { getLocalTransactions, getTransactions } from '../services/api';
 import { buildMoreSearchIndex, searchMoreIndex } from '../services/moreSearchService';
 import { getComingSoonFeatures, isFeatureComingSoon } from '../constants/featureAvailability';
@@ -86,6 +88,10 @@ export default function Settings({
   const [isGoogleSheetsModalOpen, setIsGoogleSheetsModalOpen] = useState(false);
   const [exportTransactionsList, setExportTransactionsList] = useState([]);
 
+  // Recurring Subscriptions & Receipt Scanner Modals State (Zero-Cost Keep Features)
+  const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
+  const [isReceiptScannerModalOpen, setIsReceiptScannerModalOpen] = useState(false);
+
   // Upcoming Features Preview Modal State
   const [activeComingSoonFeature, setActiveComingSoonFeature] = useState(null);
 
@@ -103,9 +109,19 @@ export default function Settings({
     setIsGoogleSheetsModalOpen(true);
   };
 
+  const handleOpenRecurring = () => setIsRecurringModalOpen(true);
+  const handleOpenReceiptScanner = () => setIsReceiptScannerModalOpen(true);
+
   const handleOpenComingSoon = (featureId) => {
     if (featureId === 'google_sheets_sync') {
       handleOpenGoogleSheets();
+    } else if (featureId === 'receipt_scanner') {
+      handleOpenReceiptScanner();
+    } else if (featureId === 'recurring_expenses') {
+      handleOpenRecurring();
+    } else if (featureId === 'bank_auto_sync' || featureId === 'bank_statement_import') {
+      if (onOpenImport) onOpenImport();
+      else handleOpenModal('import');
     } else {
       setActiveComingSoonFeature(featureId);
     }
@@ -404,6 +420,8 @@ export default function Settings({
       openModal: handleOpenModal,
       openGoogleSheets: handleOpenGoogleSheets,
       openComingSoon: handleOpenComingSoon,
+      openRecurring: handleOpenRecurring,
+      openReceiptScanner: handleOpenReceiptScanner,
       openImport: onOpenImport || (() => handleOpenModal('import')),
       openImportHistory: onOpenImportHistory || (() => handleOpenModal('export')),
       openTour: onOpenTour || (() => {}),
@@ -1062,38 +1080,72 @@ export default function Settings({
                     </button>
                   </div>
 
-                  {/* Desktop Upcoming Integrations Preview Grid */}
+                  {/* Desktop Smart Productivity Tools Grid */}
                   <div className="pt-2">
                     <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-1.5">
                       <Sparkles size={13} className="text-[#6C47FF] dark:text-[#C084FC]" />
-                      <span>Upcoming Features &amp; Integrations (Preview)</span>
+                      <span>Smart Productivity Tools (Active)</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      {getComingSoonFeatures().filter(f => f.id !== 'google_sheets_sync').map((f) => {
-                        const FIcon = f.id === 'receipt_scanner' ? Camera : f.id === 'recurring_expenses' ? CalendarClock : Landmark;
-                        return (
-                          <button
-                            key={f.id}
-                            type="button"
-                            data-testid={`desktop-upcoming-${f.id}`}
-                            onClick={() => handleOpenComingSoon(f.id)}
-                            className="p-2.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-500/50 flex items-center gap-2.5 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all cursor-pointer text-left group"
-                          >
-                            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white" style={{ backgroundColor: f.badgeColor || '#6C47FF' }}>
-                              <FIcon size={15} />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
-                                {f.shortName || f.name}
-                              </div>
-                              <div className="text-[10px] text-purple-600 dark:text-[#C084FC] flex items-center gap-1 font-semibold">
-                                <Lock size={8} />
-                                <span>Coming Soon</span>
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
+                      <button
+                        type="button"
+                        data-testid="desktop-upcoming-receipt_scanner"
+                        onClick={handleOpenReceiptScanner}
+                        className="p-2.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-500/50 flex items-center gap-2.5 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all cursor-pointer text-left group"
+                      >
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white bg-emerald-500">
+                          <Camera size={15} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
+                            Receipt Scanner
+                          </div>
+                          <div className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
+                            <Sparkles size={8} />
+                            <span>On-Device OCR</span>
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        data-testid="desktop-upcoming-recurring_expenses"
+                        onClick={handleOpenRecurring}
+                        className="p-2.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-500/50 flex items-center gap-2.5 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all cursor-pointer text-left group"
+                      >
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white bg-[#6C47FF]">
+                          <CalendarClock size={15} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
+                            Recurring Bills
+                          </div>
+                          <div className="text-[10px] text-purple-600 dark:text-[#C084FC] flex items-center gap-1 font-semibold">
+                            <Sparkles size={8} />
+                            <span>Burn Rate Engine</span>
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        data-testid="desktop-upcoming-bank_auto_sync"
+                        onClick={onOpenImport}
+                        className="p-2.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-500/50 flex items-center gap-2.5 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all cursor-pointer text-left group"
+                      >
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white bg-blue-500">
+                          <Landmark size={15} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
+                            Statement Import
+                          </div>
+                          <div className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1 font-semibold">
+                            <Sparkles size={8} />
+                            <span>Free PDF/CSV</span>
+                          </div>
+                        </div>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1785,52 +1837,121 @@ export default function Settings({
             </div>
           </div>
 
-          {/* 5. Group: Upcoming Features (Issue 14: Dedicated upcoming preview section) */}
+          {/* 5. Group: Smart Productivity & Cloud Tools */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider px-1">
               <Sparkles size={14} />
-              <span>Upcoming Features</span>
+              <span>Smart Productivity &amp; Cloud Tools</span>
             </div>
 
             <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
-              {getComingSoonFeatures().map((feat) => {
-                const FeatIcon = feat.id === 'google_sheets_sync' ? FileSpreadsheet
-                  : feat.id === 'receipt_scanner' ? Camera
-                  : feat.id === 'recurring_expenses' ? CalendarClock
-                  : Landmark;
-
-                return (
-                  <button
-                    key={feat.id}
-                    type="button"
-                    data-testid={`upcoming-feature-${feat.id}`}
-                    onClick={() => handleOpenComingSoon(feat.id)}
-                    className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+              <button
+                type="button"
+                data-testid="upcoming-feature-receipt_scanner"
+                onClick={handleOpenReceiptScanner}
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white bg-[#10B981]"
                   >
-                    <div className="flex items-center gap-3.5">
-                      <div
-                        className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white"
-                        style={{ backgroundColor: feat.badgeColor || '#6C47FF' }}
-                      >
-                        <FeatIcon size={18} />
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2 flex-wrap">
-                          <span>{feat.name}</span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30 flex items-center gap-1">
-                            <Lock size={9} />
-                            <span>{feat.badgeText || t('upcoming', 'Upcoming')}</span>
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          {feat.description}
-                        </div>
-                      </div>
+                    <Camera size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2 flex-wrap">
+                      <span>Smart Receipt Scanner &amp; OCR</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                        Active · On-Device
+                      </span>
                     </div>
-                    <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
-                  </button>
-                );
-              })}
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      Scan paper bills or receipts with 100% on-device privacy (₹0 API cost)
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
+              </button>
+
+              <button
+                type="button"
+                data-testid="upcoming-feature-recurring_expenses"
+                onClick={handleOpenRecurring}
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white bg-[#6C47FF]"
+                  >
+                    <CalendarClock size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2 flex-wrap">
+                      <span>Recurring Subscriptions &amp; Bills</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">
+                        Active · ₹0 Crons
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      Track subscription burn rate and receive upcoming renewal alerts
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
+              </button>
+
+              <button
+                type="button"
+                data-testid="upcoming-feature-google_sheets_sync"
+                onClick={handleOpenGoogleSheets}
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white bg-[#10B981]"
+                  >
+                    <FileSpreadsheet size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2 flex-wrap">
+                      <span>Google Sheets Cloud Export &amp; Sync</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                        Active · Free Tier
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      1-Click direct export &amp; sync to personal Google Drive
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
+              </button>
+
+              <button
+                type="button"
+                data-testid="upcoming-feature-bank_auto_sync"
+                onClick={onOpenImport}
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white bg-[#3B82F6]"
+                  >
+                    <Landmark size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2 flex-wrap">
+                      <span>Smart Bank Statement Import</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                        Active · Zero API Fee
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      Replaces paid AA feeds (₹25k+/mo) with 100% private PDF &amp; CSV parsing
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
+              </button>
             </div>
           </div>
 
@@ -2598,6 +2719,24 @@ export default function Settings({
         selectedMonth={selectedMonth}
         availableMonths={availableMonths}
         formatCurrency={formatCurrency}
+      />
+
+      {/* Recurring Subscriptions & Bills Modal */}
+      <RecurringSubscriptionsModal
+        isOpen={isRecurringModalOpen}
+        onClose={() => setIsRecurringModalOpen(false)}
+        formatCurrency={formatCurrency}
+        categories={categories}
+        onRefreshAll={onRefreshAll}
+      />
+
+      {/* Smart Receipt Scanner & OCR Modal */}
+      <ReceiptScannerModal
+        isOpen={isReceiptScannerModalOpen}
+        onClose={() => setIsReceiptScannerModalOpen(false)}
+        formatCurrency={formatCurrency}
+        categories={categories}
+        onRefreshAll={onRefreshAll}
       />
 
       {/* Global Coming Soon Feature Preview Modal */}

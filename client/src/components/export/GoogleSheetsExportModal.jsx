@@ -208,6 +208,8 @@ export default function GoogleSheetsExportModal({
           </div>
 
           <button
+            type="button"
+            aria-label="Close Modal"
             onClick={() => !exporting && onClose()}
             disabled={exporting}
             className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer disabled:opacity-30"

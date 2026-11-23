@@ -1,5 +1,5 @@
-import React from 'react';
-import { Calendar, BarChart2, Plus, ArrowRight, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, BarChart2, Plus, ArrowRight, Sparkles, Eye, EyeOff } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -13,6 +13,43 @@ export default function AndroidHome({
   formatCurrency
 }) {
   const { t } = useLanguage();
+
+  // Groww-style Show / Hide Financial Amounts on Overview
+  const [hideAmounts, setHideAmounts] = useState(() => {
+    try {
+      return localStorage.getItem('expense_tracker_hide_amounts') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const toggleHideAmounts = () => {
+    const next = !hideAmounts;
+    setHideAmounts(next);
+    try {
+      localStorage.setItem('expense_tracker_hide_amounts', String(next));
+      window.dispatchEvent(new Event('expense_tracker_hide_amounts_changed'));
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        setHideAmounts(localStorage.getItem('expense_tracker_hide_amounts') === 'true');
+      } catch (e) {}
+    };
+    window.addEventListener('expense_tracker_hide_amounts_changed', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('expense_tracker_hide_amounts_changed', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
+
+  const maskAmount = (val) => {
+    if (hideAmounts) return '₹ ••••••';
+    return formatCurrency(val);
+  };
 
   if (!dashboardData) {
     return (
@@ -46,15 +83,27 @@ export default function AndroidHome({
       {/* ========================================================
           1. Hero Purple Card (Matching Modern Purple Expense Tracker UI.png)
          ======================================================== */}
-      <div className="purple-hero-gradient rounded-3xl p-5 text-white shadow-xl shadow-purple-900/15 relative flex flex-col justify-between min-h-[175px]">
+      <div className="purple-hero-gradient rounded-3xl p-5 text-white shadow-xl shadow-purple-900/15 relative flex flex-col justify-between min-h-[175px] animate-card interactive-card card-hover-lift">
         <div className="flex items-center justify-between z-10">
           <div className="space-y-2 min-w-0 flex-1 mr-2">
             <div>
-              <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
-                {t('monthlyBudget', 'Monthly Budget')}
-              </span>
-              <p className="text-white text-base font-bold tracking-tight truncate mt-0.5" title={formatCurrency(budget)}>
-                {budget > 0 ? formatCurrency(budget) : t('noBudgetSet', 'No budget set')}
+              <div className="flex items-center gap-1.5">
+                <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
+                  {t('monthlyBudget', 'Monthly Budget')}
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleHideAmounts}
+                  data-testid="toggle-hide-amounts"
+                  aria-label={hideAmounts ? "Show amounts" : "Hide amounts"}
+                  title={hideAmounts ? "Show amounts" : "Hide amounts"}
+                  className="p-1 rounded-full text-white/80 hover:text-white hover:bg-white/20 active:scale-90 transition-all cursor-pointer inline-flex items-center justify-center"
+                >
+                  {hideAmounts ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+              <p className="text-white text-base font-bold tracking-tight truncate mt-0.5" title={hideAmounts ? '••••••' : formatCurrency(budget)}>
+                {budget > 0 ? maskAmount(budget) : t('noBudgetSet', 'No budget set')}
               </p>
             </div>
 
@@ -62,8 +111,8 @@ export default function AndroidHome({
               <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
                 {t('spent', 'Spent')}
               </span>
-              <p className="text-white text-2xl sm:text-3xl font-black tracking-tight truncate max-w-[170px] sm:max-w-none" title={formatCurrency(total_spent)}>
-                {formatCurrency(total_spent)}
+              <p className="text-white text-2xl sm:text-3xl font-black tracking-tight truncate max-w-[170px] sm:max-w-none" title={hideAmounts ? '••••••' : formatCurrency(total_spent)}>
+                {maskAmount(total_spent)}
               </p>
             </div>
 
@@ -74,7 +123,7 @@ export default function AndroidHome({
                   : 'bg-rose-100 text-rose-950'
                   }`}>
                   {remaining_budget >= 0 ? `${t('remaining', 'Remaining')}: ` : `${t('remaining', 'Remaining')}: Over by `}
-                  {formatCurrency(Math.abs(remaining_budget))}
+                  {maskAmount(Math.abs(remaining_budget))}
                 </span>
               ) : (
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-200/90 text-purple-950 shadow-xs">
@@ -124,7 +173,7 @@ export default function AndroidHome({
          ======================================================== */}
       <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
         {/* Today */}
-        <div className="bg-white dark:bg-[#16132A] rounded-2xl p-2.5 sm:p-3.5 border border-slate-100 dark:border-white/10 shadow-xs flex flex-col justify-between transition-colors min-w-0">
+        <div className="bg-white dark:bg-[#16132A] rounded-2xl p-2.5 sm:p-3.5 border border-slate-100 dark:border-white/10 shadow-xs flex flex-col justify-between transition-colors min-w-0 interactive-card card-hover-lift">
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center mb-1.5 sm:mb-2">
             <Calendar size={14} />
           </div>
@@ -132,14 +181,14 @@ export default function AndroidHome({
             <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5 truncate">
               {t('today', 'Today')}
             </span>
-            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate block" title={formatCurrency(today_spent)}>
-              {formatCurrency(today_spent)}
+            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate block" title={hideAmounts ? '••••••' : formatCurrency(today_spent)}>
+              {maskAmount(today_spent)}
             </span>
           </div>
         </div>
 
         {/* This Week */}
-        <div className="bg-white dark:bg-[#16132A] rounded-2xl p-2.5 sm:p-3.5 border border-slate-100 dark:border-white/10 shadow-xs flex flex-col justify-between transition-colors min-w-0">
+        <div className="bg-white dark:bg-[#16132A] rounded-2xl p-2.5 sm:p-3.5 border border-slate-100 dark:border-white/10 shadow-xs flex flex-col justify-between transition-colors min-w-0 interactive-card card-hover-lift">
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center mb-1.5 sm:mb-2">
             <BarChart2 size={14} />
           </div>
@@ -147,14 +196,14 @@ export default function AndroidHome({
             <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5 truncate">
               {t('thisWeek', 'This Week')}
             </span>
-            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate block" title={formatCurrency(week_spent)}>
-              {formatCurrency(week_spent)}
+            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate block" title={hideAmounts ? '••••••' : formatCurrency(week_spent)}>
+              {maskAmount(week_spent)}
             </span>
           </div>
         </div>
 
         {/* This Month */}
-        <div className="bg-white dark:bg-[#16132A] rounded-2xl p-2.5 sm:p-3.5 border border-slate-100 dark:border-white/10 shadow-xs flex flex-col justify-between transition-colors min-w-0">
+        <div className="bg-white dark:bg-[#16132A] rounded-2xl p-2.5 sm:p-3.5 border border-slate-100 dark:border-white/10 shadow-xs flex flex-col justify-between transition-colors min-w-0 interactive-card card-hover-lift">
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center mb-1.5 sm:mb-2">
             <Calendar size={14} />
           </div>
@@ -162,8 +211,8 @@ export default function AndroidHome({
             <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5 truncate">
               {t('thisMonth', 'This Month')}
             </span>
-            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate block" title={formatCurrency(total_spent)}>
-              {formatCurrency(total_spent)}
+            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate block" title={hideAmounts ? '••••••' : formatCurrency(total_spent)}>
+              {maskAmount(total_spent)}
             </span>
           </div>
         </div>
@@ -172,14 +221,14 @@ export default function AndroidHome({
       {/* ========================================================
           3. Top Categories Card (Matching Android UI Reference)
          ======================================================== */}
-      <div className="bg-white dark:bg-[#16132A] rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-xs space-y-3.5 transition-colors">
+      <div className="bg-white dark:bg-[#16132A] rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-xs space-y-3.5 transition-colors interactive-card card-hover-lift">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">
             {t('topCategories', 'Top Categories')}
           </h3>
           <button
             onClick={onViewAllCategories}
-            className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 transition-colors"
+            className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 transition-colors cursor-pointer"
           >
             <span>{t('seeAll', 'View All')}</span>
             <ArrowRight size={13} />
@@ -214,7 +263,7 @@ export default function AndroidHome({
 
                 <div className="text-right">
                   <span className="text-xs font-black text-slate-900 dark:text-white block">
-                    {formatCurrency(cat.total)}
+                    {maskAmount(cat.total)}
                   </span>
                   <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
                     {cat.percentage}%
@@ -246,14 +295,14 @@ export default function AndroidHome({
       {/* ========================================================
           3.5. Recent Activity Card (Mobile Activity Stream)
          ======================================================== */}
-      <div className="bg-white dark:bg-[#16132A] rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-xs space-y-3 transition-colors">
+      <div className="bg-white dark:bg-[#16132A] rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-xs space-y-3 transition-colors interactive-card card-hover-lift">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">
             {t('recentActivity', 'Recent Activity')}
           </h3>
           <button
             onClick={onViewAllTransactions}
-            className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 transition-colors"
+            className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 transition-colors cursor-pointer"
           >
             <span>{t('seeAll', 'See All')}</span>
             <ArrowRight size={13} />
@@ -266,7 +315,7 @@ export default function AndroidHome({
               <div
                 key={tx.id}
                 onClick={() => onEditTransaction && onEditTransaction(tx)}
-                className="py-2.5 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 px-2 -mx-2 rounded-xl transition-colors active:scale-[0.99]"
+                className="py-2.5 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 px-2 -mx-2 rounded-xl transition-all tx-row active:scale-[0.99]"
               >
                 <div className="flex items-center gap-2.5">
                   <div
@@ -286,7 +335,7 @@ export default function AndroidHome({
                 </div>
 
                 <span className={`text-xs font-extrabold ${tx.is_refund || tx.amount < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
-                  {tx.is_refund || tx.amount < 0 ? `+${formatCurrency(Math.abs(tx.amount))}` : formatCurrency(tx.amount)}
+                  {tx.is_refund || tx.amount < 0 ? `+${maskAmount(Math.abs(tx.amount))}` : maskAmount(tx.amount)}
                 </span>
               </div>
             ))

@@ -387,7 +387,7 @@ export default function Transactions({
                   return (
                     <div
                       key={tx.id}
-                      className="flex items-center justify-between group hover:bg-slate-50/80 dark:hover:bg-white/5 p-2.5 rounded-2xl transition-colors"
+                      className="flex items-center justify-between group hover:bg-slate-50/80 dark:hover:bg-white/5 p-2.5 rounded-2xl transition-all tx-row"
                     >
                       {/* Left: Icon & Details */}
                       <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
@@ -486,9 +486,9 @@ export default function Transactions({
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
           <div className="fixed inset-0" onClick={() => setDeleteConfirmId(null)} />
-          <div className="relative z-10 bg-white dark:bg-[#1A172B] rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl border border-slate-100 dark:border-white/10">
+          <div className="relative z-10 bg-white dark:bg-[#1A172B] rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl border border-slate-100 dark:border-white/10 animate-scale-in">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               Delete Transaction?
             </h3>

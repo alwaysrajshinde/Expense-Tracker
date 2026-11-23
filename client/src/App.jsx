@@ -28,6 +28,12 @@ import syncService from './services/syncService';
 import { APP_VERSION, APP_CHANGELOG_SUMMARY, APP_SHORT_DATE, APP_RELEASE_TIME } from './constants/version';
 import { exportTransactionsToExcel, exportDataToJson } from './services/exportService';
 import * as routeService from './services/routeService';
+import {
+  shouldShowWelcomeGreeting,
+  markWelcomeGreetingShown,
+  resetSessionGreeting,
+  recordSessionActivity
+} from './services/welcomeSessionService';
 import NotFoundRoute from './components/NotFoundRoute';
 
 function MainApp() {
@@ -62,7 +68,7 @@ function MainApp() {
   const [dashboardData, setDashboardData] = useState(null);
   const [reportsData, setReportsData] = useState(null);
   const [categories, setCategories] = useState([]);
-  const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(true);
+  const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(() => shouldShowWelcomeGreeting(user?.uid));
   const [hasUnreadNotifs, setHasUnreadNotifs] = useState(() => {
     try {
       const uId = localStorage.getItem('expense_tracker_current_user_id') || 'guest';
@@ -105,6 +111,22 @@ function MainApp() {
         }
     } catch (e) {}
   }, []);
+
+  // Track user interaction heartbeat to identify extended absence / session return
+  useEffect(() => {
+    const handleActivity = () => recordSessionActivity();
+    window.addEventListener('pointerdown', handleActivity, { passive: true });
+    window.addEventListener('keydown', handleActivity, { passive: true });
+    return () => {
+      window.removeEventListener('pointerdown', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    resetSessionGreeting();
+    if (logout) await logout();
+  };
 
 
 
@@ -472,7 +494,7 @@ function MainApp() {
               onOpenAddExpense={() => openAddModal(null)}
               userName={settings.user_name || user?.name || 'User'}
               userEmail={settings.user_email || user?.email || ''}
-              onLogout={logout}
+              onLogout={handleLogout}
               onOpenReleaseNotes={() => setIsReleaseNotesOpen(true)}
             />
           </div>
@@ -524,7 +546,7 @@ function MainApp() {
                 onOpenProfile={() => {
                   handleNavigate({ tab: 'settings', section: 'profile' });
                 }}
-                onLogout={logout}
+                onLogout={handleLogout}
                 hasUnreadNotifications={hasUnreadNotifs}
                 onRefresh={handleRefreshAll}
                 activeTab={activeTab}
@@ -536,7 +558,8 @@ function MainApp() {
 
             {/* Main Desktop Views */}
             <main className="flex-1 px-5 sm:px-7 py-4 pb-8">
-              {activeTab === 'home' && (
+              <div key={activeTab} className="page-enter">
+                {activeTab === 'home' && (
                 <Home
                   dashboardData={dashboardData}
                   reportsData={reportsData}
@@ -591,7 +614,7 @@ function MainApp() {
                   isDesktopScreen={true}
                   selectedMonth={selectedMonth}
                   availableMonths={availableMonths}
-                  onLogout={logout}
+                  onLogout={handleLogout}
                   onOpenTour={() => setIsOnboardingTourOpen(true)}
                   onOpenReleaseNotes={openReleaseNotesModal}
                   onSectionChange={(sec) => handleNavigate({ tab: 'settings', section: sec }, true)}
@@ -668,6 +691,7 @@ function MainApp() {
                   onGoHome={() => handleNavigate({ tab: 'home' })}
                 />
               )}
+              </div>
             </main>
           </div>
         </div>
@@ -719,7 +743,7 @@ function MainApp() {
             onOpenProfile={() => {
               handleNavigate({ tab: 'settings', section: 'profile' });
             }}
-            onLogout={logout}
+            onLogout={handleLogout}
             hasUnreadNotifications={hasUnreadNotifs}
             activeTab={activeTab}
             authProvider={user?.providerId || 'password'}
@@ -736,7 +760,8 @@ function MainApp() {
 
           {/* Android Mobile Main Tabs */}
           <main className="flex-1 pb-28">
-            {activeTab === 'home' && (
+            <div key={activeTab} className="page-enter">
+              {activeTab === 'home' && (
               <AndroidHome
                 dashboardData={dashboardData}
                 onOpenAddExpense={() => openAddModal(null)}
@@ -792,7 +817,7 @@ function MainApp() {
                   isDesktopScreen={false}
                   selectedMonth={selectedMonth}
                   availableMonths={availableMonths}
-                  onLogout={logout}
+                  onLogout={handleLogout}
                   onOpenTour={() => setIsOnboardingTourOpen(true)}
                   onOpenReleaseNotes={openReleaseNotesModal}
                   onSectionChange={(sec) => handleNavigate({ tab: 'settings', section: sec }, true)}
@@ -872,6 +897,7 @@ function MainApp() {
                 />
               </div>
             )}
+            </div>
           </main>
 
           {/* Android Mobile Bottom Navigation Bar with Center FAB */}
@@ -970,7 +996,10 @@ function MainApp() {
       {showWelcomeOverlay && (
         <WelcomeGreetingOverlay
           userName={user?.displayName || user?.name || settings?.user_name || (user?.email ? user.email.split('@')[0] : 'Raj')}
-          onDismiss={() => setShowWelcomeOverlay(false)}
+          onDismiss={() => {
+            markWelcomeGreetingShown();
+            setShowWelcomeOverlay(false);
+          }}
         />
       )}
     </div>

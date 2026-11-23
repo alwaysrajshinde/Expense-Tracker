@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar, BarChart2, Plus, ArrowRight, MoreVertical, Receipt,
-  RotateCcw, Tag, FileText, Check, ChevronDown
+  RotateCcw, Tag, FileText, Check, ChevronDown, Eye, EyeOff
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
 import CustomDropdown from '../components/CustomDropdown';
@@ -33,6 +33,43 @@ export default function Home({
   const [quickPaymentMode, setQuickPaymentMode] = useState('UPI');
   const [quickSaving, setQuickSaving] = useState(false);
   const [quickSuccess, setQuickSuccess] = useState(false);
+
+  // Groww-style Show / Hide Financial Amounts on Overview
+  const [hideAmounts, setHideAmounts] = useState(() => {
+    try {
+      return localStorage.getItem('expense_tracker_hide_amounts') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const toggleHideAmounts = () => {
+    const next = !hideAmounts;
+    setHideAmounts(next);
+    try {
+      localStorage.setItem('expense_tracker_hide_amounts', String(next));
+      window.dispatchEvent(new Event('expense_tracker_hide_amounts_changed'));
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        setHideAmounts(localStorage.getItem('expense_tracker_hide_amounts') === 'true');
+      } catch (e) {}
+    };
+    window.addEventListener('expense_tracker_hide_amounts_changed', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('expense_tracker_hide_amounts_changed', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
+
+  const maskAmount = (val) => {
+    if (hideAmounts) return '₹ ••••••';
+    return formatCurrency(val);
+  };
 
   if (!dashboardData) {
     return (
@@ -124,15 +161,27 @@ export default function Home({
          ======================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         {/* Left: Hero Purple Card (takes ~45-50% on desktop) */}
-        <div className="lg:col-span-5 purple-hero-gradient rounded-3xl p-5 sm:p-6 text-white shadow-xl shadow-purple-900/15 relative flex flex-col justify-between min-h-[185px]">
+        <div className="lg:col-span-5 purple-hero-gradient rounded-3xl p-5 sm:p-6 text-white shadow-xl shadow-purple-900/15 relative flex flex-col justify-between min-h-[185px] animate-card interactive-card card-hover-lift">
           <div className="flex items-center justify-between z-10">
             <div className="space-y-2.5">
               <div>
-                <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
-                  {t('monthlyBudget', 'Monthly Budget')}
-                </span>
-                <p className="text-white text-base sm:text-lg font-bold tracking-tight">
-                  {budget > 0 ? formatCurrency(budget) : t('noBudgetSet', 'No budget set')}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-white/80 text-[11px] font-semibold tracking-wide uppercase">
+                    {t('monthlyBudget', 'Monthly Budget')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={toggleHideAmounts}
+                    data-testid="toggle-hide-amounts"
+                    aria-label={hideAmounts ? "Show amounts" : "Hide amounts"}
+                    title={hideAmounts ? "Show amounts" : "Hide amounts"}
+                    className="p-1 rounded-full text-white/80 hover:text-white hover:bg-white/20 active:scale-90 transition-all cursor-pointer inline-flex items-center justify-center"
+                  >
+                    {hideAmounts ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+                <p className="text-white text-base sm:text-lg font-bold tracking-tight mt-0.5">
+                  {budget > 0 ? maskAmount(budget) : t('noBudgetSet', 'No budget set')}
                 </p>
               </div>
 
@@ -141,7 +190,7 @@ export default function Home({
                   {t('spent', 'Spent')}
                 </span>
                 <p className="text-white text-3xl sm:text-4xl font-extrabold tracking-tight">
-                  {formatCurrency(total_spent)}
+                  {maskAmount(total_spent)}
                 </p>
               </div>
 
@@ -152,7 +201,7 @@ export default function Home({
                     : 'bg-rose-100 text-rose-950'
                     }`}>
                     {remaining_budget >= 0 ? `${t('remaining', 'Remaining')}: ` : `${t('remaining', 'Remaining')}: `}
-                    {formatCurrency(Math.abs(remaining_budget))}
+                    {maskAmount(Math.abs(remaining_budget))}
                   </span>
                 ) : (
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-200/90 text-purple-950 shadow-xs">
@@ -200,7 +249,7 @@ export default function Home({
         {/* Right: 3 Stat Cards in a row (takes ~50-55% on desktop) */}
         <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Today */}
-          <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm flex flex-col justify-between transition-colors">
+          <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm flex flex-col justify-between transition-colors interactive-card card-hover-lift">
             <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center mb-4">
               <Calendar size={18} />
             </div>
@@ -209,13 +258,13 @@ export default function Home({
                 {t('today', 'Today')}
               </span>
               <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                {formatCurrency(today_spent)}
+                {maskAmount(today_spent)}
               </span>
             </div>
           </div>
 
           {/* This Week */}
-          <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm flex flex-col justify-between transition-colors">
+          <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm flex flex-col justify-between transition-colors interactive-card card-hover-lift">
             <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center mb-4">
               <BarChart2 size={18} />
             </div>
@@ -224,13 +273,13 @@ export default function Home({
                 {t('thisWeek', 'This Week')}
               </span>
               <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                {formatCurrency(week_spent)}
+                {maskAmount(week_spent)}
               </span>
             </div>
           </div>
 
           {/* This Month */}
-          <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm flex flex-col justify-between transition-colors">
+          <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm flex flex-col justify-between transition-colors interactive-card card-hover-lift">
             <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#A78BFA] flex items-center justify-center mb-4">
               <Calendar size={18} />
             </div>
@@ -239,7 +288,7 @@ export default function Home({
                 {t('thisMonth', 'This Month')}
               </span>
               <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                {formatCurrency(total_spent)}
+                {maskAmount(total_spent)}
               </span>
             </div>
           </div>
@@ -251,14 +300,14 @@ export default function Home({
          ======================================================== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* CARD 1: Top Categories */}
-        <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors">
+        <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-4 transition-colors interactive-card card-hover-lift">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               {t('topCategories', 'Top Categories')}
             </h3>
             <button
               onClick={onViewAllCategories}
-              className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 transition-colors"
+              className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 transition-colors cursor-pointer"
             >
               <span>{t('viewAll', 'View All')}</span>
               <ArrowRight size={13} />
@@ -283,7 +332,7 @@ export default function Home({
 
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      {formatCurrency(cat.amount)}
+                      {maskAmount(cat.amount)}
                     </span>
                     <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 w-11 text-right">
                       {cat.percentage}%
@@ -303,7 +352,7 @@ export default function Home({
         </div>
 
         {/* CARD 2: Spending by Category (Donut + Legend) */}
-        <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-3 transition-colors">
+        <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-3 transition-colors interactive-card card-hover-lift">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">
             Spending by Category
           </h3>
@@ -329,7 +378,7 @@ export default function Home({
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                 <span className="text-xs font-black text-slate-900 dark:text-white leading-tight">
-                  {formatCurrency(total_spent)}
+                  {maskAmount(total_spent)}
                 </span>
                 <span className="text-[9px] text-slate-400 font-medium">
                   Total
@@ -360,7 +409,7 @@ export default function Home({
         </div>
 
         {/* CARD 3: Monthly Trend */}
-        <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-2 transition-colors">
+        <div className="bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-2 transition-colors interactive-card card-hover-lift">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">
             Monthly Trend
           </h3>
@@ -391,7 +440,7 @@ export default function Home({
                     <div className="h-5 flex items-center justify-center">
                       {isCurrent && (
                         <span className="text-[9px] font-black bg-[#6C47FF] dark:bg-[#8B5CF6] text-white px-1.5 py-0.5 rounded shadow-xs whitespace-nowrap">
-                          {formatCurrency(m.total)}
+                          {maskAmount(m.total)}
                         </span>
                       )}
                     </div>
@@ -424,14 +473,14 @@ export default function Home({
          ======================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left: Recent Transactions Table (takes 7 cols on desktop) */}
-        <div className="lg:col-span-7 bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-3 transition-colors">
+        <div className="lg:col-span-7 bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-3 transition-colors interactive-card card-hover-lift">
           <div className="flex items-center justify-between pb-1">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               Recent Transactions
             </h3>
             <button
               onClick={onViewAllTransactions}
-              className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 transition-colors"
+              className="text-xs font-semibold text-[#6C47FF] dark:text-[#A78BFA] hover:underline flex items-center gap-1 transition-colors cursor-pointer"
             >
               <span>View All</span>
               <ArrowRight size={13} />
@@ -454,7 +503,7 @@ export default function Home({
               <tbody className="divide-y divide-slate-50 dark:divide-white/5">
                 {recent_transactions && recent_transactions.length > 0 ? (
                   recent_transactions.slice(0, 5).map((tx) => (
-                    <tr key={tx.id} className="group hover:bg-slate-50/80 dark:hover:bg-white/5 transition-colors">
+                    <tr key={tx.id} className="group hover:bg-slate-50/80 dark:hover:bg-white/5 transition-colors tx-row">
                       <td className="py-3 flex items-center gap-2">
                         <div
                           className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -479,9 +528,9 @@ export default function Home({
                       </td>
                       <td className="py-3 text-right font-black text-slate-900 dark:text-white whitespace-nowrap">
                         {tx.is_refund || tx.amount < 0 ? (
-                          <span className="text-emerald-600 dark:text-emerald-400">+{formatCurrency(Math.abs(tx.amount))}</span>
+                          <span className="text-emerald-600 dark:text-emerald-400">+{maskAmount(Math.abs(tx.amount))}</span>
                         ) : (
-                          formatCurrency(tx.amount)
+                          maskAmount(tx.amount)
                         )}
                       </td>
                       <td className="py-3 text-center text-slate-400 hover:text-slate-600">
@@ -502,7 +551,7 @@ export default function Home({
         </div>
 
         {/* Right: Quick Add Expense Widget (takes 5 cols on desktop) */}
-        <div className="lg:col-span-5 bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-3.5 transition-colors">
+        <div className="lg:col-span-5 bg-white dark:bg-[#16132A] rounded-3xl p-5 border border-slate-100 dark:border-white/10 shadow-sm space-y-3.5 transition-colors interactive-card card-hover-lift">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               Quick Add Expense

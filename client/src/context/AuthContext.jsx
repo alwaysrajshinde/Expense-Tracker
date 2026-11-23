@@ -14,6 +14,7 @@ import {
   verifyPasswordResetCode
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../firebase/config';
+import { resetSessionGreeting } from '../services/welcomeSessionService';
 import { ensureUserProfile, updateProfileName } from '../services/firestoreService';
 
 const AuthContext = createContext();
@@ -466,6 +467,7 @@ export function AuthProvider({ children }) {
       }
     } catch (e) {}
     localStorage.removeItem(STORAGE_KEY);
+    resetSessionGreeting();
     setUser(null);
     setAuthError(null);
   };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { markWelcomeGreetingShown } from '../services/welcomeSessionService';
 
 const POSITIVE_QUOTES = [
   'Consistency builds financial freedom. Keep going!',
@@ -48,6 +49,9 @@ export default function WelcomeGreetingOverlay({ userName = 'Raj', onDismiss }) 
   const quote = t(quoteKey, t('positiveQuote', POSITIVE_QUOTES[quoteIndex] || POSITIVE_QUOTES[0]));
 
   useEffect(() => {
+    // Immediately record session flag so duplicate reloads during display never re-trigger
+    markWelcomeGreetingShown();
+
     // Smooth entrance
     const showTimer = setTimeout(() => setVisible(true), 150);
 

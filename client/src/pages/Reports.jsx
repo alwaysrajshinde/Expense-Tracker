@@ -208,7 +208,7 @@ export default function Reports({
           YEARLY REPORT VIEW
          ======================================================== */}
       {activeTab === 'yearly' && (
-        <div className="space-y-5 animate-fade-in">
+        <div className="space-y-5 animate-tab-content">
           {/* Year Selector Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white dark:bg-[#151226] p-3 rounded-2xl border border-slate-100 dark:border-white/10 shadow-xs">
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -389,7 +389,7 @@ export default function Reports({
       {/* 4 Summary Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Spend */}
-        <div className="bg-white dark:bg-[#151226] rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-sm transition-colors">
+        <div className="bg-white dark:bg-[#151226] rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-sm transition-colors interactive-card">
           <span className="text-xs font-medium text-slate-400 dark:text-slate-500 block mb-1">
             {t('totalSpent', 'Total Spend')}
           </span>
@@ -399,7 +399,7 @@ export default function Reports({
         </div>
 
         {/* Total Income / Refunds */}
-        <div className="bg-white dark:bg-[#151226] rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-sm transition-colors">
+        <div className="bg-white dark:bg-[#151226] rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-sm transition-colors interactive-card">
           <span className="text-xs font-medium text-slate-400 dark:text-slate-500 block mb-1">
             {t('incomeCredits', 'Income & Credits')}
           </span>
@@ -409,7 +409,7 @@ export default function Reports({
         </div>
 
         {/* Net Balance */}
-        <div className="bg-white dark:bg-[#151226] rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-sm transition-colors">
+        <div className="bg-white dark:bg-[#151226] rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-sm transition-colors interactive-card">
           <span className="text-xs font-medium text-slate-400 dark:text-slate-500 block mb-1">
             {t('netCashflow', 'Net Cashflow')}
           </span>
@@ -424,7 +424,7 @@ export default function Reports({
         </div>
 
         {/* Remaining Budget */}
-        <div className="bg-white dark:bg-[#151226] rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-sm transition-colors">
+        <div className="bg-white dark:bg-[#151226] rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-100 dark:border-white/10 shadow-sm transition-colors interactive-card">
           <span className="text-xs font-medium text-slate-400 dark:text-slate-500 block mb-1">
             {t('remainingBudget', 'Remaining Budget')}
           </span>
@@ -438,7 +438,7 @@ export default function Reports({
 
       {/* SUB-TAB 1: OVERVIEW (Desktop: Side-by-Side Grid) */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6 animate-tab-content">
           {/* Spending by Category (Donut + Legend) */}
           <div className="bg-white dark:bg-[#151226] rounded-3xl p-5 sm:p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-5 transition-colors">
             <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
@@ -641,7 +641,7 @@ export default function Reports({
 
       {/* SUB-TAB 2: FULL CATEGORY BREAKDOWN WITH VISUAL RANKING CHART */}
       {activeTab === 'category' && (
-        <div className="space-y-5 animate-fade-in">
+        <div className="space-y-5 animate-tab-content">
           {/* Visual Top Categories Bar Chart */}
           <div className="bg-white dark:bg-[#151226] rounded-3xl p-5 sm:p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -763,7 +763,7 @@ export default function Reports({
 
       {/* SUB-TAB 3: PAYMENT BREAKDOWN WITH VISUAL SHARE GRAPH */}
       {activeTab === 'payment' && (
-        <div className="space-y-5 animate-fade-in">
+        <div className="space-y-5 animate-tab-content">
           {/* Visual Payment Methods Distribution Bar */}
           <div className="bg-white dark:bg-[#151226] rounded-3xl p-5 sm:p-6 border border-slate-100 dark:border-white/10 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
