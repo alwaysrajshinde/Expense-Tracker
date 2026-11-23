@@ -325,10 +325,10 @@ export default function AuthGate({ children }) {
             <Wallet size={28} />
           </div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            My Expense Tracker
+            PocketNook
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-xs mx-auto">
-            Your private financial manager with multi-device synchronization and isolated personal data
+            Your personal financial sanctuary with multi-device synchronization and private records
           </p>
         </div>
 

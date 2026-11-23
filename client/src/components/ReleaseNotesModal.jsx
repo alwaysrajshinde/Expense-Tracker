@@ -75,7 +75,7 @@ export default function ReleaseNotesModal({ isOpen, onClose }) {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                  What's New in Expense Tracker
+                  What's New in PocketNook
                 </h3>
                 <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-[#6C47FF] dark:text-[#A78BFA] text-[10px] font-black tracking-wide">
                   {APP_VERSION}

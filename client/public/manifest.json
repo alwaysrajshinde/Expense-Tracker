@@ -1,7 +1,7 @@
 {
-  "name": "My Expense Tracker",
-  "short_name": "Expenses",
-  "description": "Personal expense tracker and monthly budget management with real-time cloud sync, visual analytics, and offline-first storage.",
+  "name": "PocketNook",
+  "short_name": "PocketNook",
+  "description": "PocketNook - Personal finance and mindful daily expense tracking with real-time cloud sync, visual analytics, and offline-first storage.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

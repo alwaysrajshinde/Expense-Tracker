@@ -1,7 +1,7 @@
 {
   "name": "expense-tracker",
   "version": "2.4.4",
-  "description": "Personal Expense Tracker with modern UI and Excel reference migration",
+  "description": "PocketNook - Personal finance and expense tracker with modern UI and Excel reference migration",
   "main": "server/index.js",
   "scripts": {
     "stamp": "node scripts/stamp-version.js",

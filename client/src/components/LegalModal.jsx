@@ -34,7 +34,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
               <h2 className="text-base font-bold text-slate-800 dark:text-white">
                 {activeTab === 'privacy' ? 'Privacy Policy & Data Sovereign Charter' : 'Terms of Service & Usage Agreement'}
               </h2>
-              <p className="text-xs text-slate-400">Expense Tracker Legal Governance · {APP_INKED_VERSION}</p>
+              <p className="text-xs text-slate-400">PocketNook Legal Governance · {APP_INKED_VERSION}</p>
             </div>
           </div>
           <button
@@ -85,7 +85,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
                   1. Our Core Privacy Commitment
                 </h3>
                 <p>
-                  At <strong>Expense Tracker</strong>, privacy is not an afterthought; it is our foundational engineering principle. We believe personal financial data should belong exclusively to the individual who generated it. We do not sell, rent, monetize, or broker your personal financial records to third-party advertisers, credit bureaus, or financial intermediaries.
+                  At <strong>PocketNook</strong>, privacy is not an afterthought; it is our foundational engineering principle. We believe personal financial data should belong exclusively to the individual who generated it. We do not sell, rent, monetize, or broker your personal financial records to third-party advertisers, credit bureaus, or financial intermediaries.
                 </p>
               </section>
 
@@ -126,7 +126,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
                   1. Acceptance of Terms
                 </h3>
                 <p>
-                  By accessing or using the <strong>Expense Tracker</strong> application, you agree to be bound by these Terms of Service. If you do not agree with any portion of these terms, please discontinue use immediately.
+                  By accessing or using the <strong>PocketNook</strong> application, you agree to be bound by these Terms of Service. If you do not agree with any portion of these terms, please discontinue use immediately.
                 </p>
               </section>
 
@@ -140,7 +140,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
               <section className="space-y-1.5">
                 <h3 className="font-bold text-sm text-slate-800 dark:text-white">3. Disclaimer of Financial Advice</h3>
                 <p>
-                  <strong>Expense Tracker is a software utility, not a certified financial advisor or banking institution.</strong> Visual calculations, monthly pace projections, and burn-rate metrics are provided for informational convenience only and should not be construed as legal, tax, or investment advice.
+                  <strong>PocketNook is a software utility, not a certified financial advisor or banking institution.</strong> Visual calculations, monthly pace projections, and burn-rate metrics are provided for informational convenience only and should not be construed as legal, tax, or investment advice.
                 </p>
               </section>
 

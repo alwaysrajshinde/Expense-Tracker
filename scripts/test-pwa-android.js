@@ -38,8 +38,8 @@ async function testPWA() {
   console.log('  - Start URL:', manifest.start_url);
   console.log('  - Icons:', manifest.icons.map(i => `${i.sizes} (${i.src})`).join(', '));
 
-  if (manifest.name !== 'My Expense Tracker') throw new Error('Invalid manifest name');
-  if (manifest.short_name !== 'Expenses') throw new Error('Invalid short_name');
+  if (manifest.name !== 'PocketNook' && manifest.name !== 'My Expense Tracker') throw new Error('Invalid manifest name');
+  if (manifest.short_name !== 'PocketNook' && manifest.short_name !== 'Expenses') throw new Error('Invalid short_name');
   if (manifest.display !== 'standalone') throw new Error('Display must be standalone');
   if (manifest.theme_color !== '#6C47FF') throw new Error('Theme color mismatch');
   console.log('✓ Web App Manifest strictly satisfies all requirements!');

@@ -38,7 +38,7 @@ export default function PublicLanding({ onOpenAuth, onOpenLegal }) {
           </div>
           <div>
             <span className="font-extrabold text-base text-slate-900 dark:text-white tracking-tight block">
-              Expense Tracker
+              PocketNook
             </span>
             <span className="text-[10px] text-slate-400 font-medium">Smart Personal Finance</span>
           </div>
@@ -184,7 +184,7 @@ export default function PublicLanding({ onOpenAuth, onOpenLegal }) {
         {/* 5. FOOTER */}
         <footer className="w-full pt-12 pb-6 border-t border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
           <div>
-            © {new Date().getFullYear()} Expense Tracker. Encrypted &amp; Offline-First.
+            © {new Date().getFullYear()} PocketNook. Encrypted &amp; Offline-First.
           </div>
           <div className="flex items-center gap-4">
             <button

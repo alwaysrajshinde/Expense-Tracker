@@ -56,7 +56,7 @@ export default function WindowsSidebar({
           </div>
           <div>
             <span className="text-sm font-black text-slate-900 dark:text-white tracking-tight block">
-              Expense Tracker
+              PocketNook
             </span>
             <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase block">
               Personal Vault
@@ -196,7 +196,7 @@ export default function WindowsSidebar({
           <button
             type="button"
             onClick={onOpenReleaseNotes}
-            title={`Expense Tracker ${APP_VERSION} (Last updated: ${APP_RELEASE_DATE} at ${APP_RELEASE_TIME})`}
+            title={`PocketNook ${APP_VERSION} (Last updated: ${APP_RELEASE_DATE} at ${APP_RELEASE_TIME})`}
             className="hover:text-[#6C47FF] dark:hover:text-[#C084FC] transition-colors flex items-center gap-1.5 cursor-pointer group"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

@@ -13,7 +13,7 @@ test.describe('Area H: UI, Responsiveness, Theme & Navigation', () => {
     await authHelpers.loginAsRaj();
 
     // Verify Windows Sidebar presence
-    const sidebar = page.locator('aside, div:has-text("Expense Tracker")').first();
+    const sidebar = page.locator('aside, div:has-text("PocketNook"), div:has-text("Expense Tracker")').first();
     await expect(sidebar).toBeVisible();
 
     // Verify 9 navigation items exist

@@ -1448,7 +1448,7 @@ export default function Settings({
                     GitHub: <a href="https://github.com/Alwaysrajshinde/Expense-Tracker" target="_blank" rel="noreferrer" className="text-[#6C47FF] dark:text-[#C084FC] underline">github.com/Alwaysrajshinde/Expense-Tracker</a>
                   </div>
                   <div className="text-[10px] text-slate-400 pt-1 font-mono flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-slate-600 dark:text-slate-300">Personal Expense Tracker</span>
+                    <span className="font-semibold text-slate-600 dark:text-slate-300">PocketNook</span>
                     <span>•</span>
                     <span className="text-[#6C47FF] dark:text-[#C084FC] font-bold">{APP_INKED_VERSION}</span>
                     <span>•</span>
@@ -2057,7 +2057,7 @@ export default function Settings({
               className="w-full py-4 px-6 rounded-3xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-[0.99]"
             >
               <LogOut size={16} />
-              <span>{t('logOut', 'Log Out of Expense Tracker')}</span>
+              <span>{t('logOut', 'Log Out of PocketNook')}</span>
             </button>
           </div>
           </>
@@ -2067,7 +2067,7 @@ export default function Settings({
           <div className="pt-4 pb-32 text-center space-y-1.5 px-4">
             <div className="text-[11px] font-mono text-slate-500 dark:text-[#A78BFA]/80 flex items-center justify-center gap-1.5 flex-wrap">
               <Calendar size={11} className="text-[#6C47FF] dark:text-[#C084FC] shrink-0" />
-              <span>Personal Expense Tracker · {APP_INKED_VERSION}</span>
+              <span>PocketNook · {APP_INKED_VERSION}</span>
             </div>
             <div className="text-[10px] text-slate-400/80 dark:text-slate-500 leading-normal">
               Encrypted Offline-First Vault · Google Cloud &amp; Firebase

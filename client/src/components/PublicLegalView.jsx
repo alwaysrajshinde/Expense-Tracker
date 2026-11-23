@@ -33,7 +33,7 @@ export default function PublicLegalView({ initialTab = 'privacy', onBack }) {
             </div>
             <div>
               <h1 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                Expense Tracker
+                PocketNook
               </h1>
               <p className="text-[10px] text-slate-400">Legal Governance & Transparency</p>
             </div>
@@ -82,7 +82,7 @@ export default function PublicLegalView({ initialTab = 'privacy', onBack }) {
                 Privacy Policy
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Effective Date: November 21, 2026 · Application: <strong>My Expense Tracker</strong> · Developer: <strong>Raj Shinde</strong>
+                Effective Date: November 21, 2026 · Application: <strong>PocketNook</strong> · Developer: <strong>Raj Shinde</strong>
               </p>
             </div>
 
@@ -93,7 +93,7 @@ export default function PublicLegalView({ initialTab = 'privacy', onBack }) {
                 1. Overview &amp; Data Controller
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                <strong>My Expense Tracker</strong> (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) is a personal finance management tool created and maintained by <strong>Raj Shinde</strong> (contact: <a href="mailto:raaajshinde@gmail.com" className="text-[#6C47FF] hover:underline font-semibold">raaajshinde@gmail.com</a>). This Privacy Policy explains how our web application collects, uses, protects, and discloses personal information when you access our service hosted at <a href="https://alwaysrajshinde.github.io/Expense-Tracker/" className="text-[#6C47FF] hover:underline">https://alwaysrajshinde.github.io/Expense-Tracker/</a>.
+                <strong>PocketNook</strong> (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) is a personal finance management tool created and maintained by <strong>Raj Shinde</strong> (contact: <a href="mailto:raaajshinde@gmail.com" className="text-[#6C47FF] hover:underline font-semibold">raaajshinde@gmail.com</a>). This Privacy Policy explains how our web application collects, uses, protects, and discloses personal information when you access our service hosted at <a href="https://alwaysrajshinde.github.io/Expense-Tracker/" className="text-[#6C47FF] hover:underline">https://alwaysrajshinde.github.io/Expense-Tracker/</a>.
               </p>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
                 We believe that personal financial records belong strictly to the user. We adhere to privacy-by-design principles, collecting only the absolute minimum data required to deliver expense accounting and monthly budget calculations.
@@ -138,7 +138,7 @@ export default function PublicLegalView({ initialTab = 'privacy', onBack }) {
                 3. Google API Services &amp; Limited Use Disclosure
               </h3>
               <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-                When you choose to sign in with Google, Expense Tracker requests only standard, non-sensitive identity scopes:
+                When you choose to sign in with Google, PocketNook requests only standard, non-sensitive identity scopes:
               </p>
               <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1 list-disc pl-5">
                 <li><code>openid</code>: To verify authentication state.</li>
@@ -147,7 +147,7 @@ export default function PublicLegalView({ initialTab = 'privacy', onBack }) {
               </ul>
               <div className="mt-3 p-3.5 bg-white dark:bg-[#16132A] rounded-xl border border-purple-200 dark:border-purple-800/50 text-xs text-slate-800 dark:text-slate-200">
                 <strong>Google Limited Use Compliance Statement:</strong><br />
-                Expense Tracker&apos;s use and transfer to any other app of information received from Google APIs will adhere to the{' '}
+                PocketNook&apos;s use and transfer to any other app of information received from Google APIs will adhere to the{' '}
                 <a
                   href="https://developers.google.com/terms/api-services-user-data-policy"
                   target="_blank"
@@ -223,7 +223,7 @@ export default function PublicLegalView({ initialTab = 'privacy', onBack }) {
                 7. Contact Information
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                If you have questions, feedback, or data privacy requests regarding Expense Tracker, please contact the developer:
+                If you have questions, feedback, or data privacy requests regarding PocketNook, please contact the developer:
               </p>
               <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1 pt-1 font-mono">
                 <p>Developer: Raj Shinde</p>
@@ -246,14 +246,14 @@ export default function PublicLegalView({ initialTab = 'privacy', onBack }) {
                 Terms of Service
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Effective Date: November 21, 2026 · Application: <strong>My Expense Tracker</strong>
+                Effective Date: November 21, 2026 · Application: <strong>PocketNook</strong>
               </p>
             </div>
 
             <section className="space-y-3">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">1. Acceptance of Terms</h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                By accessing or using the <strong>Expense Tracker</strong> application hosted at <a href="https://alwaysrajshinde.github.io/Expense-Tracker/" className="text-[#6C47FF] hover:underline">https://alwaysrajshinde.github.io/Expense-Tracker/</a>, you agree to comply with and be bound by these Terms of Service. If you do not agree, you should not access or use this software.
+                By accessing or using the <strong>PocketNook</strong> application hosted at <a href="https://alwaysrajshinde.github.io/Expense-Tracker/" className="text-[#6C47FF] hover:underline">https://alwaysrajshinde.github.io/Expense-Tracker/</a>, you agree to comply with and be bound by these Terms of Service. If you do not agree, you should not access or use this software.
               </p>
             </section>
 
@@ -267,7 +267,7 @@ export default function PublicLegalView({ initialTab = 'privacy', onBack }) {
             <section className="space-y-3">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">3. Informational Utility &amp; Financial Disclaimer</h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                Expense Tracker is a digital bookkeeping software tool, not a certified financial planner, banking institution, or tax advisor. Calculations, category charts, and monthly burn-rate pacing are provided solely for informational and personal budgeting convenience.
+                PocketNook is a digital bookkeeping software tool, not a certified financial planner, banking institution, or tax advisor. Calculations, category charts, and monthly burn-rate pacing are provided solely for informational and personal budgeting convenience.
               </p>
             </section>
 
@@ -287,7 +287,7 @@ export default function PublicLegalView({ initialTab = 'privacy', onBack }) {
 
       {/* Footer */}
       <footer className="border-t border-slate-200 dark:border-white/10 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
-        <p>© 2026 Expense Tracker · Developed by Raj Shinde · All Rights Reserved</p>
+        <p>© 2026 PocketNook · Developed by Raj Shinde · All Rights Reserved</p>
       </footer>
     </div>
   );
