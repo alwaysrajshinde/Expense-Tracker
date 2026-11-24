@@ -110,15 +110,9 @@ export default function ComingSoonPreviewModal({
         {/* Positive & Professional Message Banner */}
         <div
           data-testid="coming-soon-message-banner"
-          className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-900 dark:text-purple-200 text-xs space-y-1.5"
+          className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-900 dark:text-purple-200 text-xs"
         >
-          <div className="flex items-center gap-2">
-            <Sparkles size={16} className="text-[#6C47FF] dark:text-[#C084FC] shrink-0" />
-            <span className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
-              {feature.tagline || 'Something exciting is on the way!'}
-            </span>
-          </div>
-          <p className="text-[11px] sm:text-xs text-slate-600 dark:text-purple-300/90 leading-relaxed pl-6">
+          <p className="text-[11px] sm:text-xs text-slate-600 dark:text-purple-300/90 leading-relaxed">
             {feature.subtext || "This feature is currently in development. We're preparing it to deliver a better experience for you."}
           </p>
         </div>

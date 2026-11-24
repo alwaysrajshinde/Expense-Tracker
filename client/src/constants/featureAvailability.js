@@ -27,7 +27,6 @@ export const FEATURES_REGISTRY = Object.freeze({
     iconName: 'FileSpreadsheet',
     badgeText: 'Active',
     badgeColor: '#10B981',
-    tagline: '1-Click Direct Cloud Export & Sync',
     description: 'Direct cloud export & spreadsheet creation in your personal Google Drive with zero server costs.',
     subtext: 'Client-side Google Drive & Sheets API integration operating within Google free quotas (300 req/min).',
     highlights: [
@@ -49,7 +48,6 @@ export const FEATURES_REGISTRY = Object.freeze({
     iconName: 'Camera',
     badgeText: 'Active',
     badgeColor: '#10B981',
-    tagline: '100% On-Device OCR & Privacy',
     description: 'Scan paper receipts or bills with your camera or file upload to automatically extract vendor, date, and amount with zero cloud fees.',
     subtext: 'Local canvas contrast filtering and heuristic extraction running entirely in your browser.',
     highlights: [
@@ -71,7 +69,6 @@ export const FEATURES_REGISTRY = Object.freeze({
     iconName: 'CalendarClock',
     badgeText: 'Active',
     badgeColor: '#6C47FF',
-    tagline: 'Subscription Tracking & Renewal Alerts',
     description: 'Track recurring subscriptions, calculate monthly burn rate, and get automatic upcoming renewal alerts with zero server cron cost.',
     subtext: 'Client-side foreground reconciliation engine calculating next billing cycles and advance renewal warnings.',
     highlights: [
@@ -93,7 +90,6 @@ export const FEATURES_REGISTRY = Object.freeze({
     iconName: 'Landmark',
     badgeText: 'Active',
     badgeColor: '#3B82F6',
-    tagline: 'Free, Secure Statement Parsing',
     description: 'Import bank statements securely via PDF, Excel, and CSV with zero API fees, 100% privacy, and instant auto-categorization.',
     subtext: 'Replaces expensive Account Aggregator monthly subscriptions with client-side statement parsing for HDFC, SBI, ICICI, and more.',
     highlights: [
@@ -115,7 +111,6 @@ export const FEATURES_REGISTRY = Object.freeze({
     iconName: 'Landmark',
     badgeText: 'Replaced',
     badgeColor: '#3B82F6',
-    tagline: 'Replaced with Free Statement Import',
     description: 'Direct feeds removed due to RBI Account Aggregator platform fees (₹25k+/mo). Replaced with free Smart Bank Statement Import.',
     highlights: [
       'Free bank statement parsing via PDF, Excel, and CSV',

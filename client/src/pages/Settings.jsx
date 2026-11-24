@@ -1053,11 +1053,10 @@ export default function Settings({
                         <FileSpreadsheet size={18} />
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] flex items-center gap-1.5">
+                        <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                           <span>Google Sheets</span>
                           <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/25">Upcoming</span>
                         </div>
-                        <div className="text-[10px] text-slate-400">Direct cloud sync · Coming Soon</div>
                       </div>
                     </button>
 
@@ -1872,9 +1871,6 @@ export default function Settings({
                         Coming Soon
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      Scan paper bills or receipts with 100% on-device privacy (₹0 API cost)
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1896,9 +1892,6 @@ export default function Settings({
                         <Lock size={9} />
                         Coming Soon
                       </span>
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      Track subscription burn rate and receive upcoming renewal alerts
                     </div>
                   </div>
                 </div>
@@ -1922,9 +1915,6 @@ export default function Settings({
                         Coming Soon
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      Direct 1-click cloud sync &amp; export to personal Google Drive
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1946,9 +1936,6 @@ export default function Settings({
                         <Lock size={9} />
                         Coming Soon
                       </span>
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      Replaces paid AA feeds (₹25k+/mo) with 100% private PDF &amp; CSV parsing
                     </div>
                   </div>
                 </div>
@@ -2357,7 +2344,6 @@ export default function Settings({
                       <span>Google Sheets</span>
                       <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">Coming Soon</span>
                     </div>
-                    <div className="text-[11px] text-slate-400">Export &amp; sync directly to Google Drive (Upcoming)</div>
                   </div>
                 </div>
                 <Lock size={16} className="text-slate-400 shrink-0" />
