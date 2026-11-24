@@ -29,8 +29,9 @@ test.describe('Area G: Data Isolation, Security & Integrity', () => {
 
     const uniqueSecretDesc = `AliceConfidentialPurchase_${Date.now()}`;
     await page.locator('.fixed input[placeholder="0"]').fill('888');
-    await page.locator('input[placeholder*="Lunch with colleagues"]').fill(uniqueSecretDesc);
-    await page.locator('button[type="submit"]:has-text("Save Expense")').click();
+    const descInput = page.locator('input[placeholder*="Grocery"], input[placeholder*="Lunch"], input[placeholder*="Coffee"], input[name="description"]').first();
+    await descInput.fill(uniqueSecretDesc);
+    await page.locator('div.fixed button[type="submit"]').first().click();
     await page.waitForTimeout(1000);
 
     // 2. Alice logs out

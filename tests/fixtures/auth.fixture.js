@@ -51,7 +51,11 @@ const test = base.extend({
         await page.evaluate(() => localStorage.clear());
         await page.reload();
 
-        // Switch to Create Account tab
+        // Switch to Create Account tab (handles Public Landing or direct Auth Card)
+        const landingSignupBtn = page.locator('button:has-text("Start Tracking Free")').first();
+        if (await landingSignupBtn.isVisible()) {
+          await landingSignupBtn.click();
+        }
         const signupTab = page.locator('button:has-text("Create Account")').first();
         await expect(signupTab).toBeVisible({ timeout: 10000 });
         await signupTab.click();

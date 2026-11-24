@@ -44,11 +44,11 @@ test.describe('Area C: Expense Management & Edge Cases', () => {
 
     const amountInput = page.locator('.fixed input[placeholder="0"]');
     await amountInput.fill('0');
-    await page.locator('button[type="submit"]:has-text("Save Expense")').click();
+    await page.locator('div.fixed button[type="submit"]').first().click();
     await expect(page.locator('text=Please enter a valid positive amount')).toBeVisible();
 
     await amountInput.fill('-50');
-    await page.locator('button[type="submit"]:has-text("Save Expense")').click();
+    await page.locator('div.fixed button[type="submit"]').first().click();
     await expect(page.locator('text=Please enter a valid positive amount')).toBeVisible();
 
     // Cancel modal
@@ -65,11 +65,11 @@ test.describe('Area C: Expense Management & Edge Cases', () => {
     await page.locator('.fixed input[placeholder="0"]').fill('149.99');
     
     // Fill description with special characters
-    const descInput = page.locator('input[placeholder*="Lunch with colleagues"]');
+    const descInput = page.locator('input[placeholder*="Grocery"], input[placeholder*="Lunch"], input[placeholder*="Coffee"], input[name="description"]').first();
     await descInput.fill('Coffee & Tea (Special Tag)');
 
     // Submit
-    await page.locator('button[type="submit"]:has-text("Save Expense")').click();
+    await page.locator('div.fixed button[type="submit"]').first().click();
 
     // Verify modal closes and expense is reflected
     await expect(page.locator('h2:has-text("Add Expense")')).not.toBeVisible();
@@ -93,10 +93,10 @@ test.describe('Area C: Expense Management & Edge Cases', () => {
     }
 
     await page.locator('.fixed input[placeholder="0"]').fill('500');
-    const descInput = page.locator('input[placeholder*="Lunch with colleagues"]');
+    const descInput = page.locator('input[placeholder*="Grocery"], input[placeholder*="Lunch"], input[placeholder*="Coffee"], input[name="description"]').first();
     await descInput.fill('Product return refund');
 
-    await page.locator('button[type="submit"]:has-text("Save Expense")').click();
+    await page.locator('div.fixed button[type="submit"]').first().click();
     await expect(page.locator('h2:has-text("Add Expense")')).not.toBeVisible();
   });
 

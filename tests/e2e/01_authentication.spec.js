@@ -14,6 +14,13 @@ test.describe('Area A: Universal User Authentication & Session Management', () =
 
   test('A1: Login screen presents universal Sign In & Create Account without technical inputs', async ({ page }) => {
     await page.goto('/');
+    
+    // Open auth modal if landing page is shown
+    const landingSigninBtn = page.locator('button:has-text("Sign In to Vault"), button:has-text("Sign In")').first();
+    if (await landingSigninBtn.isVisible()) {
+      await landingSigninBtn.click();
+    }
+
     const signinBtn = page.locator('button:has-text("Sign In")').first();
     await expect(signinBtn).toBeVisible();
 

@@ -14,10 +14,10 @@ test.describe('Area E: Transactions History, Filters & Search', () => {
     await page.locator('button:has-text("Transactions")').first().click();
 
     // Verify page header
-    await expect(page.locator('text=Expense Records & History')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Expense Records & History').first()).toBeVisible({ timeout: 10000 });
 
     // Verify entries count text is visible
-    const headerInfo = page.locator('text=entries found');
+    const headerInfo = page.locator('text=entries found').first();
     await expect(headerInfo).toBeVisible();
   });
 

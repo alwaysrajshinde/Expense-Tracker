@@ -14,7 +14,7 @@ test.describe('Area F: Analytics, Reports & Math Calculations', () => {
     await page.locator('button:has-text("Reports")').first().click();
 
     // Verify main header
-    await expect(page.locator('text=Spending & Expense Analytics')).toBeVisible();
+    await expect(page.locator('text=Spending & Expense Analytics').first()).toBeVisible();
 
     // Verify tabs
     await expect(page.locator('button:has-text("Overview")').first()).toBeVisible();

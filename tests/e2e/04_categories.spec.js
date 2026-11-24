@@ -36,12 +36,11 @@ test.describe('Area D: Categories & Payment Modes', () => {
     const addBtn = page.locator('button:has-text("Add Expense")').first();
     await addBtn.click();
 
-    // Verify all 5 payment mode options
+    // Verify payment mode options (UPI, Cash, Card, Bank)
     await expect(page.locator('button:has-text("UPI")').first()).toBeVisible();
     await expect(page.locator('button:has-text("Cash")').first()).toBeVisible();
-    await expect(page.locator('button:has-text("Credit Card")').first()).toBeVisible();
-    await expect(page.locator('button:has-text("Debit Card")').first()).toBeVisible();
-    await expect(page.locator('button:has-text("Net Banking")').first()).toBeVisible();
+    await expect(page.locator('button:has-text("Card")').first()).toBeVisible();
+    await expect(page.locator('button:has-text("Bank")').first()).toBeVisible();
 
     await page.keyboard.press('Escape');
   });

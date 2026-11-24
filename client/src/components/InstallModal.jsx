@@ -36,6 +36,15 @@ export default function InstallModal({ isOpen, onClose }) {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleNativeInstall = async () => {
@@ -55,6 +64,10 @@ export default function InstallModal({ isOpen, onClose }) {
     >
       <div className="fixed inset-0" onClick={onClose} />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Install PocketNook"
+        data-testid="install-app-modal"
         className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto"
         style={{ overscrollBehavior: 'contain' }}
       >
@@ -71,6 +84,7 @@ export default function InstallModal({ isOpen, onClose }) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
           >
             <X size={16} />
@@ -161,6 +175,17 @@ export default function InstallModal({ isOpen, onClose }) {
                   PocketNook will appear as a native app icon on your iPhone home screen.
                 </div>
               </div>
+            </div>
+
+            {/* iOS Chrome Note */}
+            <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-900 dark:text-purple-200 space-y-1">
+              <div className="font-bold flex items-center gap-1.5">
+                <Sparkles size={13} className="text-[#6C47FF] dark:text-[#C084FC]" />
+                <span>Using Chrome on iPhone?</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+                Tap the <strong>Share</strong> button in Chrome &rarr; scroll to <strong>"Add to Home Screen"</strong>, or open the link in <strong>Safari</strong> for the full standalone PWA experience.
+              </p>
             </div>
           </div>
         ) : (

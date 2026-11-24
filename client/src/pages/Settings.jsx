@@ -183,13 +183,22 @@ export default function Settings({
     }
   }, [initialSection, isDesktopScreen]);
 
-  // Body scroll lock while modal is open to prevent unwanted background scrolling
+  // Body scroll lock & Escape key handler while modal is open
   useEffect(() => {
     if (activeModal) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
+
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          closeModal();
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+
       return () => {
         document.body.style.overflow = originalOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
       };
     }
   }, [activeModal]);
@@ -1466,6 +1475,7 @@ export default function Settings({
                   </div>
                   <button
                     type="button"
+                    data-testid="desktop-install-pwa-btn"
                     onClick={() => setIsInstallModalOpen(true)}
                     className="w-full mt-2.5 py-2 px-3 rounded-xl border border-slate-200 dark:border-white/10 hover:border-[#6C47FF] text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-[#6C47FF] dark:hover:text-[#C084FC] flex items-center justify-center gap-2 transition-all cursor-pointer bg-white dark:bg-white/5 shadow-xs"
                   >
@@ -2006,6 +2016,7 @@ export default function Settings({
 
               <button
                 type="button"
+                data-testid="mobile-install-pwa-btn"
                 onClick={() => setIsInstallModalOpen(true)}
                 className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
               >
@@ -2127,7 +2138,7 @@ export default function Settings({
                   <p className="text-xs text-slate-400">Set your spending ceiling for {selectedMonth || 'this month'}</p>
                 </div>
               </div>
-              <button onClick={() => closeModal()} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} aria-label="Close dialog" className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -2360,7 +2371,7 @@ export default function Settings({
                   <p className="text-xs text-slate-400">Download your personal financial records</p>
                 </div>
               </div>
-              <button onClick={() => closeModal()} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} aria-label="Close dialog" className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -2465,7 +2476,7 @@ export default function Settings({
                   <p className="text-xs text-slate-400">{user?.email}</p>
                 </div>
               </div>
-              <button onClick={() => closeModal()} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} aria-label="Close dialog" className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -2544,7 +2555,7 @@ export default function Settings({
                   <p className="text-xs text-slate-400">Guides, tours and contact support</p>
                 </div>
               </div>
-              <button onClick={() => closeModal()} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} aria-label="Close dialog" className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -2601,7 +2612,7 @@ export default function Settings({
                   <p className="text-xs text-slate-400">Display name &amp; currency preferences</p>
                 </div>
               </div>
-              <button onClick={() => closeModal()} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} aria-label="Close dialog" className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -2678,7 +2689,7 @@ export default function Settings({
                   <p className="text-xs text-slate-400">Select your preferred app language</p>
                 </div>
               </div>
-              <button onClick={() => closeModal()} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+              <button onClick={() => closeModal()} aria-label="Close dialog" className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
