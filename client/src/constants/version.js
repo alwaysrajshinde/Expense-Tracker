@@ -8,7 +8,7 @@ export const APP_RELEASE_DATE = 'November 24, 2026';
 export const APP_RELEASE_TIME = '03:44 PM';
 export const APP_SHORT_DATE = '24 Nov 2026';
 export const APP_INKED_DATETIME = '24 Nov 2026, 03:44 PM';
-export const APP_BUILD_TIMESTAMP = '2026-11-24T10:14:20.470Z';
+export const APP_BUILD_TIMESTAMP = '2026-11-24T10:14:55.525Z';
 
 // Inked version string combining version number and exact release date & time
 export const APP_INKED_VERSION = `${APP_VERSION} · Updated ${APP_SHORT_DATE} at ${APP_RELEASE_TIME}`;

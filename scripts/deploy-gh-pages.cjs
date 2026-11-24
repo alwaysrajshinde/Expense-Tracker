@@ -1,5 +1,8 @@
 const { execSync } = require('child_process');
 
+console.log('[deploy] Resetting unstaged version file...');
+execSync('git checkout -- client/src/constants/version.js', { stdio: 'inherit' });
+
 console.log('[deploy] Checking out gh-pages branch...');
 execSync('git checkout gh-pages', { stdio: 'inherit' });
 
