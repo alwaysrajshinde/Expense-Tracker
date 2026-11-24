@@ -3,7 +3,7 @@ import {
   User, ShieldCheck, Bell, Info, Shield, HelpCircle, Sparkles,
   Key, Database, History, Sun, Droplets, Heart, CheckCircle2,
   DollarSign, RefreshCw, LogOut, CheckSquare, Layers, Type, Sliders,
-  Camera, CalendarClock, Landmark, Lock
+  Camera, CalendarClock, Landmark, Lock, Smartphone
 } from 'lucide-react';
 import { APP_VERSION, APP_INKED_VERSION } from '../constants/version';
 
@@ -36,6 +36,7 @@ export function buildMoreSearchIndex(context = {}) {
     openTour = () => {},
     openReleaseNotes = () => {},
     openNotifications = () => {},
+    openInstallModal = () => {},
     openPrivacyPolicy = () => {},
     openTermsOfService = () => {},
     exportExcel = () => {},
@@ -667,6 +668,17 @@ export function buildMoreSearchIndex(context = {}) {
       icon: HelpCircle,
       color: '#64748B',
       action: () => openTermsOfService()
+    },
+    {
+      id: 'help_install_app',
+      title: 'Install PocketNook App (iOS & Android)',
+      subtitle: 'Add to iPhone, iPad, Android, or Desktop home screen for full-screen offline use',
+      parentCategory: 'Help & About',
+      keywords: 'install app pwa ios iphone ipad safari add to home screen download apk desktop इन्स्टॉल ॲप',
+      aliases: ['Install App', 'Add to Home Screen', 'iOS Install', 'iPhone App', 'PWA'],
+      icon: Smartphone,
+      color: '#6C47FF',
+      action: () => openInstallModal()
     },
     {
       id: 'help_contact_support',

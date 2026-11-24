@@ -6,7 +6,7 @@ import {
   ExternalLink, LogOut, Bell, Info, Shield, HelpCircle, Palette, Key, CheckCircle2,
   History, ChevronRight, Sliders, Target, FileText, ArrowLeftRight, X, ArrowRight,
   Wifi, WifiOff, Laptop, CheckSquare, Edit2, Calendar, Droplets, Heart, Globe, Search, Type,
-  Camera, CalendarClock, Landmark, Lock
+  Camera, CalendarClock, Landmark, Lock, Smartphone
 } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
 import CustomDropdown from '../components/CustomDropdown';
@@ -14,6 +14,7 @@ import LegalModal from '../components/LegalModal';
 import CategoryManagerModal from '../components/CategoryManagerModal';
 import FontSizeSettingsControl from '../components/FontSizeSettingsControl';
 import ComingSoonPreviewModal from '../components/common/ComingSoonPreviewModal';
+import InstallModal from '../components/InstallModal';
 import { useTheme } from '../context/ThemeContext';
 import { useFontSize } from '../context/FontSizeContext';
 import { useAuth } from '../context/AuthContext';
@@ -95,6 +96,7 @@ export default function Settings({
 
   // Upcoming Features Preview Modal State
   const [activeComingSoonFeature, setActiveComingSoonFeature] = useState(null);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
 
   const handleOpenGoogleSheets = async () => {
     let txs = getLocalTransactions();
@@ -441,6 +443,7 @@ export default function Settings({
       openTour: onOpenTour || (() => {}),
       openReleaseNotes: onOpenReleaseNotes || (() => {}),
       openNotifications: onOpenNotifications || (() => {}),
+      openInstallModal: () => setIsInstallModalOpen(true),
       openPrivacyPolicy: () => setLegalModalType('privacy'),
       openTermsOfService: () => setLegalModalType('terms'),
       exportExcel: handleExcelExport,
@@ -1461,6 +1464,14 @@ export default function Settings({
                     <span>•</span>
                     <span className="text-emerald-500 font-semibold">Offline Vault Active</span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsInstallModalOpen(true)}
+                    className="w-full mt-2.5 py-2 px-3 rounded-xl border border-slate-200 dark:border-white/10 hover:border-[#6C47FF] text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-[#6C47FF] dark:hover:text-[#C084FC] flex items-center justify-center gap-2 transition-all cursor-pointer bg-white dark:bg-white/5 shadow-xs"
+                  >
+                    <Smartphone size={14} className="text-[#6C47FF] dark:text-[#C084FC]" />
+                    <span>Install App Guide (iOS &amp; Desktop)</span>
+                  </button>
                 </div>
               </div>
 
@@ -1987,6 +1998,30 @@ export default function Settings({
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
                       Get help, FAQs and contact support
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsInstallModalOpen(true)}
+                className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center flex-shrink-0 shadow-xs">
+                    <Smartphone size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-1.5">
+                      <span>Install App (iOS &amp; Android)</span>
+                      <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-[#6C47FF]/10 text-[#6C47FF] dark:text-[#C084FC]">
+                        PWA
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      Add to Home Screen for full-screen offline use
                     </div>
                   </div>
                 </div>
@@ -2737,6 +2772,12 @@ export default function Settings({
         isOpen={Boolean(activeComingSoonFeature)}
         featureId={activeComingSoonFeature}
         onClose={() => setActiveComingSoonFeature(null)}
+      />
+
+      {/* PWA Install Modal (iOS, Android & Desktop) */}
+      <InstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
       />
     </div>
   );
