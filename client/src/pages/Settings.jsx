@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   DollarSign, User, Tag, Download, Upload, Database, Check, AlertCircle,
   Plus, Trash2, RefreshCw, FileSpreadsheet, ShieldCheck, Sun, Moon, Sparkles,
@@ -555,7 +556,7 @@ export default function Settings({
   const isEmailVerified = Boolean(user?.emailVerified || user?.isGoogleUser);
 
   return (
-    <div className={`transition-colors ${isDesktopScreen ? 'max-w-6xl mx-auto px-4 sm:px-6 py-4 pb-16 space-y-6' : 'space-y-6 px-3 sm:px-6 lg:px-8 py-3 pb-28 lg:pb-8 max-w-xl mx-auto'}`}>
+    <div className={`transition-colors ${isDesktopScreen ? 'max-w-6xl mx-auto px-4 sm:px-6 py-4 pb-16 space-y-6' : 'space-y-6 px-3 sm:px-6 lg:px-8 py-3 pb-6 lg:pb-8 max-w-xl mx-auto'}`}>
 
       {/* Global Status Banner */}
       {statusMsg && (
@@ -1548,6 +1549,7 @@ export default function Settings({
                 onClick={() => setActiveModal('profile')}
                 role="button"
                 tabIndex={0}
+                data-testid="mobile-profile-card"
                 className="p-4 sm:p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-all active:scale-[0.99] group"
               >
                 <div className="flex items-center gap-3.5">
@@ -2089,10 +2091,10 @@ export default function Settings({
       {/* ========================================================
           SUB-MODAL 1: MONTHLY BUDGET DIALOG
          ======================================================== */}
-      {activeModal === 'budget' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      {activeModal === 'budget' && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" style={{ touchAction: 'none' }}>
           <div className="fixed inset-0" onClick={() => closeModal()} />
-          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
@@ -2176,7 +2178,8 @@ export default function Settings({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================
@@ -2202,10 +2205,10 @@ export default function Settings({
       {/* ========================================================
           SUB-MODAL 3: APPEARANCE & ACCESSIBILITY DIALOG
          ======================================================== */}
-      {activeModal === 'theme' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      {activeModal === 'theme' && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" style={{ touchAction: 'none' }}>
           <div className="fixed inset-0" onClick={() => closeModal()} />
-          <div className="relative w-full max-w-lg bg-white dark:bg-[#18132F] rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-lg bg-white dark:bg-[#18132F] rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
@@ -2314,16 +2317,17 @@ export default function Settings({
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================
           SUB-MODAL 4: EXPORT TRANSACTIONS & DATA BACKUP DIALOG
          ======================================================== */}
-      {activeModal === 'export' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      {activeModal === 'export' && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" style={{ touchAction: 'none' }}>
           <div className="fixed inset-0" onClick={() => closeModal()} />
-          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
@@ -2340,25 +2344,24 @@ export default function Settings({
             </div>
 
             <div className="space-y-3 pt-1">
-              <button
-                type="button"
-                onClick={() => { closeModal(); handleOpenGoogleSheets(); }}
-                className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-500 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all cursor-pointer group"
+              <div
+                className="w-full p-3.5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02] opacity-75 select-none cursor-default"
+                title="Google Sheets export is coming soon"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
                     <FileSpreadsheet size={18} />
                   </div>
                   <div className="text-left">
-                    <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] flex items-center gap-1.5">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                       <span>Google Sheets</span>
                       <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">Coming Soon</span>
                     </div>
                     <div className="text-[11px] text-slate-400">Export &amp; sync directly to Google Drive (Upcoming)</div>
                   </div>
                 </div>
-                <ExternalLink size={16} className="text-slate-400 group-hover:text-[#6C47FF]" />
-              </button>
+                <Lock size={16} className="text-slate-400 shrink-0" />
+              </div>
 
               <button
                 type="button"
@@ -2420,16 +2423,17 @@ export default function Settings({
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================
           SUB-MODAL 5: SECURITY & ACCOUNT DIALOG
          ======================================================== */}
-      {activeModal === 'security' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      {activeModal === 'security' && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" style={{ touchAction: 'none' }}>
           <div className="fixed inset-0" onClick={() => closeModal()} />
-          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
@@ -2498,16 +2502,17 @@ export default function Settings({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================
           SUB-MODAL 6: HELP & SUPPORT DIALOG
          ======================================================== */}
-      {activeModal === 'help' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      {activeModal === 'help' && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" style={{ touchAction: 'none' }}>
           <div className="fixed inset-0" onClick={() => closeModal()} />
-          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
@@ -2554,16 +2559,17 @@ export default function Settings({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================
           SUB-MODAL 7: PROFILE EDIT DIALOG
          ======================================================== */}
-      {activeModal === 'profile' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      {activeModal === 'profile' && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" style={{ touchAction: 'none' }}>
           <div className="fixed inset-0" onClick={() => closeModal()} />
-          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
@@ -2630,16 +2636,17 @@ export default function Settings({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================
           SUB-MODAL 8: LANGUAGE SELECTION DIALOG
          ======================================================== */}
-      {activeModal === 'language' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      {activeModal === 'language' && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" style={{ touchAction: 'none' }}>
           <div className="fixed inset-0" onClick={() => closeModal()} />
-          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-md bg-white dark:bg-[#18132F] rounded-3xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl z-10 space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-[#281D4C] text-[#6C47FF] dark:text-[#C084FC] flex items-center justify-center">
@@ -2700,7 +2707,8 @@ export default function Settings({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Global Legal Modal (Privacy Policy & Terms) */}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   X, Sparkles, Lock, ArrowLeft, ShieldCheck, CheckCircle2,
   FileSpreadsheet, Camera, CalendarClock, Landmark, AlertCircle
@@ -47,9 +48,10 @@ export default function ComingSoonPreviewModal({
     return false;
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fade-in"
+      style={{ touchAction: 'none' }}
       data-testid="coming-soon-preview-overlay"
       role="dialog"
       aria-modal="true"
@@ -60,6 +62,7 @@ export default function ComingSoonPreviewModal({
 
       <div
         className="relative w-full max-w-lg bg-white dark:bg-[#18132F] rounded-3xl p-5 sm:p-6 border border-slate-200/90 dark:border-purple-500/20 shadow-2xl z-10 space-y-4 sm:space-y-5 animate-scale-in max-h-[92vh] overflow-y-auto"
+        style={{ overscrollBehavior: 'contain' }}
         data-testid={`coming-soon-modal-${feature.id}`}
       >
         {/* Top Header Bar */}
@@ -277,6 +280,7 @@ export default function ComingSoonPreviewModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
