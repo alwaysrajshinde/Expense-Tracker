@@ -435,7 +435,7 @@ function MainApp() {
     } else if (tabId === 'backup_restore') {
       handleNavigate({ tab: 'settings', section: 'data' });
     } else if (tabId === 'settings') {
-      handleNavigate({ tab: 'settings', section: 'profile' });
+      handleNavigate({ tab: 'settings', section: null });
     } else {
       handleNavigate({ tab: tabId, section: null });
     }

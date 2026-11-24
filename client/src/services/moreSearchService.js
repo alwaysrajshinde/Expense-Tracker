@@ -478,7 +478,7 @@ export function buildMoreSearchIndex(context = {}) {
       aliases: ['Receipt Scanner', 'Scan Receipt', 'OCR', 'Camera Bill Scanner', 'Bill Scanner', 'Coming Soon', 'Upcoming Features'],
       icon: Camera,
       color: '#10B981',
-      action: () => (openReceiptScanner ? openReceiptScanner() : (openComingSoon ? openComingSoon('receipt_scanner') : openGoogleSheets()))
+      action: () => {}
     },
     {
       id: 'feature_recurring_expenses',
@@ -489,7 +489,7 @@ export function buildMoreSearchIndex(context = {}) {
       aliases: ['Subscriptions', 'Recurring Bills', 'Recurring', 'Burn Rate', 'Bill Alerts', 'Coming Soon', 'Upcoming Features'],
       icon: CalendarClock,
       color: '#6C47FF',
-      action: () => (openRecurring ? openRecurring() : (openComingSoon ? openComingSoon('recurring_expenses') : openGoogleSheets()))
+      action: () => {}
     },
     {
       id: 'feature_bank_auto_sync',

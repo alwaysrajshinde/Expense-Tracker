@@ -180,19 +180,32 @@ export default function Settings({
     }
   }, [initialSection, isDesktopScreen]);
 
-  // Smooth scroll to section on Windows Desktop if initialSection changes
+  // Body scroll lock while modal is open to prevent unwanted background scrolling
   useEffect(() => {
-    if (isDesktopScreen && initialSection) {
+    if (activeModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [activeModal]);
+
+  const scrolledSectionsRef = useRef(new Set());
+
+  // Scroll to section on Windows Desktop ONLY on initial external deep navigation (never on profile or internal clicks)
+  useEffect(() => {
+    if (isDesktopScreen && initialSection && initialSection !== 'profile' && !scrolledSectionsRef.current.has(initialSection)) {
       const targetId = initialSection === 'budget' ? 'desktop-section-budget'
         : initialSection === 'categories' ? 'desktop-section-categories'
         : (initialSection === 'data' || initialSection === 'export') ? 'desktop-section-data'
         : (initialSection === 'account' || initialSection === 'security') ? 'desktop-section-security'
-        : initialSection === 'profile' ? 'desktop-section-profile'
         : null;
       if (targetId) {
         const el = document.getElementById(targetId);
         if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          scrolledSectionsRef.current.add(initialSection);
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
       }
     }
@@ -890,7 +903,7 @@ export default function Settings({
                   </div>
 
                   {/* Category Chips Cloud */}
-                  <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1 pr-2">
+                  <div className="flex flex-wrap gap-2 p-1">
                     {categories.filter(c => !c.archived).map((c) => (
                       <div
                         key={c.id || c.name}
@@ -1080,72 +1093,66 @@ export default function Settings({
                     </button>
                   </div>
 
-                  {/* Desktop Smart Productivity Tools Grid */}
+                  {/* Desktop Upcoming Integrations Preview Grid (Locked / Non-clickable) */}
                   <div className="pt-2">
                     <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-1.5">
-                      <Sparkles size={13} className="text-[#6C47FF] dark:text-[#C084FC]" />
-                      <span>Smart Productivity Tools (Active)</span>
+                      <Lock size={13} className="text-[#6C47FF] dark:text-[#C084FC]" />
+                      <span>Upcoming Features &amp; Integrations (Roadmap)</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      <button
-                        type="button"
+                      <div
                         data-testid="desktop-upcoming-receipt_scanner"
-                        onClick={handleOpenReceiptScanner}
-                        className="p-2.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-500/50 flex items-center gap-2.5 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all cursor-pointer text-left group"
+                        className="p-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex items-center gap-2.5 bg-slate-50/50 dark:bg-white/[0.02] cursor-default select-none pointer-events-none opacity-85 text-left"
                       >
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white bg-emerald-500">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white bg-emerald-500/80">
                           <Camera size={15} />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
+                          <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
                             Receipt Scanner
                           </div>
-                          <div className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
-                            <Sparkles size={8} />
-                            <span>On-Device OCR</span>
+                          <div className="text-[10px] text-purple-600 dark:text-[#C084FC] flex items-center gap-1 font-semibold">
+                            <Lock size={8} />
+                            <span>Coming Soon</span>
                           </div>
                         </div>
-                      </button>
+                      </div>
 
-                      <button
-                        type="button"
+                      <div
                         data-testid="desktop-upcoming-recurring_expenses"
-                        onClick={handleOpenRecurring}
-                        className="p-2.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-500/50 flex items-center gap-2.5 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all cursor-pointer text-left group"
+                        className="p-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex items-center gap-2.5 bg-slate-50/50 dark:bg-white/[0.02] cursor-default select-none pointer-events-none opacity-85 text-left"
                       >
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white bg-[#6C47FF]">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white bg-[#6C47FF]/80">
                           <CalendarClock size={15} />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
+                          <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
                             Recurring Bills
                           </div>
                           <div className="text-[10px] text-purple-600 dark:text-[#C084FC] flex items-center gap-1 font-semibold">
-                            <Sparkles size={8} />
-                            <span>Burn Rate Engine</span>
+                            <Lock size={8} />
+                            <span>Coming Soon</span>
                           </div>
                         </div>
-                      </button>
+                      </div>
 
-                      <button
-                        type="button"
+                      <div
                         data-testid="desktop-upcoming-bank_auto_sync"
-                        onClick={onOpenImport}
-                        className="p-2.5 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-purple-500/50 flex items-center gap-2.5 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all cursor-pointer text-left group"
+                        className="p-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex items-center gap-2.5 bg-slate-50/50 dark:bg-white/[0.02] cursor-default select-none pointer-events-none opacity-85 text-left"
                       >
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white bg-blue-500">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white bg-blue-500/80">
                           <Landmark size={15} />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC]">
+                          <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
                             Statement Import
                           </div>
-                          <div className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1 font-semibold">
-                            <Sparkles size={8} />
-                            <span>Free PDF/CSV</span>
+                          <div className="text-[10px] text-purple-600 dark:text-[#C084FC] flex items-center gap-1 font-semibold">
+                            <Lock size={8} />
+                            <span>Coming Soon</span>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1837,31 +1844,30 @@ export default function Settings({
             </div>
           </div>
 
-          {/* 5. Group: Smart Productivity & Cloud Tools */}
+          {/* 5. Group: Upcoming Features & Roadmap (Locked / Non-clickable) */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-[#6C47FF] dark:text-[#C084FC] uppercase tracking-wider px-1">
-              <Sparkles size={14} />
-              <span>Smart Productivity &amp; Cloud Tools</span>
+              <Lock size={14} />
+              <span>Upcoming Features &amp; Roadmap</span>
             </div>
 
             <div className="rounded-3xl bg-white dark:bg-[#18132F] border border-slate-200/80 dark:border-purple-500/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
-              <button
-                type="button"
+              <div
                 data-testid="upcoming-feature-receipt_scanner"
-                onClick={handleOpenReceiptScanner}
-                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left cursor-default select-none pointer-events-none opacity-85"
               >
                 <div className="flex items-center gap-3.5">
                   <div
-                    className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white bg-[#10B981]"
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white bg-[#10B981]/80"
                   >
                     <Camera size={18} />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2 flex-wrap">
+                    <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
                       <span>Smart Receipt Scanner &amp; OCR</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                        Active · On-Device
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30 flex items-center gap-1">
+                        <Lock size={9} />
+                        Coming Soon
                       </span>
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
@@ -1869,26 +1875,24 @@ export default function Settings({
                     </div>
                   </div>
                 </div>
-                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
-              </button>
+              </div>
 
-              <button
-                type="button"
+              <div
                 data-testid="upcoming-feature-recurring_expenses"
-                onClick={handleOpenRecurring}
-                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left cursor-default select-none pointer-events-none opacity-85"
               >
                 <div className="flex items-center gap-3.5">
                   <div
-                    className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white bg-[#6C47FF]"
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white bg-[#6C47FF]/80"
                   >
                     <CalendarClock size={18} />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2 flex-wrap">
+                    <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
                       <span>Recurring Subscriptions &amp; Bills</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30">
-                        Active · ₹0 Crons
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30 flex items-center gap-1">
+                        <Lock size={9} />
+                        Coming Soon
                       </span>
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
@@ -1896,53 +1900,49 @@ export default function Settings({
                     </div>
                   </div>
                 </div>
-                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
-              </button>
+              </div>
 
-              <button
-                type="button"
+              <div
                 data-testid="upcoming-feature-google_sheets_sync"
-                onClick={handleOpenGoogleSheets}
-                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left cursor-default select-none pointer-events-none opacity-85"
               >
                 <div className="flex items-center gap-3.5">
                   <div
-                    className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white bg-[#10B981]"
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white bg-[#10B981]/80"
                   >
                     <FileSpreadsheet size={18} />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2 flex-wrap">
+                    <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
                       <span>Google Sheets Cloud Export &amp; Sync</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                        Active · Free Tier
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30 flex items-center gap-1">
+                        <Lock size={9} />
+                        Coming Soon
                       </span>
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
-                      1-Click direct export &amp; sync to personal Google Drive
+                      Direct 1-click cloud sync &amp; export to personal Google Drive
                     </div>
                   </div>
                 </div>
-                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
-              </button>
+              </div>
 
-              <button
-                type="button"
+              <div
                 data-testid="upcoming-feature-bank_auto_sync"
-                onClick={onOpenImport}
-                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                className="w-full min-h-[48px] p-4 flex items-center justify-between text-left cursor-default select-none pointer-events-none opacity-85"
               >
                 <div className="flex items-center gap-3.5">
                   <div
-                    className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white bg-[#3B82F6]"
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs border border-purple-500/20 text-white bg-[#3B82F6]/80"
                   >
                     <Landmark size={18} />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#6C47FF] dark:group-hover:text-[#C084FC] transition-colors flex items-center gap-2 flex-wrap">
+                    <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
                       <span>Smart Bank Statement Import</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-                        Active · Zero API Fee
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-[#6C47FF] dark:text-[#C084FC] border border-purple-500/30 flex items-center gap-1">
+                        <Lock size={9} />
+                        Coming Soon
                       </span>
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
@@ -1950,8 +1950,7 @@ export default function Settings({
                     </div>
                   </div>
                 </div>
-                <ChevronRight size={18} className="text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
-              </button>
+              </div>
             </div>
           </div>
 
